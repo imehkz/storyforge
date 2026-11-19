@@ -36,10 +36,7 @@ const server = http.createServer(async (req,res) => {
         });
         const data = await response.json();
         if (!response.ok) return send(res, response.status, {error:data.error?.message || "เรียกใช้ AI ไม่สำเร็จ"});
-        const output = (data.output || []).flatMap(x => x.content || []).filter(x => x.type === "output_text").map(x => x.text).join("\n");
-        send(res, 200, {text: output || "AI ไม่ได้ส่งข้อความกลับมา"});
-      } catch(e) { send(res, 500, {error:"เกิดข้อผิดพลาด: " + e.message}); }
-    });
+        fs.readFile(target, (err, data) => {
     return;
   }
   const pathname = decodeURIComponent((req.url || "/").split("?")[0]);
