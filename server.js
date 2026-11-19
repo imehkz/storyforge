@@ -4,7 +4,7 @@ const path = require("path");
 const crypto = require("crypto");
 
 const PORT = process.env.PORT || 3000;
-const ROOT = path.join(__dirname, "public");
+const ROOT = path.resolve(__dirname, "public");
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -16,12 +16,16 @@ const MIME = {
 
 const MAX_BACKUP_BYTES = 35 * 1024 * 1024;
 const MAX_REQUEST_BYTES = 40 * 1024 * 1024;
+const MAX_AI_REQUEST_BYTES = 1024 * 1024;
 
 function send(res, status, body, type = "application/json; charset=utf-8") {
+  if (res.headersSent || res.destroyed) return;
+
   res.writeHead(status, {
     "Content-Type": type,
     "X-Content-Type-Options": "nosniff"
   });
+
   res.end(typeof body === "string" ? body : JSON.stringify(body));
 }
 
@@ -57,7 +61,14 @@ function readBody(req, limit) {
 }
 
 function validSecret(received, expected) {
-  if (!received || !expected) return false;
+  if (
+    typeof received !== "string" ||
+    typeof expected !== "string" ||
+    !received ||
+    !expected
+  ) {
+    return false;
+  }
 
   const a = Buffer.from(received);
   const b = Buffer.from(expected);
@@ -66,6 +77,18 @@ function validSecret(received, expected) {
 
   return crypto.timingSafeEqual(a, b);
 }
+
+async function parseResponse(response) {
+  try {
+    return await response.json();
+  } catch {
+    return {};
+  }
+}
+
+// ==========================================
+// TELEGRAM BACKUP
+// ==========================================
 
 async function telegramBackup(req, res) {
   try {
@@ -98,7 +121,11 @@ async function telegramBackup(req, res) {
       });
     }
 
-    if (typeof body.content !== "string" || !body.content.length) {
+    if (
+      !body ||
+      typeof body.content !== "string" ||
+      !body.content.length
+    ) {
       return send(res, 400, {
         error: "ไม่พบข้อมูลสำรอง"
       });
@@ -112,7 +139,9 @@ async function telegramBackup(req, res) {
       });
     }
 
-    const filename = String(body.filename || "storyforge-backup.json")
+    const filename = String(
+      body.filename || "storyforge-backup.json"
+    )
       .replace(/[^a-zA-Z0-9ก-๙._-]/g, "_")
       .slice(0, 100);
 
@@ -131,14 +160,18 @@ async function telegramBackup(req, res) {
       `https://api.telegram.org/bot${botToken}/sendDocument`,
       {
         method: "POST",
-        body: form
+        body: form,
+        signal: AbortSignal.timeout(30000)
       }
     );
 
-    const result = await telegramResponse.json();
+    const result = await parseResponse(telegramResponse);
 
     if (!telegramResponse.ok || !result.ok) {
-      console.error("Telegram backup failed:", result.description || "Unknown error");
+      console.error(
+        "Telegram backup failed:",
+        result.description || "Unknown error"
+      );
 
       return send(res, 502, {
         error: "Telegram ไม่สามารถรับไฟล์สำรองได้"
@@ -166,133 +199,179 @@ async function telegramBackup(req, res) {
   }
 }
 
-const server = http.createServer((req, res) => {
+// ==========================================
+// OPENAI AI API
+// ==========================================
 
-  // Telegram Backup API
+async function runAgent(req, res) {
+  try {
+    const raw = await readBody(req, MAX_AI_REQUEST_BYTES);
+
+    let body;
+
+    try {
+      body = JSON.parse(raw || "{}");
+    } catch {
+      return send(res, 400, {
+        error: "รูปแบบข้อมูลไม่ถูกต้อง"
+      });
+    }
+
+    const {
+      prompt,
+      mode = "writer",
+      context = ""
+    } = body;
+
+    if (!process.env.OPENAI_API_KEY) {
+      return send(res, 503, {
+        error: "ยังไม่ได้ตั้งค่า OPENAI_API_KEY ใน Render"
+      });
+    }
+
+    if (!prompt || !String(prompt).trim()) {
+      return send(res, 400, {
+        error: "กรุณาพิมพ์คำสั่งก่อน"
+      });
+    }
+
+    const instructions = {
+      brainstorm:
+        "คุณคือผู้ช่วยพัฒนาพล็อตนิยาย ช่วยคิดไอเดียอย่างสร้างสรรค์ เป็นระบบ และถามกลับเมื่อข้อมูลไม่พอ",
+
+      writer:
+        "คุณคือนักเขียนนิยายมืออาชีพ เขียนภาษาไทยลื่นไหล มีฉาก อารมณ์ บทสนทนา และความต่อเนื่อง",
+
+      editor:
+        "คุณคือบรรณาธิการนิยาย ตรวจภาษา จังหวะเรื่อง ความสมเหตุสมผล และเสนอวิธีแก้โดยรักษาเสียงของผู้เขียน",
+
+      publisher:
+        "คุณคือผู้เชี่ยวชาญการจัดทำต้นฉบับ ช่วยทำคำโปรย เรื่องย่อ ชื่อเรื่อง และข้อมูลประกอบการเผยแพร่"
+    };
+
+    const response = await fetch(
+      "https://api.openai.com/v1/responses",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+          instructions: instructions[mode] || instructions.writer,
+          input:
+            `บริบทโครงการ:\n${String(context)}\n\n` +
+            `คำสั่ง:\n${String(prompt)}`
+        }),
+        signal: AbortSignal.timeout(60000)
+      }
+    );
+
+    const data = await parseResponse(response);
+
+    if (!response.ok) {
+      console.error(
+        "OpenAI API error:",
+        data.error?.message || response.status
+      );
+
+      return send(res, response.status, {
+        error: data.error?.message || "เรียกใช้ AI ไม่สำเร็จ"
+      });
+    }
+
+    const output = (data.output || [])
+      .flatMap(item => item.content || [])
+      .filter(item => item.type === "output_text")
+      .map(item => item.text)
+      .join("\n");
+
+    return send(res, 200, {
+      text: output || "AI ไม่ได้ส่งข้อความกลับมา"
+    });
+
+  } catch (error) {
+    if (error.message === "REQUEST_TOO_LARGE") {
+      return send(res, 413, {
+        error: "คำขอมีขนาดใหญ่เกินกำหนด"
+      });
+    }
+
+    console.error("OpenAI request error:", error.message);
+
+    return send(res, 500, {
+      error: "เกิดข้อผิดพลาดในการเชื่อมต่อ AI กรุณาลองอีกครั้ง"
+    });
+  }
+}
+
+// ==========================================
+// HTTP SERVER
+// ==========================================
+
+const server = http.createServer((req, res) => {
+  const pathname = (req.url || "/").split("?")[0];
+
   if (
     req.method === "POST" &&
-    req.url.split("?")[0] === "/api/telegram-backup"
+    pathname === "/api/telegram-backup"
   ) {
     return telegramBackup(req, res);
   }
 
-  // Original AI API
   if (
     req.method === "POST" &&
-    req.url === "/api/agent"
+    pathname === "/api/agent"
   ) {
-    let raw = "";
-
-    req.on("data", chunk => {
-      raw += chunk;
-
-      if (raw.length > 1e6) {
-        req.destroy();
-      }
-    });
-
-    req.on("end", async () => {
-      try {
-        const { prompt, mode = "writer", context = "" } =
-          JSON.parse(raw || "{}");
-
-        if (!process.env.OPENAI_API_KEY) {
-          return send(res, 503, {
-            error: "ยังไม่ได้ตั้งค่า OPENAI_API_KEY ใน Render"
-          });
-        }
-
-        if (!prompt || !String(prompt).trim()) {
-          return send(res, 400, {
-            error: "กรุณาพิมพ์คำสั่งก่อน"
-          });
-        }
-
-        const instructions = {
-          brainstorm: "คุณคือผู้ช่วยพัฒนาพล็อตนิยาย ช่วยคิดไอเดียอย่างสร้างสรรค์ เป็นระบบ และถามกลับเมื่อข้อมูลไม่พอ",
-
-          writer: "คุณคือนักเขียนนิยายมืออาชีพ เขียนภาษาไทยลื่นไหล มีฉาก อารมณ์ บทสนทนา และความต่อเนื่อง",
-
-          editor: "คุณคือบรรณาธิการนิยาย ตรวจภาษา จังหวะเรื่อง ความสมเหตุสมผล และเสนอวิธีแก้โดยรักษาเสียงของผู้เขียน",
-
-          publisher: "คุณคือผู้เชี่ยวชาญการจัดทำต้นฉบับ ช่วยทำคำโปรย เรื่องย่อ ชื่อเรื่อง และข้อมูลประกอบการเผยแพร่"
-        };
-
-        const response = await fetch(
-          "https://api.openai.com/v1/responses",
-          {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
-              instructions: instructions[mode] || instructions.writer,
-              input: `บริบทโครงการ:\n${context}\n\nคำสั่ง:\n${prompt}`
-            })
-          }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          return send(res, response.status, {
-            error: data.error?.message || "เรียกใช้ AI ไม่สำเร็จ"
-          });
-        }
-
-        const output = (data.output || [])
-          .flatMap(x => x.content || [])
-          .filter(x => x.type === "output_text")
-          .map(x => x.text)
-          .join("\n");
-
-        send(res, 200, {
-          text: output || "AI ไม่ได้ส่งข้อความกลับมา"
-        });
-
-      } catch (e) {
-        send(res, 500, {
-          error: "เกิดข้อผิดพลาด: " + e.message
-        });
-      }
-    });
-
-    return;
+    return runAgent(req, res);
   }
 
-  // Original website file server
-  const pathname = decodeURIComponent(
-    (req.url || "/").split("?")[0]
-  );
+  // Website files
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    return send(res, 405, "Method Not Allowed", "text/plain");
+  }
 
-  const target = path.join(
-    ROOT,
-    pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "")
-  );
+  let decodedPath;
+
+  try {
+    decodedPath = decodeURIComponent(pathname);
+  } catch {
+    return send(res, 400, "Bad Request", "text/plain");
+  }
+
+  const relativePath =
+    decodedPath === "/" ? "index.html" : decodedPath.replace(/^\/+/, "");
+
+  const target = path.resolve(ROOT, relativePath);
 
   if (
-    !target.startsWith(ROOT + path.sep) &&
-    target !== path.join(ROOT, "index.html")
+    target !== ROOT &&
+    !target.startsWith(ROOT + path.sep)
   ) {
     return send(res, 403, "Forbidden", "text/plain");
   }
 
-  fs.readFile(target, (err, data) => {
-    if (err) {
+  fs.readFile(target, (error, data) => {
+    if (error) {
       return send(res, 404, "Not found", "text/plain");
     }
 
     res.writeHead(200, {
-      "Content-Type": MIME[path.extname(target)] || "application/octet-stream",
+      "Content-Type":
+        MIME[path.extname(target)] || "application/octet-stream",
       "X-Content-Type-Options": "nosniff"
     });
 
+    if (req.method === "HEAD") {
+      return res.end();
+    }
+
+    // สำคัญ: ส่ง Buffer โดยตรง ห้ามใช้ JSON.stringify(data)
     res.end(data);
   });
 });
 
 server.listen(PORT, () => {
-  console.log(`STORYFORGE running on ${PORT}`);
+  console.log(`STORYFORGE running on port ${PORT}`);
 });
