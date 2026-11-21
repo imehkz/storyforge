@@ -610,61 +610,13 @@ function setupEvents() {
     alert("บันทึกความจำแล้ว");
   };
 
-  // AI Writer
-  $("run").onclick = async () => {
-
-    const prompt = $("prompt").value;
-
-    if (!prompt.trim()) {
-      alert("กรุณาพิมพ์คำสั่ง");
-      return;
-    }
-
-    $("run").disabled = true;
-    $("run").textContent = "กำลังทำงาน...";
-    $("output").textContent = "กำลังเชื่อมต่อ AI...";
-
-    try {
-
-      const context = [
-        `ชื่อโครงการ: ${$("title").value}`,
-        `แนว: ${$("genre").value}`,
-        $("context").value,
-        $("projectMemory").value,
-        $("globalMemory").value
-      ].join("\n\n");
-
-      const response = await fetch("/api/agent", {
-
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json"
-        },
-
-        body: JSON.stringify({
-          prompt,
-          mode,
-          context
-        })
-      });
-
-      const result = await response.json();
-
-      $("output").textContent =
-        result.text || result.error || "ไม่พบคำตอบ";
-
-    } catch (error) {
-
-      $("output").textContent =
-        "เชื่อมต่อไม่สำเร็จ: " + error.message;
-
-    } finally {
-
-      $("run").disabled = false;
-      $("run").textContent = "✦ เริ่มทำงานกับ AI";
-    }
-  };
+  // AI Writer — deliberately disabled until per-user Copilot OAuth is implemented.
+  $("run").disabled = true;
+  $("run").title = "Copilot integration is not enabled in this private beta build";
+  $("output").textContent =
+    "Copilot ยังไม่เปิดใช้งานในรุ่นทดสอบส่วนตัวนี้\n\n" +
+    "ระบบจะไม่เรียก OpenAI API หรือบริการ AI แบบคิดเงินแทนโดยอัตโนมัติ " +
+    "จนกว่าจะติดตั้ง GitHub OAuth, Copilot SDK และการแยกสิทธิ์ผู้ใช้ครบถ้วน";
 
   // Copy AI output
   $("copy").onclick = () => {
