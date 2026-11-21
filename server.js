@@ -200,113 +200,6 @@ async function telegramBackup(req, res) {
 }
 
 // ==========================================
-// OPENAI AI API
-// ==========================================
-
-async function runAgent(req, res) {
-  try {
-    const raw = await readBody(req, MAX_AI_REQUEST_BYTES);
-
-    let body;
-
-    try {
-      body = JSON.parse(raw || "{}");
-    } catch {
-      return send(res, 400, {
-        error: "รูปแบบข้อมูลไม่ถูกต้อง"
-      });
-    }
-
-    const {
-      prompt,
-      mode = "writer",
-      context = ""
-    } = body;
-
-    if (!process.env.OPENAI_API_KEY) {
-      return send(res, 503, {
-        error: "ยังไม่ได้ตั้งค่า OPENAI_API_KEY ใน Render"
-      });
-    }
-
-    if (!prompt || !String(prompt).trim()) {
-      return send(res, 400, {
-        error: "กรุณาพิมพ์คำสั่งก่อน"
-      });
-    }
-
-    const instructions = {
-      brainstorm:
-        "คุณคือผู้ช่วยพัฒนาพล็อตนิยาย ช่วยคิดไอเดียอย่างสร้างสรรค์ เป็นระบบ และถามกลับเมื่อข้อมูลไม่พอ",
-
-      writer:
-        "คุณคือนักเขียนนิยายมืออาชีพ เขียนภาษาไทยลื่นไหล มีฉาก อารมณ์ บทสนทนา และความต่อเนื่อง",
-
-      editor:
-        "คุณคือบรรณาธิการนิยาย ตรวจภาษา จังหวะเรื่อง ความสมเหตุสมผล และเสนอวิธีแก้โดยรักษาเสียงของผู้เขียน",
-
-      publisher:
-        "คุณคือผู้เชี่ยวชาญการจัดทำต้นฉบับ ช่วยทำคำโปรย เรื่องย่อ ชื่อเรื่อง และข้อมูลประกอบการเผยแพร่"
-    };
-
-    const response = await fetch(
-      "https://api.openai.com/v1/responses",
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
-          instructions: instructions[mode] || instructions.writer,
-          input:
-            `บริบทโครงการ:\n${String(context)}\n\n` +
-            `คำสั่ง:\n${String(prompt)}`
-        }),
-        signal: AbortSignal.timeout(60000)
-      }
-    );
-
-    const data = await parseResponse(response);
-
-    if (!response.ok) {
-      console.error(
-        "OpenAI API error:",
-        data.error?.message || response.status
-      );
-
-      return send(res, response.status, {
-        error: data.error?.message || "เรียกใช้ AI ไม่สำเร็จ"
-      });
-    }
-
-    const output = (data.output || [])
-      .flatMap(item => item.content || [])
-      .filter(item => item.type === "output_text")
-      .map(item => item.text)
-      .join("\n");
-
-    return send(res, 200, {
-      text: output || "AI ไม่ได้ส่งข้อความกลับมา"
-    });
-
-  } catch (error) {
-    if (error.message === "REQUEST_TOO_LARGE") {
-      return send(res, 413, {
-        error: "คำขอมีขนาดใหญ่เกินกำหนด"
-      });
-    }
-
-    console.error("OpenAI request error:", error.message);
-
-    return send(res, 500, {
-      error: "เกิดข้อผิดพลาดในการเชื่อมต่อ AI กรุณาลองอีกครั้ง"
-    });
-  }
-}
-
-// ==========================================
 // HTTP SERVER
 // ==========================================
 
@@ -318,13 +211,6 @@ const server = http.createServer((req, res) => {
     pathname === "/api/telegram-backup"
   ) {
     return telegramBackup(req, res);
-  }
-
-  if (
-    req.method === "POST" &&
-    pathname === "/api/agent"
-  ) {
-    return runAgent(req, res);
   }
 
   // Website files
