@@ -547,13 +547,14 @@ function load() {
   renderDashboard();
 }
 
-function save() {
+function save(changedKey = "") {
   keys.forEach(key => localStorage.setItem(storageKeyFor(key), $(key).value));
   $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกฉบับกู้คืนในอุปกรณ์นี้แล้ว';
   renderDashboard();
   const count = $("manuscriptBody").value.length;
   if ($("manuscriptCount")) $("manuscriptCount").textContent = count.toLocaleString("th-TH") + " อักขระ";
-  if (cloud.authenticated && cloud.activeProjectId && cloud.activeChapterId) {
+  if (cloud.authenticated && cloud.activeProjectId && cloud.activeChapterId &&
+      ["chapterTitle", "manuscriptBody"].includes(changedKey)) {
     storeLocalChapterDraft(cloud.activeChapterId, {
       title: $("chapterTitle").value, body: $("manuscriptBody").value
     }, cloud.revision);
@@ -657,7 +658,7 @@ function setupEvents() {
 
   // Auto save
   keys.forEach(key => {
-    $(key).addEventListener("input", save);
+    $(key).addEventListener("input", () => save(key));
   });
 
   // Navigation
@@ -1227,6 +1228,8 @@ async function saveCloudChapter() {
   const chapterId = cloud.activeChapterId;
   const expectedRevision = cloud.revision;
   const draft = { title: $("chapterTitle").value, body: $("manuscriptBody").value };
+  const lastSaved = cloud.chapters.find(item => item.id === chapterId);
+  if (lastSaved && lastSaved.title === draft.title && lastSaved.body === draft.body) return true;
   cloud.savePromise = (async () => {
     try {
       const result = await cloudApi("/api/chapters/" + encodeURIComponent(chapterId), {
