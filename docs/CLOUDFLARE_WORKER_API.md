@@ -68,4 +68,4 @@ The browser still keeps a local recovery copy and Global Memory on the device. C
 
 No Cloudflare resource, OAuth app, secret, billing setting, or deployment is created by this repository change.
 
-The chapters collection returns metadata including the persisted Thai-aware `word_count`; the full body is fetched only for the selected chapter. This keeps project-wide dashboard progress efficient even when a novel has many long chapters.
+The chapters collection returns metadata including the persisted `word_count`; the browser supplies Thai-aware counts and the Worker validates/persists them. The full body is fetched only for the selected chapter, keeping project-wide dashboard progress efficient without spending Worker CPU on segmentation of every manuscript.
