@@ -780,6 +780,7 @@ function setupEvents() {
   $("saveMemory").onclick = async () => {
     save();
     if (cloud.authenticated && cloud.activeProjectId) {
+      localStorage.setItem("sf_cloud_memory_" + cloud.activeProjectId, $("projectMemory").value);
       try {
         const payload = {
           title: "ความจำโครงการ",
@@ -974,7 +975,8 @@ async function loadCloudProject(projectId) {
   const rememberedChapter = localStorage.getItem("sf_cloud_active_chapter_" + projectId) || "";
   const memoryNote = (noteResult.items || []).find(note => note.note_type === "project_memory");
   cloud.noteId = memoryNote?.id || "";
-  if ($("projectMemory")) $("projectMemory").value = memoryNote?.content || "";
+  if ($("projectMemory")) $("projectMemory").value =
+    memoryNote?.content || localStorage.getItem("sf_cloud_memory_" + project.id) || "";
   renderChapterSelect();
   const preferred = cloud.chapters.find(item => item.id === cloud.activeChapterId) ||
     cloud.chapters.find(item => item.id === rememberedChapter) || cloud.chapters[0];
@@ -1445,6 +1447,7 @@ async function importLocalNovelData() {
         });
       }
       if (localProject === activeLocalProject && localStorage.getItem("sf_projectMemory")) {
+        localStorage.setItem("sf_cloud_memory_" + projectResult.project.id, localStorage.getItem("sf_projectMemory"));
         map[localId].memoryNoteId = map[localId].memoryNoteId || crypto.randomUUID();
         await cloudApi("/api/projects/" + encodeURIComponent(projectResult.project.id) + "/notes", {
           method: "POST",
