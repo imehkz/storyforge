@@ -960,6 +960,7 @@ async function deleteCloudProject(projectId) {
         $("projectMemory").value = "";
         cloud.chapters = [];
         cloud.modules = { characters: [], relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: [] };
+        resetCharacterForm();
         localStorage.removeItem("sf_cloud_active_project_id");
         renderChapterSelect();
         renderModuleLists();
@@ -1696,6 +1697,7 @@ async function refreshAuthStatus() {
       cloud.activeChapterId = "";
       cloud.noteId = "";
       cloud.modules = { characters: [], relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: [] };
+      resetCharacterForm();
       state.textContent = "เซสชันหมดอายุหรือโทเคนตรวจสอบไม่ตรงกัน · กรุณาเข้าสู่ระบบใหม่";
       login.hidden = false;
       logout.hidden = true;
