@@ -1506,7 +1506,12 @@ async function refreshAuthStatus() {
       });
       renderProjects();
       renderModuleLists();
+      if ($("chapterHistory")) $("chapterHistory").hidden = true;
+      if ($("reloadChapter")) $("reloadChapter").hidden = true;
+      if ($("recoverLocalDraft")) $("recoverLocalDraft").hidden = true;
       renderDashboard();
+      const disclosure = document.querySelector(".local-disclosure");
+      if (disclosure) disclosure.textContent = "เซสชันหมดอายุ · ข้อมูลฉบับกู้คืนยังอยู่ในอุปกรณ์นี้";
       return;
     }
     if (!response.ok) throw new Error("ตรวจสอบบัญชีไม่สำเร็จ");
