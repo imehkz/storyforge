@@ -66,7 +66,7 @@ const cookie = (name, value, maxAge, path = "/") =>
 const clearCookie = (name, path = "/") =>
   `${name}=; Path=${path}; Max-Age=0; Secure; HttpOnly; SameSite=Lax`;
 const csrfCookie = (value, maxAge = SESSION_TTL_SECONDS) =>
-  `${CSRF_COOKIE}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; Secure; SameSite=Strict`;
+  `${CSRF_COOKIE}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; Secure; HttpOnly; SameSite=Strict`;
 
 const readJson = async (request, maxBytes = 64 * 1024) => {
   const declared = Number(request.headers.get("Content-Length") || 0);
