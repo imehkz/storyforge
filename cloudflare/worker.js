@@ -45,7 +45,9 @@ const cookieValue = (request, name) => {
   for (const part of raw.split(";")) {
     const index = part.indexOf("=");
     if (index < 0) continue;
-    if (part.slice(0, index).trim() === name) return decodeURIComponent(part.slice(index + 1).trim());
+    if (part.slice(0, index).trim() === name) {
+      try { return decodeURIComponent(part.slice(index + 1).trim()); } catch { return null; }
+    }
   }
   return null;
 };
@@ -106,6 +108,8 @@ async function requireSession(request, env, mutate = false) {
   const session = await getSession(request, env);
   if (!session) throw new Error("UNAUTHENTICATED");
   if (mutate) {
+    const origin = request.headers.get("Origin") || "";
+    if (!origin || origin !== new URL(request.url).origin) throw new Error("FORBIDDEN");
     const supplied = request.headers.get("X-CSRF-Token") || "";
     const csrfCookieValue = cookieValue(request, "storyforge_csrf") || "";
     if (!supplied || !csrfCookieValue || !safeEqual(supplied, csrfCookieValue) ||
