@@ -134,6 +134,8 @@ const expectInvalidBackup = (mutate, message) => {
 };
 expectInvalidBackup(copy => copy.push(JSON.parse(JSON.stringify(copy[0]))), /รหัสโครงการซ้ำ/);
 expectInvalidBackup(copy => { copy[0].chapters[0].body = 123; }, /ข้อมูลบทนิยาย/);
+expectInvalidBackup(copy => { delete copy[0].modules.notes; }, /โครงสร้างโครงการ/);
+expectInvalidBackup(copy => { copy[0].chapters[0].word_count = 99; }, /ข้อมูลบทนิยาย/);
 expectInvalidBackup(copy => {
   copy[0].modules.relationships.push({
     id: "44444444-4444-4444-8444-444444444444",
