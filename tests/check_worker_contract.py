@@ -45,6 +45,7 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("X-CSRF-Token", WORKER)
         self.assertIn('request.headers.get("Origin")', WORKER)
         self.assertIn("__Host-storyforge_csrf", WORKER)
+        self.assertIn("cookieValue(request, CSRF_COOKIE)", WORKER)
         self.assertIn("HttpOnly; SameSite=Strict", WORKER)
         self.assertIn('headers.append("Set-Cookie", item)', WORKER)
         self.assertIn("revoked_at", WORKER)
