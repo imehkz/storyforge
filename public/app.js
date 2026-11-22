@@ -69,8 +69,9 @@ async function cloudApi(path, options = {}) {
 
 function hasLocalNovelData() {
   const projects = safeJSON(localStorage.getItem("sf_projects") || "[]", []);
+  const importableKeys = ["title", "genre", "context", "chapterTitle", "manuscriptBody", "projectMemory"];
   return (Array.isArray(projects) && projects.length > 0) ||
-    keys.some(key => Boolean(localStorage.getItem(storageKeyFor(key))));
+    importableKeys.some(key => Boolean(localStorage.getItem(storageKeyFor(key))));
 }
 
 function localProjectsForImport() {
