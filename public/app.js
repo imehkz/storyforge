@@ -241,6 +241,9 @@ function collectLocalBackup() {
 async function collectCloudBackup() {
   if (!cloud.authenticated || !cloud.ready) return [];
   const projectsResult = await cloudApi("/api/projects");
+  if ((projectsResult.projects || []).length >= 200) {
+    throw new Error("มีโครงการถึงขีดจำกัดที่ API ส่งกลับ (200 โครงการ) จึงหยุด Backup เพื่อป้องกันไฟล์ไม่ครบ");
+  }
   const projects = [];
   const collections = ["characters", "relationships", "plot-threads", "world-lore", "timeline", "notes"];
   for (const project of (projectsResult.projects || [])) {
@@ -248,6 +251,14 @@ async function collectCloudBackup() {
       cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/chapters"),
       ...collections.map(name => cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/" + name))
     ]);
+    if ((chapterResult.chapters || []).length >= 500) {
+      throw new Error("โครงการ " + (project.title || project.id) + " มีบทถึงขีดจำกัดที่ API ส่งกลับ (500 บท) จึงหยุด Backup เพื่อป้องกันไฟล์ไม่ครบ");
+    }
+    moduleResults.forEach((result, index) => {
+      if ((result.items || []).length >= 100) {
+        throw new Error("โครงการ " + (project.title || project.id) + " หมวด " + collections[index] + " มีรายการถึงขีดจำกัดที่ API ส่งกลับ (100 รายการ) จึงหยุด Backup เพื่อป้องกันไฟล์ไม่ครบ");
+      }
+    });
     const chapters = await Promise.all((chapterResult.chapters || []).map(async chapter => {
       const detail = await cloudApi("/api/chapters/" + encodeURIComponent(chapter.id));
       return detail.chapter;
@@ -470,7 +481,92 @@ function setupAutoBackup() {
 // RESTORE BACKUP
 // ==========================================
 
+function validateCloudBackupData(backupProjects) {
+  if (!Array.isArray(backupProjects)) throw new Error("ข้อมูล Cloud Backup ไม่ถูกต้อง");
+  const collections = ["characters", "relationships", "plot-threads", "world-lore", "timeline", "notes"];
+  const seenProjects = new Set();
+  for (const entry of backupProjects) {
+    const project = entry?.project;
+    if (!project || !UUID_RE.test(project.id || "") || seenProjects.has(project.id) ||
+        !Array.isArray(entry.chapters) || !entry.modules || typeof entry.modules !== "object" || Array.isArray(entry.modules)) {
+      throw new Error("โครงสร้างโครงการใน Backup ไม่ถูกต้อง หรือมีรหัสโครงการซ้ำ");
+    }
+    seenProjects.add(project.id);
+    if (typeof project.title !== "string" || project.title.length > 160 ||
+        (project.genre != null && (typeof project.genre !== "string" || project.genre.length > 100)) ||
+        (project.synopsis != null && (typeof project.synopsis !== "string" || project.synopsis.length > 10000)) ||
+        (project.status != null && !["active", "archived"].includes(project.status))) {
+      throw new Error("ข้อมูลชื่อหรือรายละเอียดโครงการไม่ถูกต้อง");
+    }
+    const chapterIds = new Set();
+    for (const chapter of entry.chapters) {
+      if (!chapter || !UUID_RE.test(chapter.id || "") || chapterIds.has(chapter.id) ||
+          typeof chapter.title !== "string" || chapter.title.length > 240 ||
+          typeof chapter.body !== "string" || chapter.body.length > 500000 ||
+          (chapter.sort_order != null && (!Number.isInteger(chapter.sort_order) || chapter.sort_order < 0 || chapter.sort_order > 1000000)) ||
+          (chapter.word_count != null && (!Number.isInteger(chapter.word_count) || chapter.word_count < 0 || chapter.word_count > 10000000))) {
+        throw new Error("ข้อมูลบทนิยายใน Backup ไม่ถูกต้อง หรือมีรหัสบทซ้ำ");
+      }
+      chapterIds.add(chapter.id);
+    }
+    const characterIds = new Set();
+    for (const collection of collections) {
+      const rows = entry.modules[collection] ?? [];
+      if (!Array.isArray(rows)) throw new Error("ข้อมูลหมวด " + collection + " ใน Backup ไม่ถูกต้อง");
+      const ids = new Set();
+      for (const item of rows) {
+        if (!item || !UUID_RE.test(item.id || "") || ids.has(item.id)) {
+          throw new Error("ข้อมูลหมวด " + collection + " มีรหัสรายการไม่ถูกต้องหรือซ้ำ");
+        }
+        ids.add(item.id);
+        const checkString = (field, max, required = false) => {
+          const value = item[field];
+          if ((required && (typeof value !== "string" || !value.trim())) ||
+              (value != null && (typeof value !== "string" || value.length > max))) {
+            throw new Error("ข้อมูล " + collection + "." + field + " ไม่ถูกต้อง");
+          }
+        };
+        const checkOrder = () => {
+          if (item.sort_order != null && (!Number.isInteger(item.sort_order) || item.sort_order < 0 || item.sort_order > 1000000)) {
+            throw new Error("ลำดับรายการในหมวด " + collection + " ไม่ถูกต้อง");
+          }
+        };
+        if (collection === "characters") {
+          checkString("name", 160, true); checkString("role", 80); checkOrder();
+          if (item.profile_json != null) {
+            try { JSON.parse(typeof item.profile_json === "string" ? item.profile_json : JSON.stringify(item.profile_json)); }
+            catch { throw new Error("ข้อมูลโปรไฟล์ตัวละครไม่ใช่ JSON ที่ถูกต้อง"); }
+            if ((typeof item.profile_json === "string" ? item.profile_json : JSON.stringify(item.profile_json)).length > 20000) throw new Error("ข้อมูลโปรไฟล์ตัวละครยาวเกินกำหนด");
+          }
+          characterIds.add(item.id);
+        } else if (collection === "relationships") {
+          checkString("source_character_id", 80, true); checkString("target_character_id", 80, true);
+          checkString("relationship_type", 100); checkString("description", 5000);
+          if (item.source_character_id === item.target_character_id) throw new Error("ความสัมพันธ์ตัวละครอ้างถึงตัวละครเดียวกัน");
+        } else if (collection === "plot-threads") {
+          checkString("title", 200, true); checkString("summary", 10000); checkOrder();
+          if (item.status != null && !["planned", "in_progress", "completed", "paused"].includes(item.status)) throw new Error("สถานะปมเรื่องไม่ถูกต้อง");
+        } else if (collection === "world-lore") {
+          checkString("category", 80); checkString("title", 200, true); checkString("content", 30000); checkOrder();
+        } else if (collection === "timeline") {
+          checkString("title", 200, true); checkString("description", 10000); checkString("story_time", 120); checkOrder();
+        } else if (collection === "notes") {
+          checkString("title", 200); checkString("content", 30000); checkString("note_type", 60);
+          if (item.pinned != null && ![true, false, 0, 1].includes(item.pinned)) throw new Error("สถานะปักหมุดในบันทึกไม่ถูกต้อง");
+        }
+      }
+    }
+    for (const relation of (entry.modules.relationships || [])) {
+      if (!characterIds.has(relation.source_character_id) || !characterIds.has(relation.target_character_id)) {
+        throw new Error("ความสัมพันธ์ใน Backup อ้างถึงตัวละครที่ไม่มีอยู่ในโครงการเดียวกัน");
+      }
+    }
+  }
+  return true;
+}
+
 async function restoreCloudBackup(backupProjects) {
+  validateCloudBackupData(backupProjects);
   if (!Array.isArray(backupProjects)) throw new Error("ข้อมูล Cloud Backup ไม่ถูกต้อง");
   if (backupProjects.length && (!cloud.authenticated || !cloud.ready)) {
     throw new Error("ไฟล์นี้มีข้อมูล Cloud กรุณาเข้าสู่ระบบ StoryForge ก่อนกู้คืน");
@@ -538,6 +634,7 @@ function restoreFromFile() {
       }
       const cloudProjects = backup.version === 2 ? (backup.cloud?.projects || []) : [];
       if (backup.version === 2 && !Array.isArray(cloudProjects)) throw new Error("ข้อมูล Cloud Backup ไม่ถูกต้อง");
+      if (cloudProjects.length) validateCloudBackupData(cloudProjects);
       if (!entries.length && !cloudProjects.length) throw new Error("ไม่พบข้อมูลสำหรับกู้คืน");
       const confirmed = confirm(
         "ระบบจะดาวน์โหลดข้อมูลปัจจุบันเก็บไว้ก่อน แล้วนำข้อมูลจาก Backup เข้ามาเพิ่ม\n\n" +
