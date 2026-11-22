@@ -1048,6 +1048,46 @@ function renderRelationshipOptions() {
   });
 }
 
+function renderRelationshipGraph() {
+  const target = $("relationshipGraph");
+  if (!target) return;
+  const characters = cloud.modules.characters.slice(0, 12);
+  const relationships = cloud.modules.relationships || [];
+  if (!characters.length || !relationships.length) {
+    target.textContent = "เพิ่มตัวละครและกำหนดความสัมพันธ์เพื่อสร้างแผนผัง";
+    return;
+  }
+  const columns = 4;
+  const nodeWidth = 148;
+  const nodeHeight = 48;
+  const gapX = 28;
+  const gapY = 72;
+  const rows = Math.ceil(characters.length / columns);
+  const width = columns * nodeWidth + (columns - 1) * gapX + 40;
+  const height = rows * (nodeHeight + gapY) + 24;
+  const positions = new Map();
+  characters.forEach((item, index) => {
+    positions.set(item.id, {
+      x: 20 + (index % columns) * (nodeWidth + gapX),
+      y: 12 + Math.floor(index / columns) * (nodeHeight + gapY)
+    });
+  });
+  const edges = relationships.map(rel => {
+    const from = positions.get(rel.source_character_id);
+    const to = positions.get(rel.target_character_id);
+    if (!from || !to) return "";
+    const x1 = from.x + nodeWidth / 2, y1 = from.y + nodeHeight / 2;
+    const x2 = to.x + nodeWidth / 2, y2 = to.y + nodeHeight / 2;
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - 8;
+    return `<g><path d="M ${x1} ${y1} L ${x2} ${y2}" stroke="#8b744e" stroke-width="1.6" fill="none" marker-end="url(#relationArrow)"/><text x="${mx}" y="${my}" fill="#d9c79f" font-size="10" text-anchor="middle">${escapeHtml(rel.relationship_type || "เกี่ยวข้อง")}</text></g>`;
+  }).join("");
+  const nodes = characters.map(item => {
+    const p = positions.get(item.id);
+    return `<g><rect x="${p.x}" y="${p.y}" width="${nodeWidth}" height="${nodeHeight}" rx="5" fill="#18263a" stroke="#b18d4d" stroke-width="1.2"/><text x="${p.x + nodeWidth / 2}" y="${p.y + 20}" fill="#eadbb9" font-size="12" text-anchor="middle">${escapeHtml(item.name.slice(0, 20))}</text><text x="${p.x + nodeWidth / 2}" y="${p.y + 36}" fill="#a99b7e" font-size="9" text-anchor="middle">${escapeHtml(item.role || "ตัวละคร")}</text></g>`;
+  }).join("");
+  target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" width="100%" role="img" aria-label="แผนผังตัวละครและความสัมพันธ์"><defs><marker id="relationArrow" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#8b744e"/></marker></defs>${edges}${nodes}</svg>`;
+}
+
 function renderModuleLists() {
   const characters = cloud.modules.characters || [];
   const relationships = cloud.modules.relationships || [];
@@ -1081,6 +1121,7 @@ function renderModuleLists() {
   render("timelineList", timeline, "timeline", item => item.title, item => [item.story_time, item.description].filter(Boolean).join(" · "));
   render("storyNoteList", notes.filter(item => item.note_type !== "project_memory"), "notes", item => item.title || "บันทึกไม่มีชื่อ", item => item.content);
   renderRelationshipOptions();
+  renderRelationshipGraph();
   document.querySelectorAll("[data-module-delete]").forEach(button => button.addEventListener("click", () => deleteModuleItem(button.dataset.moduleDelete, button.dataset.moduleId)));
   document.querySelectorAll("[data-module-edit]").forEach(button => button.addEventListener("click", () => editModuleItem(button.dataset.moduleEdit, button.dataset.moduleId)));
   if ($("characterCount")) $("characterCount").textContent = characters.length.toLocaleString("th-TH");
