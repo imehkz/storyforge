@@ -898,7 +898,10 @@ async function loadCloudProject(projectId) {
   $("title").value = project.title || "";
   $("genre").value = project.genre || $("genre").options[0]?.value || "";
   $("context").value = project.synopsis || "";
-  localStorage.setItem("sf_active_project_id", project.id);
+  const migrationMap = safeJSON(localStorage.getItem(migrationMapKey()) || "{}", {});
+  const localProjectMatch = Object.entries(migrationMap).find(([, value]) => value.projectId === project.id);
+  if (localProjectMatch) localStorage.setItem("sf_active_project_id", localProjectMatch[0]);
+  else localStorage.removeItem("sf_active_project_id");
   const [chapterResult, noteResult] = await Promise.all([
     cloudApi("/api/projects/" + encodeURIComponent(projectId) + "/chapters"),
     cloudApi("/api/projects/" + encodeURIComponent(projectId) + "/notes")
