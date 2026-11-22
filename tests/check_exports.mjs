@@ -108,3 +108,37 @@ assert.ok(source.includes("clientId: chapter.id"), "Cloud restore preserves stab
 assert.ok(source.includes("version: 2"), "New backup format is versioned");
 assert.ok(source.includes('field === "pinned" ? Boolean(item[field]) : item[field]'), "Cloud restore normalizes SQLite booleans");
 assert.ok(source.includes('if (project.status === "archived")'), "Cloud restore preserves archived project state");
+
+assert.ok(source.includes("ถึงขีดจำกัดที่ API ส่งกลับ"), "Backup refuses collections at API result caps instead of silently omitting records");
+assert.ok(source.includes("validateCloudBackupData(cloudProjects)"), "Cloud restore is preflight-validated before confirmation and writes");
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const validateCloudBackupData = new Function("UUID_RE", extractFunction("validateCloudBackupData") +
+  "\\nreturn validateCloudBackupData;")(UUID_RE);
+const projectId = "11111111-1111-4111-8111-111111111111";
+const characterId = "22222222-2222-4222-8222-222222222222";
+const chapterId = "33333333-3333-4333-8333-333333333333";
+const validCloudBackup = [{
+  project: { id: projectId, title: "ทดสอบ", genre: "แฟนตาซี", synopsis: "", status: "active" },
+  chapters: [{ id: chapterId, title: "บทที่ 1", body: "ทดสอบ", sort_order: 0, word_count: 1 }],
+  modules: {
+    characters: [{ id: characterId, name: "ตัวละคร", role: "", profile_json: "{}", sort_order: 0 }],
+    relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: []
+  }
+}];
+assert.equal(validateCloudBackupData(validCloudBackup), true, "valid cloud backup passes preflight");
+const expectInvalidBackup = (mutate, message) => {
+  const copy = JSON.parse(JSON.stringify(validCloudBackup));
+  mutate(copy);
+  assert.throws(() => validateCloudBackupData(copy), message);
+};
+expectInvalidBackup(copy => copy.push(JSON.parse(JSON.stringify(copy[0]))), /รหัสโครงการซ้ำ/);
+expectInvalidBackup(copy => { copy[0].chapters[0].body = 123; }, /ข้อมูลบทนิยาย/);
+expectInvalidBackup(copy => {
+  copy[0].modules.relationships.push({
+    id: "44444444-4444-4444-8444-444444444444",
+    source_character_id: characterId,
+    target_character_id: "55555555-5555-4555-8555-555555555555"
+  });
+}, /ไม่มีอยู่ในโครงการเดียวกัน/);
+console.log("Cloud backup preflight tests passed: valid archive accepted; duplicate IDs, invalid chapter data, and dangling relationships rejected.");
