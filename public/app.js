@@ -488,11 +488,12 @@ function validateCloudBackupData(backupProjects) {
   for (const entry of backupProjects) {
     const project = entry?.project;
     if (!project || !UUID_RE.test(project.id || "") || seenProjects.has(project.id) ||
-        !Array.isArray(entry.chapters) || !entry.modules || typeof entry.modules !== "object" || Array.isArray(entry.modules)) {
+        !Array.isArray(entry.chapters) || !entry.modules || typeof entry.modules !== "object" || Array.isArray(entry.modules) ||
+        !collections.every(collection => Object.prototype.hasOwnProperty.call(entry.modules, collection))) {
       throw new Error("โครงสร้างโครงการใน Backup ไม่ถูกต้อง หรือมีรหัสโครงการซ้ำ");
     }
     seenProjects.add(project.id);
-    if (typeof project.title !== "string" || project.title.length > 160 ||
+    if (typeof project.title !== "string" || !project.title.trim() || project.title.length > 160 ||
         (project.genre != null && (typeof project.genre !== "string" || project.genre.length > 100)) ||
         (project.synopsis != null && (typeof project.synopsis !== "string" || project.synopsis.length > 10000)) ||
         (project.status != null && !["active", "archived"].includes(project.status))) {
@@ -504,7 +505,8 @@ function validateCloudBackupData(backupProjects) {
           typeof chapter.title !== "string" || chapter.title.length > 240 ||
           typeof chapter.body !== "string" || chapter.body.length > 500000 ||
           (chapter.sort_order != null && (!Number.isInteger(chapter.sort_order) || chapter.sort_order < 0 || chapter.sort_order > 1000000)) ||
-          (chapter.word_count != null && (!Number.isInteger(chapter.word_count) || chapter.word_count < 0 || chapter.word_count > 10000000))) {
+          (chapter.word_count != null && (!Number.isInteger(chapter.word_count) || chapter.word_count < 0 || chapter.word_count > 10000000 ||
+            chapter.word_count !== countWords(chapter.body)))) {
         throw new Error("ข้อมูลบทนิยายใน Backup ไม่ถูกต้อง หรือมีรหัสบทซ้ำ");
       }
       chapterIds.add(chapter.id);
@@ -541,6 +543,7 @@ function validateCloudBackupData(backupProjects) {
           characterIds.add(item.id);
         } else if (collection === "relationships") {
           checkString("source_character_id", 80, true); checkString("target_character_id", 80, true);
+          if (!UUID_RE.test(item.source_character_id) || !UUID_RE.test(item.target_character_id)) throw new Error("รหัสตัวละครในความสัมพันธ์ไม่ถูกต้อง");
           checkString("relationship_type", 100); checkString("description", 5000);
           if (item.source_character_id === item.target_character_id) throw new Error("ความสัมพันธ์ตัวละครอ้างถึงตัวละครเดียวกัน");
         } else if (collection === "plot-threads") {
