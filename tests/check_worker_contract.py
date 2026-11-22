@@ -42,6 +42,7 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("sha256(sessionToken)", WORKER)
         self.assertIn("HttpOnly; SameSite=Lax", WORKER)
         self.assertIn("X-CSRF-Token", WORKER)
+        self.assertIn('request.headers.get("Origin")', WORKER)
         self.assertIn("storyforge_csrf", WORKER)
         self.assertIn("revoked_at", WORKER)
 
@@ -61,12 +62,16 @@ class WorkerContractTests(unittest.TestCase):
         self.assertGreaterEqual(WORKER.count("env.DB.batch(["), 2)
         self.assertIn("expectedRevision", WORKER)
         self.assertIn("resource_type = 'chapter'", WORKER)
+        self.assertIn("/move", WORKER)
+        self.assertIn("sort_order", WORKER)
 
     def test_frontend_has_cloud_project_and_editor_integration(self):
         for fragment in (
             "/api/projects", "/api/chapters/", "scheduleCloudSave",
             "importLocalNovelData", "showChapterHistory",
-            "loadProjectModules", "createModuleItem"
+            "loadProjectModules", "createModuleItem",
+            "moveActiveChapter", "deleteActiveChapter",
+            "toggleCloudProjectArchive", "deleteCloudProject"
         ):
             self.assertIn(fragment, APP)
 
