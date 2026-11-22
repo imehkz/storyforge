@@ -731,6 +731,7 @@ function setupEvents() {
     cloud.activeChapterId = "";
     cloud.revision = 0;
     localStorage.removeItem("sf_active_project_id");
+    localStorage.removeItem("sf_cloud_active_project_id");
     $("title").value = "";
     $("genre").selectedIndex = 0;
     $("context").value = "";
@@ -844,7 +845,8 @@ async function loadCloudProjects() {
   const result = await cloudApi("/api/projects");
   cloud.projects = result.projects || [];
   if (!cloud.projects.some(item => item.id === cloud.activeProjectId)) {
-    cloud.activeProjectId = cloud.projects[0]?.id || "";
+    const remembered = localStorage.getItem("sf_cloud_active_project_id") || "";
+    cloud.activeProjectId = cloud.projects.some(item => item.id === remembered) ? remembered : (cloud.projects[0]?.id || "");
   }
   renderProjects();
   if (cloud.activeProjectId) await loadCloudProject(cloud.activeProjectId);
@@ -879,6 +881,7 @@ async function loadCloudProject(projectId) {
   const result = await cloudApi("/api/projects/" + encodeURIComponent(projectId));
   const project = result.project;
   cloud.activeProjectId = project.id;
+  localStorage.setItem("sf_cloud_active_project_id", project.id);
   $("title").value = project.title || "";
   $("genre").value = project.genre || $("genre").options[0]?.value || "";
   $("context").value = project.synopsis || "";
