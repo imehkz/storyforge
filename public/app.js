@@ -37,6 +37,14 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f
 const storageKeyFor = key => key === "manuscriptBody" ? "sf_manuscript" : "sf_" + key;
 const localMigrationKey = () => "sf_cloud_migrated_" + (cloud.userId || "owner");
 const migrationMapKey = () => "sf_cloud_migration_map_" + (cloud.userId || "owner");
+const localChapterDraftKey = chapterId => "sf_cloud_draft_" + chapterId;
+
+function storeLocalChapterDraft(chapterId, draft, revision = 0) {
+  if (!chapterId) return;
+  localStorage.setItem(localChapterDraftKey(chapterId), JSON.stringify({
+    ...draft, revision, updatedAt: new Date().toISOString()
+  }));
+}
 
 async function cloudApi(path, options = {}) {
   const method = (options.method || "GET").toUpperCase();
@@ -545,7 +553,12 @@ function save() {
   renderDashboard();
   const count = $("manuscriptBody").value.length;
   if ($("manuscriptCount")) $("manuscriptCount").textContent = count.toLocaleString("th-TH") + " อักขระ";
-  if (cloud.authenticated && cloud.activeProjectId && cloud.activeChapterId) scheduleCloudSave();
+  if (cloud.authenticated && cloud.activeProjectId && cloud.activeChapterId) {
+    storeLocalChapterDraft(cloud.activeChapterId, {
+      title: $("chapterTitle").value, body: $("manuscriptBody").value
+    }, cloud.revision);
+    scheduleCloudSave();
+  }
 }
 
 // ==========================================
@@ -1139,6 +1152,13 @@ async function selectCloudChapter(chapterId) {
   cloud.revision = item.revision || 1;
   $("chapterTitle").value = item.title || "";
   $("manuscriptBody").value = item.body || "";
+  const localDraft = safeJSON(localStorage.getItem(localChapterDraftKey(item.id)) || "null", null);
+  const hasRecoverableDraft = Boolean(localDraft &&
+    (localDraft.title !== (item.title || "") || localDraft.body !== (item.body || "")));
+  if ($("recoverLocalDraft")) {
+    $("recoverLocalDraft").hidden = !hasRecoverableDraft;
+    $("recoverLocalDraft").dataset.chapterId = item.id;
+  }
   renderChapterSelect();
   if ($("chapterSaveHint")) $("chapterSaveHint").textContent =
     "บันทึกบทบน Cloud · Revision " + cloud.revision + " · มีฉบับกู้คืนในอุปกรณ์นี้";
@@ -1170,6 +1190,8 @@ async function saveCloudChapter() {
       if (cloud.activeChapterId !== chapterId) return true;
       cloud.revision = result.chapter.revision;
       cloud.chapters = cloud.chapters.map(item => item.id === chapterId ? result.chapter : item);
+      storeLocalChapterDraft(chapterId, { title: result.chapter.title, body: result.chapter.body }, result.chapter.revision);
+      if ($("recoverLocalDraft")) $("recoverLocalDraft").hidden = true;
       renderChapterSelect();
       $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกต้นฉบับบน Cloud แล้ว';
       if ($("chapterSaveHint")) $("chapterSaveHint").textContent =
@@ -1222,6 +1244,25 @@ async function createCloudChapter() {
     $("chapterTitle").focus();
   } catch (error) {
     alert("สร้างบทไม่สำเร็จ: " + error.message);
+  }
+}
+
+async function recoverLocalChapterDraft() {
+  const chapterId = cloud.activeChapterId;
+  if (!chapterId) return;
+  const draft = safeJSON(localStorage.getItem(localChapterDraftKey(chapterId)) || "null", null);
+  if (!draft) return;
+  try {
+    const latest = await cloudApi("/api/chapters/" + encodeURIComponent(chapterId));
+    cloud.chapters = cloud.chapters.map(item => item.id === chapterId ? latest.chapter : item);
+    cloud.revision = latest.chapter.revision;
+    $("chapterTitle").value = draft.title || "";
+    $("manuscriptBody").value = draft.body || "";
+    if ($("recoverLocalDraft")) $("recoverLocalDraft").hidden = true;
+    scheduleCloudSave();
+    $("saveState").textContent = "กู้คืนฉบับในเครื่องแล้ว · กำลังบันทึกเทียบกับ Revision ล่าสุด";
+  } catch (error) {
+    alert("กู้คืนฉบับในเครื่องไม่สำเร็จ: " + error.message);
   }
 }
 
@@ -1414,6 +1455,7 @@ function setupCloudEvents() {
   $("newChapter")?.addEventListener("click", createCloudChapter);
   $("chapterSelect")?.addEventListener("change", event => selectCloudChapter(event.target.value));
   $("chapterHistoryButton")?.addEventListener("click", showChapterHistory);
+  $("recoverLocalDraft")?.addEventListener("click", recoverLocalChapterDraft);
   $("reloadChapter")?.addEventListener("click", async () => {
     if (!cloud.activeChapterId || !confirm("โหลดฉบับล่าสุดจาก Cloud และแทนที่ข้อความที่กำลังแสดงหรือไม่? ฉบับในเครื่องยังอยู่ใน local backup")) return;
     try {
