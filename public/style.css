@@ -752,3 +752,36 @@ input::placeholder,textarea::placeholder{color:rgba(154,169,190,.66)}
 @media (max-width: 760px) {
   .page-intro h1::before { margin-right: 7px; }
 }
+
+
+/* Manuscript Studio: isolate decorative separators so the editor surface stays clean. */
+#manuscript .manuscript-layout,
+#manuscript .manuscript-main,
+#manuscript .manuscript-card { border-top:0; }
+#manuscript .manuscript-layout::before,
+#manuscript .manuscript-layout::after,
+#manuscript .manuscript-main::before,
+#manuscript .manuscript-main::after,
+#manuscript .manuscript-card::before,
+#manuscript .manuscript-card::after { content:none!important; display:none!important; }
+#manuscript .manuscript-main { box-shadow:none!important; }
+.writing-settings { margin-top:14px; padding:16px; background:#111d2d; border-color:var(--line); }
+.writing-settings summary { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; cursor:pointer; color:var(--parchment); }
+.writing-settings summary strong { font:500 19px var(--serif); color:var(--gold-bright); }
+.writing-settings summary span { color:var(--muted); font-size:13px; }
+.writing-settings h3 { margin:18px 0 4px; color:var(--parchment); font:500 16px var(--serif); }
+.writing-settings-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:14px; }
+.genre-level-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 18px; }
+.genre-level { display:grid; grid-template-columns:minmax(100px,1fr) minmax(80px,1.6fr) 42px; gap:9px; align-items:center; padding:7px 0; border-bottom:1px solid var(--line-cool); }
+.genre-level input { width:100%; accent-color:var(--gold); }
+.genre-level output { color:var(--gold-bright); text-align:right; font-variant-numeric:tabular-nums; }
+.relationship-graph-tools { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; color:var(--muted); font-size:13px; }
+.relationship-legend { display:flex; flex-wrap:wrap; gap:8px 14px; margin-top:10px; color:var(--muted); font-size:12px; }
+.relationship-legend span { display:inline-flex; align-items:center; gap:6px; }
+.relationship-legend i { width:9px; height:9px; border-radius:50%; display:inline-block; }
+.relationship-node:focus rect { stroke:#fff; stroke-width:2.5; }
+@media(max-width:760px) {
+ .writing-settings-grid,.genre-level-grid { grid-template-columns:1fr; }
+ .genre-level { grid-template-columns:minmax(100px,1fr) minmax(80px,1.2fr) 42px; }
+ .relationship-graph-tools { align-items:flex-start; flex-direction:column; }
+}
