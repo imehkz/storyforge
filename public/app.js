@@ -1684,6 +1684,8 @@ async function refreshAuthStatus() {
       state.textContent = "ระบบบัญชียังไม่พร้อม · ต้องตั้งค่า D1 และ GitHub OAuth";
       login.hidden = true;
       logout.hidden = true;
+      cloud.ready = false;
+      renderChapterSelect();
       return;
     }
     if (response.status === 401) {
