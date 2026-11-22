@@ -1217,8 +1217,13 @@ function setupModuleEvents() {
 }
 
 function renderChapterSelect() {
-  const cloudTools = ["chapterSelect", "chapterSelectLabel", "newChapter", "moveChapterUp", "moveChapterDown", "deleteChapter", "chapterHistoryButton", "chapterHistoryInline"];
-  cloudTools.forEach(id => { if ($(id)) $(id).hidden = !cloud.ready; });
+  const canManageChapters = cloud.ready && Boolean(cloud.activeProjectId);
+  ["chapterSelect", "chapterSelectLabel", "newChapter"].forEach(id => {
+    if ($(id)) $(id).hidden = !canManageChapters;
+  });
+  ["moveChapterUp", "moveChapterDown", "deleteChapter", "chapterHistoryButton", "chapterHistoryInline"].forEach(id => {
+    if ($(id)) $(id).hidden = !canManageChapters || !cloud.activeChapterId;
+  });
   const select = $("chapterSelect");
   if (select) {
     select.innerHTML = cloud.chapters.length
