@@ -131,25 +131,73 @@
         </div>
       </section>
 
-      <section id="characters" class="panel hidden placeholder-panel">
+      <section id="characters" class="panel hidden">
         <div class="page-intro"><div><span class="eyebrow">CHARACTER STUDIO</span><h1>ห้องจัดการตัวละคร</h1><p>สร้างตัวละครและเก็บรายละเอียดให้เป็น Canon ของนิยายแต่ละเรื่อง</p></div></div>
-        <div class="card-frame feature-placeholder"><span class="placeholder-symbol">♙</span><h2>Character Vault ยังอยู่ระหว่างพัฒนา</h2><p>หน้าจอนี้ยังไม่บันทึกโปรไฟล์ รูปลักษณ์ ภาพอ้างอิง หรือความสัมพันธ์ของตัวละคร</p><span class="status-label">ยังไม่เปิดใช้งาน</span></div>
+        <div class="two-column">
+          <div class="card-frame form-card"><h2>เพิ่มตัวละคร</h2>
+            <label for="characterName">ชื่อตัวละคร</label><input id="characterName" maxlength="160" placeholder="ชื่อที่ใช้ในเรื่อง">
+            <label for="characterRole">บทบาท</label><input id="characterRole" maxlength="80" placeholder="ตัวเอก / ตัวร้าย / ตัวประกอบ">
+            <label for="characterProfile">โปรไฟล์และรายละเอียด</label><textarea id="characterProfile" rows="6" placeholder="รูปลักษณ์ บุคลิก แรงจูงใจ ภูมิหลัง และความลับ..."></textarea>
+            <button id="addCharacter" class="gold-button" type="button">บันทึกตัวละคร</button>
+          </div>
+          <div class="card-frame collection-card"><h2>คลังตัวละคร</h2><div id="characterList" class="module-list">เข้าสู่ระบบและเลือกโครงการเพื่อโหลดตัวละคร</div></div>
+        </div>
+        <div class="card-frame form-card module-secondary"><h2>ความสัมพันธ์ระหว่างตัวละคร</h2>
+          <div class="two-column"><div><label for="relationshipSource">ตัวละครต้นทาง</label><select id="relationshipSource"></select></div><div><label for="relationshipTarget">ตัวละครปลายทาง</label><select id="relationshipTarget"></select></div></div>
+          <label for="relationshipType">ประเภทความสัมพันธ์</label><input id="relationshipType" placeholder="ครอบครัว / คู่แข่ง / พันธมิตร">
+          <label for="relationshipDescription">รายละเอียด</label><input id="relationshipDescription" placeholder="ความสัมพันธ์และเงื่อนไขสำคัญ">
+          <button id="addRelationship" class="outline-button" type="button">เพิ่มความสัมพันธ์</button><div id="relationshipList" class="module-list"></div>
+        </div>
       </section>
-      <section id="plot" class="panel hidden placeholder-panel">
+      <section id="plot" class="panel hidden">
         <div class="page-intro"><div><span class="eyebrow">PLOT ROOM</span><h1>ห้องวางพล็อต</h1><p>จัดโครงเรื่อง เส้นเรื่องย่อย ฉาก และจุดเปลี่ยนสำคัญ</p></div></div>
-        <div class="card-frame feature-placeholder"><span class="placeholder-symbol">✧</span><h2>Plot Studio ยังอยู่ระหว่างพัฒนา</h2><p>ยังไม่มีระบบจัดเก็บโครงเรื่องหรือเชื่อมโยงฉากกับต้นฉบับ</p><span class="status-label">ยังไม่เปิดใช้งาน</span></div>
+        <div class="two-column">
+          <div class="card-frame form-card"><h2>เพิ่มเส้นเรื่อง</h2><label for="plotTitle">ชื่อเส้นเรื่อง</label><input id="plotTitle" maxlength="200" placeholder="เช่น ความลับของราชบัลลังก์">
+            <label for="plotSummary">เรื่องย่อ / จุดเปลี่ยน</label><textarea id="plotSummary" rows="6"></textarea>
+            <label for="plotStatus">สถานะ</label><select id="plotStatus"><option value="planned">วางแผน</option><option value="in_progress">กำลังดำเนิน</option><option value="completed">เสร็จแล้ว</option><option value="paused">พักไว้</option></select>
+            <button id="addPlot" class="gold-button" type="button">บันทึกเส้นเรื่อง</button>
+          </div>
+          <div class="card-frame collection-card"><h2>เส้นเรื่องทั้งหมด</h2><div id="plotList" class="module-list">เข้าสู่ระบบและเลือกโครงการเพื่อโหลดพล็อต</div></div>
+        </div>
       </section>
-      <section id="world" class="panel hidden placeholder-panel">
+      <section id="world" class="panel hidden">
         <div class="page-intro"><div><span class="eyebrow">WORLD BUILDING</span><h1>สร้างโลกนิยาย</h1><p>รวบรวมสถานที่ ประวัติศาสตร์ กฎ และรายละเอียดของโลก</p></div></div>
-        <div class="card-frame feature-placeholder"><span class="placeholder-symbol">⌘</span><h2>World Building ยังอยู่ระหว่างพัฒนา</h2><p>ข้อมูลโลกในช่องบริบทนิยายยังเป็นข้อความทั่วไป ไม่ใช่ฐานข้อมูลที่เชื่อมโยงกัน</p><span class="status-label">ยังไม่เปิดใช้งาน</span></div>
+        <div class="two-column">
+          <div class="card-frame form-card"><h2>เพิ่มข้อมูลโลก</h2><label for="worldCategory">หมวดหมู่</label><select id="worldCategory"><option value="place">สถานที่</option><option value="history">ประวัติศาสตร์</option><option value="rule">กฎของโลก</option><option value="culture">วัฒนธรรม</option><option value="faction">กลุ่ม / องค์กร</option><option value="other">อื่น ๆ</option></select>
+            <label for="worldTitle">ชื่อข้อมูล</label><input id="worldTitle" maxlength="200" placeholder="ชื่อสถานที่หรือหัวข้อ">
+            <label for="worldContent">รายละเอียด</label><textarea id="worldContent" rows="7"></textarea>
+            <button id="addWorld" class="gold-button" type="button">บันทึกข้อมูลโลก</button>
+          </div>
+          <div class="card-frame collection-card"><h2>สารานุกรมโลกนิยาย</h2><div id="worldList" class="module-list">เข้าสู่ระบบและเลือกโครงการเพื่อโหลดข้อมูลโลก</div></div>
+        </div>
       </section>
-      <section id="timeline" class="panel hidden placeholder-panel">
+      <section id="timeline" class="panel hidden">
         <div class="page-intro"><div><span class="eyebrow">STORY TIMELINE</span><h1>ลำดับเหตุการณ์</h1><p>จัดเรียงเหตุการณ์และตรวจสอบความต่อเนื่องของเรื่อง</p></div></div>
-        <div class="card-frame feature-placeholder"><span class="placeholder-symbol">◷</span><h2>Timeline ยังอยู่ระหว่างพัฒนา</h2><p>ยังไม่มีระบบวันที่ เหตุการณ์ หรือการตรวจสอบความขัดแย้งของไทม์ไลน์</p><span class="status-label">ยังไม่เปิดใช้งาน</span></div>
+        <div class="two-column">
+          <div class="card-frame form-card"><h2>เพิ่มเหตุการณ์</h2><label for="timelineTime">เวลาในเรื่อง</label><input id="timelineTime" maxlength="120" placeholder="เช่น ปีที่ 302 · วันที่ 14 เดือนจันทรา">
+            <label for="timelineTitle">ชื่อเหตุการณ์</label><input id="timelineTitle" maxlength="200">
+            <label for="timelineDescription">รายละเอียด</label><textarea id="timelineDescription" rows="6"></textarea>
+            <button id="addTimeline" class="gold-button" type="button">บันทึกเหตุการณ์</button>
+          </div>
+          <div class="card-frame collection-card"><h2>เส้นเวลา</h2><div id="timelineList" class="module-list">เข้าสู่ระบบและเลือกโครงการเพื่อโหลดไทม์ไลน์</div></div>
+        </div>
       </section>
       <section id="notes" class="panel hidden">
-        <div class="page-intro"><div><span class="eyebrow">STORY NOTES</span><h1>บันทึกเนื้อเรื่อง</h1><p>พื้นที่จดจำไอเดียและแนวทางการเขียนของคุณ</p></div></div>
-        <div class="card-frame form-card"><label for="projectMemory">ความจำโครงการ (Project Memory)</label><textarea id="projectMemory" rows="9" placeholder="กฎของโลก ตัวละคร ความสัมพันธ์ ไทม์ไลน์ และข้อห้าม..."></textarea><label for="globalMemory">ความจำส่วนตัว (Global Memory)</label><textarea id="globalMemory" rows="6" placeholder="สไตล์การเขียนที่ชอบ โทนภาษา และความต้องการประจำ..."></textarea><button class="gold-button" id="saveMemory">บันทึกโน้ต <span>→</span></button><p class="form-hint">จัดเก็บในเบราว์เซอร์นี้ และยังไม่แยกตาม Project ID</p></div>
+        <div class="page-intro"><div><span class="eyebrow">STORY NOTES</span><h1>บันทึกเนื้อเรื่อง</h1><p>เก็บ Canon และความคิดสำคัญแยกตามโครงการ</p></div></div>
+        <div class="two-column">
+          <div class="card-frame form-card"><h2>ความจำของนักเขียน</h2>
+            <label for="projectMemory">ความจำโครงการ (Project Memory)</label><textarea id="projectMemory" rows="8" placeholder="กฎของโลก ตัวละคร ความสัมพันธ์ ไทม์ไลน์ และข้อห้าม..."></textarea>
+            <label for="globalMemory">ความจำส่วนตัว (Global Memory)</label><textarea id="globalMemory" rows="5" placeholder="สไตล์การเขียนที่ชอบ โทนภาษา และความต้องการประจำ..."></textarea>
+            <button class="gold-button" id="saveMemory">บันทึกความจำ</button>
+            <p class="form-hint">Project Memory จัดเก็บกับโครงการบน Cloud เมื่อเข้าสู่ระบบ ส่วน Global Memory เก็บในอุปกรณ์นี้</p>
+          </div>
+          <div class="card-frame form-card"><h2>บันทึกเพิ่มเติม</h2>
+            <label for="storyNoteTitle">หัวข้อ</label><input id="storyNoteTitle" maxlength="200" placeholder="ไอเดีย / ข้อควรจำ">
+            <label for="storyNoteContent">รายละเอียด</label><textarea id="storyNoteContent" rows="5"></textarea>
+            <button id="addStoryNote" class="outline-button" type="button">เพิ่มบันทึก</button>
+            <div id="storyNoteList" class="module-list"></div>
+          </div>
+        </div>
       </section>
       <section id="manuscript" class="panel hidden">
         <div class="page-intro"><div><span class="eyebrow">MANUSCRIPT STUDIO</span><h1>ห้องเขียนต้นฉบับ</h1><p>พื้นที่เขียนและส่งออกข้อความฉบับร่าง</p></div></div>
