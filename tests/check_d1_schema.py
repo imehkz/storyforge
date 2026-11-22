@@ -43,6 +43,12 @@ class D1SchemaTests(unittest.TestCase):
         }
         self.assertTrue(expected.issubset(actual), expected - actual)
 
+    def test_chapters_store_word_counts(self):
+        columns = {
+            row[1] for row in self.db.execute("PRAGMA table_info(chapters)")
+        }
+        self.assertIn("word_count", columns)
+
     def test_child_rows_require_a_real_project(self):
         with self.assertRaises(sqlite3.IntegrityError):
             self.db.execute(
