@@ -323,3 +323,22 @@
 .timeline-event-content b { color: var(--parchment); font: 500 15px var(--serif); }
 .timeline-event-content p { color: var(--muted); font-size: 12px; line-height: 1.6; margin: 6px 0; }
 @media (max-width: 900px) { .plot-board { grid-template-columns: repeat(4,minmax(170px,1fr)); } }
+
+
+/* Responsive header/auth controls: prevent status and login buttons overlapping. */
+.topbar { min-width: 0; gap: 14px; }
+.topbar-right { min-width: 0; max-width: 100%; display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.topbar-right > * { min-width: 0; }
+#authState { max-width: min(100%, 360px); white-space: normal; overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .topbar { height: auto; min-height: 52px; padding: 10px 14px; align-items: flex-start; flex-direction: column; gap: 8px; }
+  .breadcrumbs { min-height: 22px; flex-wrap: wrap; }
+  .topbar-right { width: 100%; justify-content: flex-start; align-items: stretch; gap: 7px; }
+  .topbar-right .save-indicator { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  #authState { flex: 1 1 100%; max-width: 100%; }
+  #loginButton, #logoutButton { flex: 0 1 auto; max-width: 100%; white-space: normal; }
+}
+@media (max-width: 380px) {
+  .topbar-right { flex-direction: column; align-items: stretch; }
+  .topbar-right .save-indicator, #loginButton, #logoutButton { width: 100%; justify-content: flex-start; }
+}
