@@ -448,7 +448,8 @@ async function api(request, env, url) {
       const id = clientId || crypto.randomUUID();
       const title = optionalString(input.title, 240, "title");
       const body = optionalString(input.body, 500000, "body");
-      const sortOrder = Number.isInteger(input.sortOrder) ? Math.max(0, Math.min(input.sortOrder, 1000000)) : 0;
+      const sortOrder = input.sortOrder === undefined ? 0 :
+        (Number.isInteger(input.sortOrder) && input.sortOrder >= 0 && input.sortOrder <= 1000000 ? input.sortOrder : (() => { throw new Error("INVALID_SORTORDER"); })());
       const inserted = await env.DB.prepare(
         "INSERT OR IGNORE INTO chapters (id, project_id, title, body, sort_order) VALUES (?, ?, ?, ?, ?)"
       ).bind(id, projectId, title, body, sortOrder).run();
