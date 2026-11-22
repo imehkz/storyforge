@@ -224,3 +224,13 @@ No hosting resources or secrets have been provisioned, and no production deploym
 - Added Thai-aware word counting in the browser, persisted per-chapter counts, and novel-wide Dashboard progress. Chapter lists now fetch metadata only; the full manuscript body is loaded only for the selected chapter.
 - Expanded Character Studio with structured identity, appearance, personality, motivation, backstory, strengths, weaknesses, and secret fields; added in-form editing and a project-scoped SVG relationship map.
 - The World Building UI is still a structured lore catalogue rather than the Figma illustrated atlas/map. Plot status board and event timeline views are implemented, but a full visual plot-flow editor and advanced timeline controls remain incomplete. Rich character portrait generation also remains incomplete.
+
+
+### Backup integrity follow-up — 23 November 2026
+
+- Fixed a critical gap where the Backup Center exported only browser-local `sf_*` keys while the active novel data lived in D1.
+- Backup format v2 now collects all authenticated Cloud projects, chapter bodies, and project-scoped Characters, Relationships, Plot, World, Timeline, and Notes records, alongside local device recovery data.
+- Restore v2 merges Cloud records using their stable IDs through the existing idempotent create APIs; it does not delete existing Cloud projects. Local device `sf_*` data is restored separately.
+- Telegram backup now sends the same Cloud-aware v2 archive.
+- Snapshot history is explicitly excluded and disclosed in the backup metadata and restore confirmation. A complete snapshot-history export/import and independent scheduled server-side backup remain outstanding.
+- Added CI source-contract assertions for Cloud backup coverage and restore wiring. A local mocked API smoke test and JavaScript parse check passed; GitHub Actions and browser/Cloudflare runtime verification are still pending.
