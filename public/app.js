@@ -549,16 +549,18 @@ function renderDashboard() {
   const projects = safeJSON(localStorage.getItem("sf_projects") || "[]", []);
   const list = Array.isArray(projects) ? projects : [];
   const activeId = localStorage.getItem("sf_active_project_id");
-  const active = list.find(item => item.id && item.id === activeId) || list[0] || null;
+  const active = cloud.authenticated
+    ? cloud.projects.find(item => item.id === cloud.activeProjectId) || null
+    : list.find(item => item.id && item.id === activeId) || list[0] || null;
   const title = active && active.title ? active.title : $("title").value;
   const chapter = $("chapterTitle").value;
   const manuscript = $("manuscript").value;
   const count = manuscript.length;
   if ($("sidebarProjectName")) $("sidebarProjectName").textContent = title || "ยังไม่ได้เลือกนิยาย";
-  if ($("sidebarProjectMeta")) $("sidebarProjectMeta").textContent = active ? (active.genre || "นิยายของฉัน") + " · บันทึกในอุปกรณ์นี้" : "เริ่มต้นสร้างเรื่องราวของคุณ";
+  if ($("sidebarProjectMeta")) $("sidebarProjectMeta").textContent = active ? (active.genre || "นิยายของฉัน") + (cloud.authenticated ? " · Private Beta Cloud" : " · บันทึกในอุปกรณ์นี้") : "เริ่มต้นสร้างเรื่องราวของคุณ";
   if ($("dashboardProjectTitle")) $("dashboardProjectTitle").textContent = title || "ยังไม่มีนิยายในห้องสมุด";
   if ($("dashboardChapterLine")) $("dashboardChapterLine").textContent = chapter ? "บทล่าสุด · " + chapter : (title ? "เพิ่มชื่อบทและเริ่มเขียนต้นฉบับของคุณ" : "เริ่มต้นสร้างโลกและตัวละครของคุณได้เลย");
-  if ($("dashboardLastEdited")) $("dashboardLastEdited").textContent = active ? "โครงการนี้บันทึกไว้ในเบราว์เซอร์เครื่องนี้" : "พื้นที่เขียนนิยายส่วนตัว · บันทึกในอุปกรณ์นี้";
+  if ($("dashboardLastEdited")) $("dashboardLastEdited").textContent = active ? (cloud.authenticated ? "โครงการนี้เชื่อมต่อกับบัญชี Private Beta" : "โครงการนี้บันทึกไว้ในเบราว์เซอร์เครื่องนี้") : "พื้นที่เขียนนิยายส่วนตัว · บันทึกในอุปกรณ์นี้";
   if ($("dashboardWordCount")) $("dashboardWordCount").textContent = count.toLocaleString("th-TH");
   if ($("dashboardWordGoal")) $("dashboardWordGoal").textContent = "อักขระในต้นฉบับ";
   if ($("dashboardProgress")) $("dashboardProgress").style.width = "0%";
@@ -715,9 +717,34 @@ function setupEvents() {
   };
 
   // Save memory
-  $("saveMemory").onclick = () => {
+  $("saveMemory").onclick = async () => {
     save();
-    alert("บันทึกความจำแล้ว");
+    if (cloud.authenticated && cloud.activeProjectId) {
+      try {
+        const payload = {
+          title: "ความจำโครงการ",
+          content: $("projectMemory").value,
+          note_type: "project_memory"
+        };
+        if (cloud.noteId) {
+          await cloudApi("/api/projects/" + encodeURIComponent(cloud.activeProjectId) + "/notes/" + encodeURIComponent(cloud.noteId), {
+            method: "PATCH",
+            body: JSON.stringify(payload)
+          });
+        } else {
+          const created = await cloudApi("/api/projects/" + encodeURIComponent(cloud.activeProjectId) + "/notes", {
+            method: "POST",
+            body: JSON.stringify(payload)
+          });
+          cloud.noteId = created.item.id;
+        }
+        alert("บันทึกความจำโครงการบน Cloud แล้วครับ (ความจำส่วนตัวยังคงอยู่ในอุปกรณ์นี้)");
+      } catch (error) {
+        alert("บันทึกความจำบน Cloud ไม่สำเร็จ: " + error.message + "\nฉบับในเครื่องยังคงอยู่ครับ");
+      }
+    } else {
+      alert("บันทึกความจำไว้ในอุปกรณ์นี้แล้วครับ");
+    }
   };
 
   // AI Writer — deliberately disabled until per-user Copilot OAuth is implemented.
@@ -797,6 +824,22 @@ async function loadCloudProjects() {
     cloud.activeChapterId = "";
     if ($("chapterSelect")) $("chapterSelect").innerHTML = '<option value="">ยังไม่มีบท</option>';
     if ($("chapterSaveHint")) $("chapterSaveHint").textContent = "เลือกหรือสร้างโครงการก่อน จึงจะบันทึกบทบน Cloud ได้";
+  }
+}
+
+async function selectCloudProject(projectId) {
+  if (!projectId || projectId === cloud.activeProjectId) return;
+  if (cloud.saveTimer) {
+    clearTimeout(cloud.saveTimer);
+    cloud.saveTimer = null;
+    await saveCloudChapter();
+  }
+  cloud.activeChapterId = "";
+  cloud.revision = 0;
+  try {
+    await loadCloudProject(projectId);
+  } catch (error) {
+    alert("เปิดโครงการไม่สำเร็จ: " + error.message);
   }
 }
 
@@ -891,6 +934,10 @@ async function saveCloudChapter() {
     console.error("Cloud chapter save failed:", error);
   } finally {
     cloud.saving = false;
+    if (cloud.activeChapterId === chapterId &&
+        ( $("chapterTitle").value !== draft.title || $("manuscript").value !== draft.body )) {
+      scheduleCloudSave();
+    }
   }
 }
 
@@ -967,11 +1014,12 @@ async function importLocalNovelData() {
   const button = $("importLocalData");
   button.disabled = true;
   const map = safeJSON(localStorage.getItem(migrationMapKey()) || "{}", {});
-  const activeLocalId = localStorage.getItem("sf_active_project_id") || localProjects[0].id;
+  const activeLocalId = localStorage.getItem("sf_active_project_id") || localProjects[0].id || "";
   try {
     for (const localProject of localProjects) {
       const localId = UUID_RE.test(localProject.id || "") ? localProject.id : crypto.randomUUID();
       if (!localProject.id || localProject.id !== localId) localProject.id = localId;
+      localStorage.setItem("sf_projects", JSON.stringify(localProjects));
       map[localId] = map[localId] || { projectId: crypto.randomUUID(), chapterId: crypto.randomUUID() };
       localStorage.setItem(migrationMapKey(), JSON.stringify(map));
       const projectResult = await cloudApi("/api/projects", {
