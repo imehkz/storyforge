@@ -85,3 +85,34 @@ Create a novel → add a chapter → write text → save → sign out/in → res
 - No automated test suite is currently confirmed.
 - Copilot OAuth app credentials and callback configuration have not been provisioned.
 - Hosting/database pricing and persistent-storage limits must be verified before selecting infrastructure.
+
+## Progress update — 22 November 2026
+
+### Completed in feature/storyforge-studio-80
+
+- Replaced the basic writer landing page with a Thai-first dashboard structure based on the supplied Figma Dashboard frame (royal-library sidebar, selected-novel area, featured project panel, summary cards, recent-work panel, AI assistant panel).
+- Applied the STORYFORGE palette: Midnight Navy `#101827`, Antique Gold `#C5A15B`, Old Parchment `#E8D8B8`, and Dark Mahogany details.
+- Added responsive layout behavior for narrow/tablet widths and visible focus styling for inputs and navigation.
+- Added navigation destinations for Dashboard, Novel Library, Character Studio, Plot Room, World Building, Timeline, Story Notes, Manuscript Studio, AI Assistant, and Backup.
+- Connected Dashboard display to the current browser-local project title, chapter title, and manuscript character count.
+- Added local project IDs for newly saved project metadata. This is not server-side project isolation and does not yet create independent manuscript storage per project.
+- Moved the Backup Center into its own panel and clarified that automatic Telegram backup only runs while this page remains open.
+- Kept Copilot disabled until per-user GitHub OAuth, SDK setup, and server-side permission boundaries are implemented.
+
+### Current limitations (do not describe as complete)
+
+- Project metadata and editor fields still use browser localStorage; multiple projects do not yet have isolated chapters/manuscripts.
+- No authentication, database, server persistence, user ownership checks, or cross-device sync.
+- Character, Plot, World Building, Timeline, and advanced Notes modules are status-only placeholders.
+- Manuscript editing is a single local draft; no Chapter ID, autosave API, version history, restore workflow, or conflict handling.
+- Export currently supports plain text only; DOCX, print-ready PDF, and EPUB are not implemented.
+- Backup/restore remains browser-local JSON; Telegram backup requires the configured secret and is not a substitute for authenticated project storage.
+- No browser runtime, tablet, accessibility, security, or end-to-end test has been run for this UI update. GitHub file retrieval confirms commits only; it does not prove the app runs.
+
+### Next safe implementation steps
+
+1. Run a local Node 22 syntax/runtime smoke test and verify all dashboard navigation and form controls.
+2. Add a local data migration and project-scoped storage contract before exposing project switching; do not pretend a project ID alone provides isolation.
+3. Design and implement fail-closed GitHub OAuth/session ownership before adding server-side project APIs.
+4. Choose a database and hosting persistence option only after checking current free-tier limits and obtaining approval for any paid service.
+5. Continue matching the remaining Figma screens only after the dashboard runtime check.
