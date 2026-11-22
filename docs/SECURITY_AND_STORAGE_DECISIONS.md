@@ -93,3 +93,14 @@ Required automated tests:
 - Render free services and data-retention limitations: https://render.com/docs/free
 - Render persistent disks: https://render.com/docs/disks
 - Render pricing: https://render.com/pricing
+
+
+## Current code decisions — 22 November 2026
+
+- GitHub OAuth is used only to verify the one allowlisted owner account. The OAuth access token is discarded after identity verification and is not stored for Copilot use.
+- The Worker stores hashed session identifiers and hashed CSRF tokens; the browser session cookie is Secure, HttpOnly, and SameSite=Lax. CSRF uses a separate SameSite=Strict cookie plus request header.
+- All project and chapter queries are scoped to the authenticated owner. Project modules are scoped by project ID; relationship foreign keys prevent cross-project character links.
+- Chapter updates use optimistic revision checks and return conflict responses rather than silently overwriting a newer revision. Prior chapter content is stored as snapshots and can be restored.
+- Browser editor content remains in localStorage until a tested migration and rollback workflow is implemented. GitHub sign-in is not a cloud-sync claim.
+- Optional Telegram backup requires Worker secrets and remains separate from independent encrypted D1 backups.
+- GitHub Copilot integration remains disabled; GitHub identity OAuth is not the Copilot SDK authorization flow.
