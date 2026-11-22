@@ -197,9 +197,11 @@ No hosting resources or secrets have been provisioned, and no production deploym
 
 ### Verification status
 
-- A source inspection confirms that the static HTML now has unique IDs and the editor references the renamed manuscript textarea consistently.
-- GitHub Actions is configured to check Worker/app JavaScript syntax, both Python test suites, and the D1 schema on branch pushes.
-- The checks have not yet been confirmed as passing in GitHub Actions. No local browser test or Worker/D1 integration test has been run.
+- In-session JavaScript syntax parsing passed for both `public/app.js` and the Worker module source (with the ESM export normalized for the parser).
+- In-session static contract checks passed for owner allowlisting, CSRF/origin checks, atomic snapshot batches, stable import IDs, module CRUD wiring, local recovery, unique HTML IDs, and DOM ID references.
+- SQLite smoke tests passed for both D1 migrations, expected table creation, cross-project relationship rejection, cascade deletion, chapter snapshot/update SQL, stale revision rejection, ordering, and snapshot cleanup. These are local SQLite checks, not a live D1 runtime test.
+- GitHub Actions is configured to check Worker/app JavaScript syntax, both Python test suites, and the D1 schema on branch pushes. No passing Actions run is confirmed yet.
+- No browser test or live Cloudflare Worker/D1 integration test has been run.
 - Figma MCP calls are currently blocked by the Starter plan call limit, and the connected Figma seat is View-only. No Figma source file was modified.
 
 ### Remaining before private beta
