@@ -370,7 +370,7 @@ async function api(request, env, url) {
 
     if (!itemId && method === "GET") {
       const rows = await env.DB.prepare(
-        `SELECT * FROM ${config.table} WHERE project_id = ? ORDER BY created_at DESC LIMIT 500`
+        `SELECT * FROM ${config.table} WHERE project_id = ? ORDER BY created_at DESC LIMIT 100`
       ).bind(projectId).all();
       return json({ items: rows.results || [] });
     }
@@ -440,7 +440,7 @@ async function api(request, env, url) {
     if (!owned) throw new Error("NOT_FOUND");
     if (method === "GET") {
       const rows = await env.DB.prepare(
-        "SELECT id, title, body, sort_order, revision, created_at, updated_at FROM chapters WHERE project_id = ? ORDER BY sort_order, created_at LIMIT 1000"
+        "SELECT id, project_id, title, sort_order, revision, created_at, updated_at FROM chapters WHERE project_id = ? ORDER BY sort_order, created_at LIMIT 500"
       ).bind(projectId).all();
       return json({ chapters: rows.results || [] });
     }
