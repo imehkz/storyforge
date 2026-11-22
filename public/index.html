@@ -137,8 +137,23 @@
           <div class="card-frame form-card"><h2>เพิ่มตัวละคร</h2>
             <label for="characterName">ชื่อตัวละคร</label><input id="characterName" maxlength="160" placeholder="ชื่อที่ใช้ในเรื่อง">
             <label for="characterRole">บทบาท</label><input id="characterRole" maxlength="80" placeholder="ตัวเอก / ตัวร้าย / ตัวประกอบ">
-            <label for="characterProfile">โปรไฟล์และรายละเอียด</label><textarea id="characterProfile" rows="6" placeholder="รูปลักษณ์ บุคลิก แรงจูงใจ ภูมิหลัง และความลับ..."></textarea>
-            <button id="addCharacter" class="gold-button" type="button">บันทึกตัวละคร</button>
+            <div class="character-field-grid">
+              <div><label for="characterAge">อายุ</label><input id="characterAge" maxlength="40" placeholder="เช่น 24 ปี"></div>
+              <div><label for="characterPronouns">สรรพนาม</label><input id="characterPronouns" maxlength="60" placeholder="เช่น เขา / เธอ"></div>
+              <div><label for="characterSpecies">เผ่าพันธุ์ / สายเลือด</label><input id="characterSpecies" maxlength="100" placeholder="มนุษย์ / เอลฟ์ / ..."></div>
+              <div><label for="characterHeight">ส่วนสูง / รูปร่าง</label><input id="characterHeight" maxlength="100" placeholder="เช่น 178 ซม. · สูงโปร่ง"></div>
+            </div>
+            <label for="characterAppearance">รูปลักษณ์ภายนอก</label><textarea id="characterAppearance" rows="3" placeholder="ใบหน้า เส้นผม ดวงตา เครื่องแต่งกาย และเอกลักษณ์..."></textarea>
+            <label for="characterPersonality">บุคลิกและนิสัย</label><textarea id="characterPersonality" rows="3" placeholder="นิสัย จุดแข็ง จุดอ่อน และวิธีแสดงออก..."></textarea>
+            <label for="characterMotivation">แรงจูงใจและเป้าหมาย</label><textarea id="characterMotivation" rows="2"></textarea>
+            <label for="characterBackstory">ภูมิหลัง</label><textarea id="characterBackstory" rows="3"></textarea>
+            <div class="character-field-grid">
+              <div><label for="characterStrengths">จุดแข็ง</label><textarea id="characterStrengths" rows="2"></textarea></div>
+              <div><label for="characterWeaknesses">จุดอ่อน</label><textarea id="characterWeaknesses" rows="2"></textarea></div>
+            </div>
+            <label for="characterSecret">ความลับ / ปมสำคัญ</label><textarea id="characterSecret" rows="2"></textarea>
+            <label for="characterProfile">บันทึกเพิ่มเติม</label><textarea id="characterProfile" rows="3" placeholder="ข้อมูลอื่น ๆ ที่ต้องรักษาเป็น Canon..."></textarea>
+            <div class="row-actions"><button id="addCharacter" class="gold-button" type="button">บันทึกตัวละคร</button><button id="cancelCharacterEdit" class="outline-button" type="button" hidden>ยกเลิกแก้ไข</button></div>
           </div>
           <div class="card-frame collection-card"><h2>คลังตัวละคร</h2><div id="characterList" class="module-list">เข้าสู่ระบบและเลือกโครงการเพื่อโหลดตัวละคร</div></div>
         </div>
