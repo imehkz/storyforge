@@ -50,13 +50,14 @@ function crc32(bytes) {
 
 const names = [
   "xmlEscape", "crc32", "createStoredZip", "exportBaseName",
-  "wordParagraph", "countWords", "exportManuscriptDocx", "exportManuscriptEpub"
+  "wordParagraph", "countWords", "getManuscriptText", "exportManuscriptDocx", "exportManuscriptEpub"
 ];
 const code = names.map(extractFunction).join("\n");
 const values = {
   title: { value: "ห้องสมุดแห่งความทรงจำ" },
   chapterTitle: { value: "บทที่ 1 — ประตูแรก" },
-  manuscriptBody: { value: "บรรทัดแรก\nบททดสอบ & <tag>" }
+  manuscriptBody: { value: "บรรทัดแรก\nบททดสอบ & <tag>" },
+  manuscriptEditor: { innerText: "บรรทัดแรก\nบททดสอบ & <tag>" }
 };
 const $ = id => values[id];
 const downloads = [];
