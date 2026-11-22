@@ -1095,6 +1095,10 @@ function renderRelationshipGraph() {
 function renderPlotBoard(items) {
   const target = $("plotBoard");
   if (!target) return;
+  if (!cloud.ready && !items.length) {
+    target.innerHTML = '<p class="muted-note">เข้าสู่ระบบและเลือกโครงการเพื่อดูบอร์ดพล็อต</p>';
+    return;
+  }
   const columns = [
     { key: "planned", title: "วางแผน" },
     { key: "in_progress", title: "กำลังดำเนิน" },
@@ -1136,7 +1140,9 @@ function renderTimelineView(items) {
   const target = $("timelineView");
   if (!target) return;
   if (!items.length) {
-    target.innerHTML = '<p class="muted-note">เพิ่มเหตุการณ์เพื่อสร้างเส้นเวลาของนิยาย</p>';
+    target.innerHTML = cloud.ready
+      ? '<p class="muted-note">เพิ่มเหตุการณ์เพื่อสร้างเส้นเวลาของนิยาย</p>'
+      : '<p class="muted-note">เข้าสู่ระบบและเลือกโครงการเพื่อดูเส้นเวลา</p>';
     return;
   }
   target.innerHTML = `<div class="timeline-track">${items.map((item, index) =>
