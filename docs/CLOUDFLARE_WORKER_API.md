@@ -46,7 +46,7 @@ All endpoints are same-origin. Mutating endpoints require the `X-CSRF-Token` hea
 
 The module collections also accept PATCH and DELETE at `/api/projects/:id/:collection/:itemId`. Every collection is project-scoped. Character relationships have composite foreign keys that prevent linking characters across projects.
 
-Chapter updates require `expectedRevision`. A stale revision returns HTTP 409 instead of silently overwriting newer text. The snapshot insert and revision-checked update run in one D1 batch so a successful text update has its previous version recorded atomically. Restore also snapshots the current chapter before replacing it. Chapter ordering is changed by the owner-scoped move endpoint. Create endpoints accept optional UUIDv4 `clientId` values and use insert-if-absent semantics to make local-data import retries idempotent.
+Chapter updates require `expectedRevision`. A stale revision returns HTTP 409 instead of silently overwriting newer text. The snapshot insert and revision-checked update run in one D1 batch so a successful text update has its previous version recorded atomically. Restore also snapshots the current chapter before replacing it. Chapter ordering is changed by the owner-scoped move endpoint. Permanently deleting a chapter removes its chapter snapshots in the same D1 batch; deleting a project cascades to all its data. Create endpoints accept optional UUIDv4 `clientId` values and use insert-if-absent semantics to make local-data import retries idempotent.
 
 Telegram backup remains a separate secret-protected endpoint. It is optional and does not replace an independent encrypted database backup.
 
