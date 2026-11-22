@@ -949,6 +949,7 @@ function setupEvents() {
           });
         }
         const project = saved.project;
+        localStorage.setItem(writingSettingsKey(project.id), JSON.stringify(readWritingSettings()));
         cloud.activeProjectId = project.id;
         cloud.projects = [project, ...cloud.projects.filter(x => x.id !== project.id)];
         await loadCloudProject(project.id);
@@ -1180,6 +1181,7 @@ async function loadCloudProject(projectId) {
   const project = result.project;
   cloud.activeProjectId = project.id;
   localStorage.setItem("sf_cloud_active_project_id", project.id);
+  loadWritingSettings(project.id);
   $("title").value = project.title || "";
   setProjectGenre(project.genre || "");
   $("context").value = project.synopsis || "";
@@ -1294,10 +1296,15 @@ function renderRelationshipGraph() {
         const x=Math.max(0,Math.min(width-nodeWidth,(e.clientX-rect.left)*width/rect.width-sx));
         const y=Math.max(0,Math.min(height-nodeHeight,(e.clientY-rect.top)*height/rect.height-sy));
         positions.set(id,{x,y});
-        saved[id]={x,y}; localStorage.setItem(layoutKey,JSON.stringify(saved));
+        saved[id]={x,y};
+        node.setAttribute("transform","translate("+(x-start.x)+" "+(y-start.y)+")");
+      };
+      const up=()=>{
+        node.removeEventListener("pointermove",move);
+        node.removeEventListener("pointerup",up);
+        localStorage.setItem(layoutKey,JSON.stringify(saved));
         renderRelationshipGraph();
       };
-      const up=()=>{node.removeEventListener("pointermove",move);node.removeEventListener("pointerup",up);};
       node.addEventListener("pointermove",move);node.addEventListener("pointerup",up,{once:true});
     });
     node.addEventListener("click",()=> {
