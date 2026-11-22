@@ -200,33 +200,65 @@
         </div>
       </section>
       <section id="manuscript" class="panel hidden">
-        <div class="page-intro"><div><span class="eyebrow">MANUSCRIPT STUDIO</span><h1>ห้องเขียนต้นฉบับ</h1><p>พื้นที่เขียนและส่งออกข้อความฉบับร่าง</p></div></div>
-        <div class="card-frame manuscript-card">
-          <div class="chapter-toolbar">
-            <label for="chapterSelect">บทในโครงการนี้</label>
-            <select id="chapterSelect" aria-label="เลือกบทนิยาย"><option value="">ยังไม่มีบท</option></select>
-            <button id="newChapter" class="outline-button compact" type="button">+ เพิ่มบท</button>
-            <button id="moveChapterUp" class="outline-button compact" type="button" title="เลื่อนบทขึ้น">↑</button>
-            <button id="moveChapterDown" class="outline-button compact" type="button" title="เลื่อนบทลง">↓</button>
-            <button id="deleteChapter" class="outline-button compact" type="button">ลบบท</button>
-            <button id="chapterHistoryButton" class="outline-button compact" type="button">ประวัติเวอร์ชัน</button>
-            <button id="reloadChapter" class="outline-button compact" type="button" hidden>โหลดฉบับล่าสุด</button>
-            <button id="recoverLocalDraft" class="outline-button compact" type="button" hidden>กู้คืนฉบับในเครื่อง</button>
-          </div>
-          <div id="chapterHistory" class="chapter-history" hidden aria-live="polite"></div>
-          <label for="chapterTitle">ชื่อบท</label><input id="chapterTitle" placeholder="เช่น บทที่ 1 — จุดเริ่มต้น">
-          <label for="manuscriptBody">ต้นฉบับ</label><textarea id="manuscriptBody" rows="22" placeholder="เริ่มเขียนต้นฉบับของคุณที่นี่..."></textarea>
-          <div class="editor-footer">
-            <span id="manuscriptCount">0 อักขระ</span>
-            <div class="export-actions">
-              <button id="export" class="outline-button compact">TXT</button>
-              <button id="exportDocx" class="outline-button compact">DOCX</button>
-              <button id="exportEpub" class="outline-button compact">EPUB</button>
-              <button id="exportPdf" class="gold-button compact">PDF</button>
+        <div class="page-intro manuscript-page-intro"><div><span class="eyebrow">MANUSCRIPT STUDIO</span><h1>ห้องเขียนต้นฉบับ</h1><p>ดูแลทุกฉบับร่าง เขียนต่อได้อย่างอุ่นใจ</p></div><span class="save-indicator" id="manuscriptStatusMini">ฉบับร่างส่วนตัว</span></div>
+        <div class="manuscript-layout">
+          <aside class="chapter-sidebar card-frame">
+            <div class="chapter-sidebar-head"><div><span class="eyebrow">CHAPTERS</span><h2>ต้นฉบับ</h2></div><span id="chapterTotal">0 บท</span></div>
+            <button id="newChapter" class="gold-button chapter-add-button" type="button">+ เพิ่มบทใหม่</button>
+            <div id="chapterList" class="chapter-list"><p class="muted-note">เข้าสู่ระบบและเลือกโครงการเพื่อดูรายการบท</p></div>
+            <div class="chapter-sidebar-actions">
+              <span>จัดการบทที่เลือก</span>
+              <div>
+                <button id="moveChapterUp" class="outline-button compact" type="button" title="เลื่อนบทขึ้น">↑ เลื่อนขึ้น</button>
+                <button id="moveChapterDown" class="outline-button compact" type="button" title="เลื่อนบทลง">↓ เลื่อนลง</button>
+              </div>
+              <button id="deleteChapter" class="outline-button compact" type="button">ลบบทที่เลือก</button>
+            </div>
+          </aside>
+          <div class="manuscript-main">
+            <div class="chapter-toolbar manuscript-topbar">
+              <label for="chapterSelect">บทที่กำลังเขียน</label>
+              <select id="chapterSelect" aria-label="เลือกบทนิยาย"><option value="">ยังไม่มีบท</option></select>
+              <button id="chapterHistoryButton" class="outline-button compact" type="button">ประวัติเวอร์ชัน</button>
+              <button id="reloadChapter" class="outline-button compact" type="button" hidden>โหลดฉบับล่าสุด</button>
+              <button id="recoverLocalDraft" class="outline-button compact" type="button" hidden>กู้คืนฉบับในเครื่อง</button>
+            </div>
+            <div class="card-frame manuscript-card">
+              <label for="chapterTitle">ชื่อบท</label><input id="chapterTitle" placeholder="เช่น บทที่ 1 — จุดเริ่มต้น">
+              <label for="manuscriptBody">ต้นฉบับ</label><textarea id="manuscriptBody" rows="22" placeholder="เริ่มเขียนต้นฉบับของคุณที่นี่..."></textarea>
+              <div class="editor-footer">
+                <span id="manuscriptCount">0 คำ</span>
+                <div class="export-actions">
+                  <button id="export" class="outline-button compact">TXT</button>
+                  <button id="exportDocx" class="outline-button compact">DOCX</button>
+                  <button id="exportEpub" class="outline-button compact">EPUB</button>
+                  <button id="exportPdf" class="gold-button compact" title="เปิดหน้าต่างพิมพ์ แล้วเลือกบันทึกเป็น PDF">PDF</button>
+                </div>
+              </div>
+              <div id="printManuscriptText" class="print-manuscript-text" hidden></div>
+              <p class="form-hint" id="chapterSaveHint">บันทึกฉบับกู้คืนในอุปกรณ์นี้ · เมื่อเชื่อมต่อ Private Beta จะบันทึกขึ้น Cloud</p>
+            </div>
+            <div class="manuscript-tools-grid">
+              <section class="card-frame manuscript-tool-card">
+                <h2>ค้นหาและแทนที่</h2><p>ค้นหาคำหรือวลีในบทที่กำลังเขียน</p>
+                <label for="findText">ค้นหา</label><input id="findText" placeholder="คำหรือวลีที่ต้องการค้นหา">
+                <label for="replaceText">แทนที่ด้วย</label><input id="replaceText" placeholder="ข้อความใหม่">
+                <button id="replaceAll" class="outline-button compact" type="button">แทนที่ทั้งหมด</button>
+                <small id="replaceStatus" aria-live="polite">การแทนที่มีผลกับบทที่เลือกเท่านั้น</small>
+              </section>
+              <section class="card-frame manuscript-tool-card">
+                <h2>ประวัติฉบับร่าง</h2><p>บันทึกอัตโนมัติและกู้คืนเวอร์ชันก่อนหน้า</p>
+                <div id="chapterHistory" class="chapter-history" hidden aria-live="polite"></div>
+                <button id="chapterHistoryInline" class="outline-button compact" type="button">ดูประวัติเวอร์ชัน</button>
+              </section>
+              <section class="card-frame manuscript-tool-card">
+                <h2>เป้าหมายการเขียน</h2><p>กำหนดจำนวนคำที่ต้องการในบทนี้</p>
+                <label for="wordGoal">เป้าหมาย (คำ)</label><input id="wordGoal" type="number" min="1" max="100000" value="1000">
+                <strong id="wordGoalStatus">0 / 1,000 คำ</strong>
+                <div class="progress-track"><span id="wordGoalProgress"></span></div>
+              </section>
             </div>
           </div>
-          <div id="printManuscriptText" class="print-manuscript-text" hidden></div>
-          <p class="form-hint" id="chapterSaveHint">ระบบบันทึกในอุปกรณ์นี้ก่อน เมื่อเข้าสู่ระบบ Private Beta จะสามารถบันทึกบทไปยัง Cloud ได้</p>
         </div>
       </section>
       <section id="assistant" class="panel hidden">
