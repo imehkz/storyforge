@@ -1319,7 +1319,7 @@ async function saveCloudChapter() {
     try {
       const result = await cloudApi("/api/chapters/" + encodeURIComponent(chapterId), {
         method: "PATCH",
-        body: JSON.stringify({ ...draft, expectedRevision })
+        body: JSON.stringify({ ...draft, expectedRevision, wordCount: countWords(draft.body) })
       });
       if (cloud.activeChapterId !== chapterId) return true;
       cloud.revision = result.chapter.revision;
@@ -1370,6 +1370,7 @@ async function createCloudChapter() {
       body: JSON.stringify({
         title: "บทใหม่",
         body: "",
+        wordCount: 0,
         sortOrder: cloud.chapters.reduce((max, item) => Math.max(max, item.sort_order || 0), -1) + 1
       })
     });
@@ -1517,6 +1518,7 @@ async function importLocalNovelData() {
             clientId: map[localId].chapterId,
             title: localStorage.getItem("sf_chapterTitle") || "ต้นฉบับที่นำเข้า",
             body: localStorage.getItem("sf_manuscript") || "",
+            wordCount: countWords(localStorage.getItem("sf_manuscript") || ""),
             sortOrder: 0
           })
         });
