@@ -37,6 +37,7 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("DELETE FROM oauth_states", WORKER)
         self.assertIn("RETURNING state_hash", WORKER)
         self.assertIn("STATE_TTL_SECONDS", WORKER)
+        self.assertIn('redirect_uri: new URL("/auth/callback", request.url).toString()', WORKER)
 
     def test_sessions_are_hashed_and_csrf_protected(self):
         self.assertIn("sha256(sessionToken)", WORKER)
