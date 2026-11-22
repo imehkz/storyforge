@@ -626,3 +626,105 @@ input::placeholder,textarea::placeholder{color:rgba(154,169,190,.66)}
     50%{box-shadow:0 0 18px rgba(197,161,91,.12)}
   }
 }
+
+
+/* Royal Celestial Title Frames — shared identity for every major studio heading */
+.page-intro {
+  position: relative;
+  isolation: isolate;
+  min-height: 104px;
+  padding: 17px 22px 18px;
+  margin: 0 0 24px;
+  border: 1px solid rgba(197, 161, 91, .42);
+  border-radius: 7px;
+  background:
+    radial-gradient(ellipse at 50% -35%, rgba(197,161,91,.105), transparent 64%),
+    linear-gradient(112deg, rgba(24,38,59,.72), rgba(13,23,38,.48) 58%, rgba(24,38,59,.62));
+  box-shadow: inset 0 1px 0 rgba(232,216,184,.035), 0 8px 22px rgba(0,0,0,.10);
+}
+.page-intro::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 6px;
+  border: 1px solid rgba(197,161,91,.17);
+  border-radius: 4px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--gold),var(--gold)) left top / 15px 1px no-repeat,
+    linear-gradient(var(--gold),var(--gold)) left top / 1px 15px no-repeat,
+    linear-gradient(var(--gold),var(--gold)) right top / 15px 1px no-repeat,
+    linear-gradient(var(--gold),var(--gold)) right top / 1px 15px no-repeat,
+    linear-gradient(var(--gold),var(--gold)) left bottom / 15px 1px no-repeat,
+    linear-gradient(var(--gold),var(--gold)) left bottom / 1px 15px no-repeat,
+    linear-gradient(var(--gold),var(--gold)) right bottom / 15px 1px no-repeat,
+    linear-gradient(var(--gold),var(--gold)) right bottom / 1px 15px no-repeat;
+  opacity: .48;
+}
+.page-intro::after {
+  content: "✦";
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 11px;
+  color: rgba(212,183,121,.82);
+  background: #101827;
+  font-size: 13px;
+  line-height: 18px;
+  text-shadow: 0 0 12px rgba(197,161,91,.26);
+  pointer-events: none;
+}
+.page-intro > div {
+  position: relative;
+  z-index: 1;
+}
+.page-intro .eyebrow {
+  letter-spacing: 1.8px;
+  font-size: 11px;
+  color: rgba(212,183,121,.82);
+}
+.page-intro h1 {
+  display: inline-block;
+  position: relative;
+  margin-top: 3px;
+  padding-bottom: 5px;
+  text-shadow: 0 2px 14px rgba(197,161,91,.10);
+}
+.page-intro h1::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: min(100%, 230px);
+  height: 1px;
+  background: linear-gradient(90deg, rgba(197,161,91,.68), rgba(197,161,91,.12), transparent);
+}
+.page-intro p {
+  max-width: 760px;
+  color: rgba(205,214,225,.78);
+}
+.page-intro .save-indicator {
+  position: relative;
+  z-index: 1;
+  border-color: rgba(197,161,91,.25);
+  background: rgba(16,24,39,.58);
+}
+@media (max-width: 760px) {
+  .page-intro {
+    min-height: 0;
+    padding: 16px 15px 15px;
+    margin-bottom: 19px;
+    border-color: rgba(197,161,91,.36);
+    background:
+      radial-gradient(ellipse at 50% -35%, rgba(197,161,91,.08), transparent 68%),
+      rgba(17,29,46,.52);
+  }
+  .page-intro::before { inset: 5px; opacity: .34; }
+  .page-intro::after { font-size: 11px; }
+  .page-intro h1 { font-size: 25px; }
+  .page-intro p { font-size: 13px; line-height: 1.7; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-intro, .page-intro::before, .page-intro::after { transition: none !important; }
+}
