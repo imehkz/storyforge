@@ -446,6 +446,30 @@ async function api(request, env, url) {
     }
   }
 
+  const chapterMoveMatch = path.match(/^\/api\/chapters\/([a-f0-9-]+)\/move$/i);
+  if (chapterMoveMatch && method === "POST") {
+    const chapterId = chapterMoveMatch[1];
+    const input = await readJson(request);
+    if (!["up", "down"].includes(input.direction)) throw new Error("INVALID_DIRECTION");
+    const current = await env.DB.prepare(
+      "SELECT c.id, c.project_id, c.sort_order FROM chapters c JOIN projects p ON p.id = c.project_id WHERE c.id = ? AND p.owner_id = ?"
+    ).bind(chapterId, ownerId).first();
+    if (!current) throw new Error("NOT_FOUND");
+    const operator = input.direction === "up" ? "<" : ">";
+    const ordering = input.direction === "up" ? "DESC" : "ASC";
+    const neighbor = await env.DB.prepare(
+      `SELECT id, sort_order FROM chapters WHERE project_id = ? AND sort_order ${operator} ? ORDER BY sort_order ${ordering}, created_at ${ordering} LIMIT 1`
+    ).bind(current.project_id, current.sort_order).first();
+    if (!neighbor) return json({ ok: true, moved: false });
+    await env.DB.batch([
+      env.DB.prepare("UPDATE chapters SET sort_order = ?, updated_at = ? WHERE id = ?")
+        .bind(neighbor.sort_order, nowIso(), current.id),
+      env.DB.prepare("UPDATE chapters SET sort_order = ?, updated_at = ? WHERE id = ?")
+        .bind(current.sort_order, nowIso(), neighbor.id)
+    ]);
+    return json({ ok: true, moved: true });
+  }
+
   const chapterSnapshotsMatch = path.match(/^\/api\/chapters\/([a-f0-9-]+)\/snapshots$/i);
   if (chapterSnapshotsMatch && method === "GET") {
     const chapterId = chapterSnapshotsMatch[1];
@@ -461,7 +485,7 @@ async function api(request, env, url) {
     const input = await readJson(request);
     const snapshotId = requiredString(input.snapshotId, 80, "snapshotId");
     const current = await env.DB.prepare(
-      "SELECT c.id, c.project_id, c.title, c.body, c.revision FROM chapters c JOIN projects p ON p.id = c.project_id WHERE c.id = ? AND p.owner_id = ?"
+      "SELECT c.id, c.project_id, c.title, c.body, c.sort_order, c.revision FROM chapters c JOIN projects p ON p.id = c.project_id WHERE c.id = ? AND p.owner_id = ?"
     ).bind(chapterId, ownerId).first();
     if (!current) throw new Error("NOT_FOUND");
     const snapshot = await env.DB.prepare(
@@ -472,13 +496,14 @@ async function api(request, env, url) {
     try { restored = JSON.parse(snapshot.content_json); } catch { throw new Error("INVALID_SNAPSHOT"); }
     const title = optionalString(restored.title, 240, "title");
     const body = optionalString(restored.body, 500000, "body");
+    const sortOrder = Number.isInteger(restored.sort_order) ? Math.max(0, Math.min(restored.sort_order, 1000000)) : current.sort_order;
     const results = await env.DB.batch([
       env.DB.prepare(
-        "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
+        "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'sort_order', sort_order, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
       ).bind(crypto.randomUUID(), chapterId, current.revision, ownerId),
       env.DB.prepare(
-        "UPDATE chapters SET title = ?, body = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, sort_order, revision, updated_at"
-      ).bind(title, body, nowIso(), chapterId, current.revision, ownerId)
+        "UPDATE chapters SET title = ?, body = ?, sort_order = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, sort_order, revision, updated_at"
+      ).bind(title, body, sortOrder, nowIso(), chapterId, current.revision, ownerId)
     ]);
     const updated = results[1]?.results?.[0];
     if (!updated || !results[0]?.meta?.changes) throw new Error("CONFLICT");
@@ -499,19 +524,21 @@ async function api(request, env, url) {
       const input = await readJson(request, 2 * 1024 * 1024);
       if (!Number.isInteger(input.expectedRevision) || input.expectedRevision < 1) throw new Error("INVALID_EXPECTEDREVISION");
       const current = await env.DB.prepare(
-        "SELECT c.id, c.project_id, c.title, c.body, c.revision FROM chapters c JOIN projects p ON p.id = c.project_id WHERE c.id = ? AND p.owner_id = ?"
+        "SELECT c.id, c.project_id, c.title, c.body, c.sort_order, c.revision FROM chapters c JOIN projects p ON p.id = c.project_id WHERE c.id = ? AND p.owner_id = ?"
       ).bind(chapterId, ownerId).first();
       if (!current) throw new Error("NOT_FOUND");
       if (current.revision !== input.expectedRevision) throw new Error("CONFLICT");
       const title = input.title === undefined ? current.title : optionalString(input.title, 240, "title");
       const body = input.body === undefined ? current.body : optionalString(input.body, 500000, "body");
+      const sortOrder = input.sortOrder === undefined ? current.sort_order :
+        (Number.isInteger(input.sortOrder) && input.sortOrder >= 0 && input.sortOrder <= 1000000 ? input.sortOrder : (() => { throw new Error("INVALID_SORTORDER"); })());
       const results = await env.DB.batch([
         env.DB.prepare(
-          "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
+          "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'sort_order', sort_order, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
         ).bind(crypto.randomUUID(), chapterId, input.expectedRevision, ownerId),
         env.DB.prepare(
-          "UPDATE chapters SET title = ?, body = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, sort_order, revision, updated_at"
-        ).bind(title, body, nowIso(), chapterId, input.expectedRevision, ownerId)
+          "UPDATE chapters SET title = ?, body = ?, sort_order = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, sort_order, revision, updated_at"
+        ).bind(title, body, sortOrder, nowIso(), chapterId, input.expectedRevision, ownerId)
       ]);
       const updated = results[1]?.results?.[0];
       if (!updated || !results[0]?.meta?.changes) throw new Error("CONFLICT");
