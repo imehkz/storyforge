@@ -33,7 +33,7 @@ const cloud = {
   modules: { characters: [], relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: [] }
 };
 
-const UUID_RE = /^[a-f0-9-]{36}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const localMigrationKey = () => "sf_cloud_migrated_" + (cloud.userId || "owner");
 const migrationMapKey = () => "sf_cloud_migration_map_" + (cloud.userId || "owner");
 
@@ -67,12 +67,15 @@ function hasLocalNovelData() {
 function localProjectsForImport() {
   let projects = safeJSON(localStorage.getItem("sf_projects") || "[]", []);
   if (!Array.isArray(projects)) projects = [];
-  if (!projects.length && ( $("title").value || $("manuscript").value || $("chapterTitle").value )) {
+  const localTitle = localStorage.getItem("sf_title") || "";
+  const localManuscript = localStorage.getItem("sf_manuscript") || "";
+  const localChapterTitle = localStorage.getItem("sf_chapterTitle") || "";
+  if (!projects.length && (localTitle || localManuscript || localChapterTitle)) {
     projects = [{
       id: crypto.randomUUID(),
-      title: $("title").value || "นิยายที่นำเข้าจากอุปกรณ์",
-      genre: $("genre").value || "",
-      context: $("context").value || ""
+      title: localTitle || "นิยายที่นำเข้าจากอุปกรณ์",
+      genre: localStorage.getItem("sf_genre") || "",
+      context: localStorage.getItem("sf_context") || ""
     }];
   }
   return projects;
@@ -1273,14 +1276,26 @@ async function importLocalNovelData() {
         })
       });
       map[localId].projectId = projectResult.project.id;
-      if (localProject === activeLocalProject && ($("chapterTitle").value || $("manuscript").value)) {
+      if (localProject === activeLocalProject && (localStorage.getItem("sf_chapterTitle") || localStorage.getItem("sf_manuscript"))) {
         await cloudApi("/api/projects/" + encodeURIComponent(projectResult.project.id) + "/chapters", {
           method: "POST",
           body: JSON.stringify({
             clientId: map[localId].chapterId,
-            title: $("chapterTitle").value || "ต้นฉบับที่นำเข้า",
-            body: $("manuscript").value || "",
+            title: localStorage.getItem("sf_chapterTitle") || "ต้นฉบับที่นำเข้า",
+            body: localStorage.getItem("sf_manuscript") || "",
             sortOrder: 0
+          })
+        });
+      }
+      if (localProject === activeLocalProject && localStorage.getItem("sf_projectMemory")) {
+        map[localId].memoryNoteId = map[localId].memoryNoteId || crypto.randomUUID();
+        await cloudApi("/api/projects/" + encodeURIComponent(projectResult.project.id) + "/notes", {
+          method: "POST",
+          body: JSON.stringify({
+            clientId: map[localId].memoryNoteId,
+            title: "ความจำโครงการ",
+            content: localStorage.getItem("sf_projectMemory") || "",
+            note_type: "project_memory"
           })
         });
       }
