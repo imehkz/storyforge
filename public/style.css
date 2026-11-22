@@ -273,3 +273,17 @@
   font-size: 11px;
 }
 .relationship-graph svg { min-width: 540px; height: auto; display: block; }
+
+/* Accessibility floor for the newly added manuscript and character controls. */
+.chapter-list-item b,
+.chapter-list-item small,
+.chapter-sidebar-head > span,
+.chapter-sidebar-actions > span,
+.manuscript-tool-card p,
+.manuscript-tool-card label,
+.manuscript-tool-card > small,
+.manuscript-topbar label,
+.character-field-grid label,
+.form-card label {
+  font-size: 12px;
+}
