@@ -2252,20 +2252,31 @@ function setupManuscriptEditor() {
       save("manuscriptBody");
     });
   });
+  const editorPrefs = safeJSON(localStorage.getItem("sf_editor_preferences") || "{}", {});
+  const applyEditorPrefs = () => {
+    if (editorPrefs.font) { editor.style.fontFamily = editorPrefs.font; $("editorFont").value = editorPrefs.font; }
+    if (editorPrefs.size) { editor.style.fontSize = editorPrefs.size; $("editorSize").value = editorPrefs.size; }
+    if (editorPrefs.lineHeight) { editor.style.lineHeight = editorPrefs.lineHeight; $("editorLineHeight").value = editorPrefs.lineHeight; }
+    if (editorPrefs.margin) { editor.style.padding = editorPrefs.margin; $("editorPageMargin").value = editorPrefs.margin; }
+  };
+  const persistEditorPrefs = () => localStorage.setItem("sf_editor_preferences", JSON.stringify(editorPrefs));
   $("editorFont")?.addEventListener("change", event => {
-    editor.style.fontFamily = event.target.value;
-    editor.focus();
+    editorPrefs.font = event.target.value; editor.style.fontFamily = event.target.value;
+    persistEditorPrefs(); editor.focus();
   });
   $("editorSize")?.addEventListener("change", event => {
-    editor.style.fontSize = event.target.value;
-    editor.focus();
+    editorPrefs.size = event.target.value; editor.style.fontSize = event.target.value;
+    persistEditorPrefs(); editor.focus();
   });
   $("editorLineHeight")?.addEventListener("change", event => {
-    editor.style.lineHeight = event.target.value;
+    editorPrefs.lineHeight = event.target.value; editor.style.lineHeight = event.target.value;
+    persistEditorPrefs();
   });
   $("editorPageMargin")?.addEventListener("change", event => {
-    editor.style.padding = event.target.value;
+    editorPrefs.margin = event.target.value; editor.style.padding = event.target.value;
+    persistEditorPrefs();
   });
+  applyEditorPrefs();
   $("autoFormatManuscript")?.addEventListener("click", () => {
     const paragraphs = getManuscriptText().split(/\n+/).map(line => line.trim()).filter(Boolean);
     editor.innerHTML = paragraphs.map(line => "<p>" + escapeHtml(line) + "</p>").join("");
