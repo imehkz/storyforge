@@ -118,3 +118,22 @@ See [SECURITY_AND_STORAGE_DECISIONS.md](./SECURITY_AND_STORAGE_DECISIONS.md) for
 3. Design and implement fail-closed GitHub OAuth/session ownership before adding server-side project APIs.
 4. Choose a database and hosting persistence option only after checking current free-tier limits and obtaining approval for any paid service.
 5. Continue matching the remaining Figma screens only after the dashboard runtime check.
+
+
+## Cloudflare implementation progress — 22 November 2026
+
+### Added on `feature/storyforge-studio-80`
+
+- Added a Cloudflare Worker entry point that serves existing static assets and exposes a non-sensitive health endpoint.
+- All other `/api/*` routes return HTTP 503 until authentication and authorization are implemented; no unauthenticated data API is exposed.
+- Added a Wrangler configuration template (not deploy-ready until a real D1 database ID is supplied).
+- Added the initial D1 schema for users, OAuth states, sessions, encrypted OAuth credential storage, projects, chapters, project memories, and snapshots.
+- Added `docs/CLOUDFLARE_FREE_ARCHITECTURE.md` documenting current free-tier limits and the remaining security/runtime gates.
+
+### Still not complete
+
+- The existing browser UI still reads and writes localStorage. It has not been migrated to D1.
+- No GitHub OAuth, session, owner allowlist, API CRUD, autosave endpoint, snapshot/restore API, or server-side project isolation is active.
+- The Cloudflare scaffold has not been deployed and no Cloudflare resource has been created.
+- Copilot SDK is not hosted on Workers; keep AI disabled until a separately approved compatible runtime is available.
+- No runtime, migration, security, or browser test has been executed. Do not treat scaffold commits as a working hosted app.
