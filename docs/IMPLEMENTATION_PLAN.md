@@ -226,6 +226,14 @@ No hosting resources or secrets have been provisioned, and no production deploym
 - The World Building UI is still a structured lore catalogue rather than the Figma illustrated atlas/map. Plot status board and event timeline views are implemented, but a full visual plot-flow editor and advanced timeline controls remain incomplete. Rich character portrait generation also remains incomplete.
 
 
+### Backup validation hardening — 23 November 2026
+
+- Backup collection now fails closed when an API result reaches its fixed page cap (200 projects, 500 chapters, or 100 records per project module) rather than silently claiming a complete archive.
+- Cloud restore now preflights the entire archive before confirmation or writes: unique UUIDs, required collection presence, required fields, size/type limits, chapter word-count consistency, valid relationship IDs, and same-project character references.
+- Added source-level regression tests for valid archives, duplicate project IDs, malformed chapter bodies, missing module collections, inconsistent word counts, and dangling character relationships.
+- JavaScript syntax and test-harness syntax parse checks passed after the latest commits. The most recent GitHub Actions run verified commit 0455594; no Actions result is yet confirmed for the newer test commit 5cdad4c.
+- Live D1 restore remains untested. Restore still merges through multiple API calls rather than one database transaction; a network/API failure midway can leave a partial merge. Snapshot history remains excluded.
+
 ### Backup integrity follow-up — 23 November 2026
 
 - Fixed a critical gap where the Backup Center exported only browser-local `sf_*` keys while the active novel data lived in D1.
