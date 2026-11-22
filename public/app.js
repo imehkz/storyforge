@@ -1232,6 +1232,7 @@ async function createModuleItem(collection, payload) {
 
 async function deleteModuleItem(collection, itemId) {
   if (!confirm("ต้องการลบรายการนี้หรือไม่?")) return;
+  if (collection === "characters" && cloud.editingCharacterId === itemId) resetCharacterForm();
   try {
     await cloudApi("/api/projects/" + encodeURIComponent(cloud.activeProjectId) + "/" + collection + "/" + encodeURIComponent(itemId), { method: "DELETE" });
     await loadProjectModules(cloud.activeProjectId);
