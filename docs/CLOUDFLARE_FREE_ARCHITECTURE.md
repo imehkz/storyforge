@@ -102,3 +102,5 @@ The Worker now includes owner-allowlisted GitHub OAuth, hashed one-time OAuth st
 Important: this is code-level implementation only. No Cloudflare account, D1 database, OAuth app, secrets, or deployment has been configured. The browser editor still writes to localStorage and clearly states that it is not synced. Authentication UI is connected to the new session endpoint, but project/manuscript data has not yet been migrated to the APIs. Copilot remains disabled.
 
 Source-level Python checks and JavaScript syntax checks are configured in GitHub Actions. A passing CI run and deployed integration test have not yet been verified.
+
+- Added migration `0003_chapter_word_count.sql` so project-wide word totals can be computed from compact chapter metadata without fetching every manuscript body.
