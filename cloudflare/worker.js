@@ -252,7 +252,7 @@ async function api(request, env, url) {
   if (path === "/api/projects" && method === "POST") {
     const input = await readJson(request);
     const clientId = input.clientId;
-    if (clientId !== undefined && (typeof clientId !== "string" || !/^[a-f0-9-]{36}$/i.test(clientId))) {
+    if (clientId !== undefined && (typeof clientId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientId))) {
       throw new Error("INVALID_CLIENTID");
     }
     const id = clientId || crypto.randomUUID();
@@ -363,14 +363,22 @@ async function api(request, env, url) {
         else if (config.required.includes(field)) throw new Error("INVALID_" + field.toUpperCase());
       }
       if (collection === "relationships" && values.source_character_id === values.target_character_id) throw new Error("INVALID_RELATIONSHIP");
-      const id = crypto.randomUUID();
+      const clientId = input.clientId;
+      if (clientId !== undefined && (typeof clientId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientId))) {
+        throw new Error("INVALID_CLIENTID");
+      }
+      const id = clientId || crypto.randomUUID();
       const columns = ["id", "project_id", ...Object.keys(values)];
       const params = [id, projectId, ...Object.values(values)];
       const marks = columns.map(() => "?").join(", ");
-      await env.DB.prepare(
-        `INSERT INTO ${config.table} (${columns.join(", ")}) VALUES (${marks})`
+      const inserted = await env.DB.prepare(
+        `INSERT OR IGNORE INTO ${config.table} (${columns.join(", ")}) VALUES (${marks})`
       ).bind(...params).run();
-      return json({ item: { id, project_id: projectId, ...values } }, 201);
+      const item = await env.DB.prepare(
+        `SELECT * FROM ${config.table} WHERE id = ?`
+      ).bind(id).first();
+      if (!item || item.project_id !== projectId) throw new Error("CONFLICT");
+      return json({ item, created: Boolean(inserted.meta?.changes) }, inserted.meta?.changes ? 201 : 200);
     }
     if (itemId && method === "PATCH") {
       const input = await readJson(request);
