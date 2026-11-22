@@ -793,11 +793,14 @@ function setupEvents() {
             body: JSON.stringify(payload)
           });
         } else {
+          cloud.noteId = localStorage.getItem("sf_cloud_memory_note_id_" + cloud.activeProjectId) || crypto.randomUUID();
+          localStorage.setItem("sf_cloud_memory_note_id_" + cloud.activeProjectId, cloud.noteId);
           const created = await cloudApi("/api/projects/" + encodeURIComponent(cloud.activeProjectId) + "/notes", {
             method: "POST",
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ ...payload, clientId: cloud.noteId })
           });
           cloud.noteId = created.item.id;
+          localStorage.setItem("sf_cloud_memory_note_id_" + cloud.activeProjectId, cloud.noteId);
         }
         alert("บันทึกความจำโครงการบน Cloud แล้วครับ (ความจำส่วนตัวยังคงอยู่ในอุปกรณ์นี้)");
       } catch (error) {
@@ -974,7 +977,8 @@ async function loadCloudProject(projectId) {
   cloud.chapters = chapterResult.chapters || [];
   const rememberedChapter = localStorage.getItem("sf_cloud_active_chapter_" + projectId) || "";
   const memoryNote = (noteResult.items || []).find(note => note.note_type === "project_memory");
-  cloud.noteId = memoryNote?.id || "";
+  cloud.noteId = memoryNote?.id || localStorage.getItem("sf_cloud_memory_note_id_" + project.id) || "";
+  if (cloud.noteId) localStorage.setItem("sf_cloud_memory_note_id_" + project.id, cloud.noteId);
   if ($("projectMemory")) $("projectMemory").value =
     memoryNote?.content || localStorage.getItem("sf_cloud_memory_" + project.id) || "";
   renderChapterSelect();
