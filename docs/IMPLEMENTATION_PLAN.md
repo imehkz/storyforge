@@ -137,3 +137,25 @@ See [SECURITY_AND_STORAGE_DECISIONS.md](./SECURITY_AND_STORAGE_DECISIONS.md) for
 - The Cloudflare scaffold has not been deployed and no Cloudflare resource has been created.
 - Copilot SDK is not hosted on Workers; keep AI disabled until a separately approved compatible runtime is available.
 - No runtime, migration, security, or browser test has been executed. Do not treat scaffold commits as a working hosted app.
+
+
+## Cloudflare follow-up — 22 November 2026
+
+### Added in the current work session
+
+- Expanded D1 schema with characters, relationships, plot threads, world lore, timeline events, notes, and asset metadata.
+- Added composite project-scoped foreign keys for character relationships.
+- Added a standard-library Python test harness for migration integrity and project-boundary constraints.
+- Added an owner-operated Cloudflare setup checklist. It explicitly prohibits committing account-specific Wrangler configuration or secrets and does not authorize billing.
+
+### Remaining sequence
+
+1. Run the schema test in a local environment with Python 3: `python3 tests/check_d1_schema.py`.
+2. Verify Wrangler config and migration behavior with a local D1 database before any remote database is created.
+3. Implement GitHub OAuth and owner allowlist, then secure sessions and CSRF.
+4. Add authenticated project and chapter API handlers with SQL owner checks.
+5. Migrate UI state only after API authorization and autosave tests pass.
+6. Add version snapshots, restore, conflict handling, and independent encrypted backup.
+7. Reassess Copilot separately; Workers is not the Node.js SDK runtime.
+
+No deployment, remote D1 creation, OAuth app, secret, paid plan, or production release has been performed.
