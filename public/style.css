@@ -728,3 +728,27 @@ input::placeholder,textarea::placeholder{color:rgba(154,169,190,.66)}
 @media (prefers-reduced-motion: reduce) {
   .page-intro, .page-intro::before, .page-intro::after { transition: none !important; }
 }
+
+
+/* Small chapter sigils: each room keeps its own emblem inside the shared frame */
+#dashboard .page-intro h1::before { content: "⌖"; }
+#projects .page-intro h1::before { content: "❖"; }
+#characters .page-intro h1::before { content: "♙"; }
+#plot .page-intro h1::before { content: "✦"; }
+#world .page-intro h1::before { content: "◎"; }
+#timeline .page-intro h1::before { content: "◷"; }
+#notes .page-intro h1::before { content: "✎"; }
+#manuscript .page-intro h1::before { content: "❧"; }
+#assistant .page-intro h1::before { content: "✧"; }
+#backup .page-intro h1::before { content: "⛨"; }
+.page-intro h1::before {
+  display: inline-block;
+  margin-right: 10px;
+  color: rgba(212,183,121,.78);
+  font: 400 .78em/1 var(--serif);
+  vertical-align: .06em;
+  text-shadow: 0 0 13px rgba(197,161,91,.2);
+}
+@media (max-width: 760px) {
+  .page-intro h1::before { margin-right: 7px; }
+}
