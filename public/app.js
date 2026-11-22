@@ -1490,11 +1490,23 @@ async function refreshAuthStatus() {
     if (response.status === 401) {
       cloud.authenticated = false;
       cloud.csrfToken = "";
-      const result = { authenticated: false };
+      cloud.userId = "";
+      cloud.projects = [];
+      cloud.activeProjectId = "";
+      cloud.chapters = [];
+      cloud.activeChapterId = "";
+      cloud.noteId = "";
+      cloud.modules = { characters: [], relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: [] };
       state.textContent = "เซสชันหมดอายุหรือโทเคนตรวจสอบไม่ตรงกัน · กรุณาเข้าสู่ระบบใหม่";
       login.hidden = false;
       logout.hidden = true;
+      keys.forEach(key => {
+        const value = localStorage.getItem(storageKeyFor(key));
+        if (value !== null && $(key)) $(key).value = value;
+      });
       renderProjects();
+      renderModuleLists();
+      renderDashboard();
       return;
     }
     if (!response.ok) throw new Error("ตรวจสอบบัญชีไม่สำเร็จ");
