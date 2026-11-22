@@ -21,7 +21,7 @@ const keys = [
 // ==========================================
 
 function addBackupPanel() {
-  const content = document.querySelector(".content");
+  const content = document.querySelector("#backupContent");
 
   if (!content) return;
 
@@ -62,7 +62,7 @@ function addBackupPanel() {
           type="checkbox"
           style="width:auto"
         >
-        เปิดใช้งาน Backup อัตโนมัติ
+        เปิด Backup อัตโนมัติ (ขณะเปิดหน้าเว็บนี้)
       </label>
 
       <label>ความถี่ในการสำรองข้อมูล</label>
@@ -470,6 +470,7 @@ function load() {
   });
 
   renderProjects();
+  renderDashboard();
 }
 
 function save() {
@@ -481,13 +482,37 @@ function save() {
     );
   });
 
-  $("saveState").textContent =
-    "บันทึกในอุปกรณ์นี้แล้ว · ยังไม่ซิงก์ขึ้นเซิร์ฟเวอร์";
+  $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกในอุปกรณ์นี้แล้ว · ยังไม่ซิงก์ขึ้นเซิร์ฟเวอร์';
+  renderDashboard();
+  const count = $("manuscript").value.length;
+  if ($("manuscriptCount")) $("manuscriptCount").textContent = count.toLocaleString("th-TH") + " อักขระ";
 }
 
 // ==========================================
 // PROJECT NAVIGATION
 // ==========================================
+
+function renderDashboard() {
+  const projects = safeJSON(localStorage.getItem("sf_projects") || "[]", []);
+  const list = Array.isArray(projects) ? projects : [];
+  const activeId = localStorage.getItem("sf_active_project_id");
+  const active = list.find(item => item.id && item.id === activeId) || list[0] || null;
+  const title = active && active.title ? active.title : $("title").value;
+  const chapter = $("chapterTitle").value;
+  const manuscript = $("manuscript").value;
+  const count = manuscript.length;
+  if ($("sidebarProjectName")) $("sidebarProjectName").textContent = title || "ยังไม่ได้เลือกนิยาย";
+  if ($("sidebarProjectMeta")) $("sidebarProjectMeta").textContent = active ? (active.genre || "นิยายของฉัน") + " · บันทึกในอุปกรณ์นี้" : "เริ่มต้นสร้างเรื่องราวของคุณ";
+  if ($("dashboardProjectTitle")) $("dashboardProjectTitle").textContent = title || "ยังไม่มีนิยายในห้องสมุด";
+  if ($("dashboardChapterLine")) $("dashboardChapterLine").textContent = chapter ? "บทล่าสุด · " + chapter : (title ? "เพิ่มชื่อบทและเริ่มเขียนต้นฉบับของคุณ" : "เริ่มต้นสร้างโลกและตัวละครของคุณได้เลย");
+  if ($("dashboardLastEdited")) $("dashboardLastEdited").textContent = active ? "โครงการนี้บันทึกไว้ในเบราว์เซอร์เครื่องนี้" : "พื้นที่เขียนนิยายส่วนตัว · บันทึกในอุปกรณ์นี้";
+  if ($("dashboardWordCount")) $("dashboardWordCount").textContent = count.toLocaleString("th-TH");
+  if ($("dashboardWordGoal")) $("dashboardWordGoal").textContent = "อักขระในต้นฉบับ";
+  if ($("dashboardProgress")) $("dashboardProgress").style.width = "0%";
+  if ($("recentChapterTitle")) $("recentChapterTitle").textContent = chapter || "ยังไม่มีบทที่บันทึก";
+  if ($("recentWordCount")) $("recentWordCount").textContent = count.toLocaleString("th-TH") + " อักขระ";
+  if ($("manuscriptCount")) $("manuscriptCount").textContent = count.toLocaleString("th-TH") + " อักขระ";
+}
 
 function renderProjects() {
 
@@ -523,6 +548,19 @@ function escapeHtml(value) {
 // EVENT LISTENERS
 // ==========================================
 
+function showTab(tab, activeButton = null) {
+  const target = $(tab);
+  if (!target) return;
+  document.querySelectorAll(".nav").forEach(item => item.classList.toggle("active", item === activeButton || item.dataset.tab === tab));
+  document.querySelectorAll(".panel").forEach(panel => panel.classList.toggle("hidden", panel.id !== tab));
+  const nav = document.querySelector('.nav[data-tab="' + tab + '"]');
+  if (nav) nav.classList.add("active");
+  const label = nav && nav.querySelector("span:last-child") ? nav.querySelector("span:last-child").textContent : (target.querySelector("h1") ? target.querySelector("h1").textContent : "พื้นที่ทำงาน");
+  if ($("breadcrumbTitle")) $("breadcrumbTitle").textContent = label;
+  if (tab === "projects") renderProjects();
+  if (tab === "dashboard") renderDashboard();
+}
+
 function setupEvents() {
 
   // Auto save
@@ -535,22 +573,16 @@ function setupEvents() {
 
     button.onclick = () => {
 
-      document.querySelectorAll(".nav").forEach(item =>
-        item.classList.remove("active")
-      );
-
-      button.classList.add("active");
-
-      document.querySelectorAll(".panel").forEach(panel =>
-        panel.classList.add("hidden")
-      );
-
-      $(button.dataset.tab).classList.remove("hidden");
-
-      if (button.dataset.tab === "projects") {
-        renderProjects();
-      }
+      showTab(button.dataset.tab, button);
     };
+  });
+
+  document.querySelectorAll("[data-open-tab]").forEach(button => {
+    button.addEventListener("click", () => showTab(button.dataset.openTab));
+  });
+  document.querySelector("[data-home]")?.addEventListener("click", event => {
+    event.preventDefault();
+    showTab("dashboard");
   });
 
   // AI modes
@@ -583,16 +615,15 @@ function setupEvents() {
     }
 
     const item = {
+      id: (projects.find(x => x.title === ($("title").value || "โครงการไม่มีชื่อ")) || {}).id || (crypto.randomUUID ? crypto.randomUUID() : "sf-" + Date.now().toString(36)),
       title: $("title").value || "โครงการไม่มีชื่อ",
       genre: $("genre").value,
       context: $("context").value
     };
 
-    projects = projects.filter(
-      x => x.title !== item.title
-    );
-
+    projects = projects.filter(x => x.title !== item.title);
     projects.unshift(item);
+    localStorage.setItem("sf_active_project_id", item.id);
 
     localStorage.setItem(
       "sf_projects",
@@ -600,8 +631,9 @@ function setupEvents() {
     );
 
     renderProjects();
+    renderDashboard();
 
-    alert("บันทึกโครงการแล้ว");
+    alert("บันทึกข้อมูลนิยายไว้ในอุปกรณ์นี้แล้วครับ");
   };
 
   // Save memory
