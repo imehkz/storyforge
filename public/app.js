@@ -1042,6 +1042,8 @@ function renderModuleLists() {
   document.querySelectorAll("[data-module-delete]").forEach(button => button.addEventListener("click", () => deleteModuleItem(button.dataset.moduleDelete, button.dataset.moduleId)));
   document.querySelectorAll("[data-module-edit]").forEach(button => button.addEventListener("click", () => editModuleItem(button.dataset.moduleEdit, button.dataset.moduleId)));
   if ($("characterCount")) $("characterCount").textContent = characters.length.toLocaleString("th-TH");
+  if ($("plotCount")) $("plotCount").textContent = plots.length.toLocaleString("th-TH");
+  if ($("worldCount")) $("worldCount").textContent = worlds.length.toLocaleString("th-TH");
 }
 
 async function createModuleItem(collection, payload) {
