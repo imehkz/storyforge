@@ -78,7 +78,9 @@ class WorkerContractTests(unittest.TestCase):
             "importLocalNovelData", "showChapterHistory",
             "loadProjectModules", "createModuleItem",
             "moveActiveChapter", "deleteActiveChapter",
-            "toggleCloudProjectArchive", "deleteCloudProject"
+            "toggleCloudProjectArchive", "deleteCloudProject",
+            "renderRelationshipGraph", "renderPlotBoard", "renderTimelineView",
+            "saveCharacter", "countWords"
         ):
             self.assertIn(fragment, APP)
 
