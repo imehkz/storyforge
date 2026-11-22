@@ -494,7 +494,7 @@ async function api(request, env, url) {
   if (chapterSnapshotsMatch && method === "GET") {
     const chapterId = chapterSnapshotsMatch[1];
     const rows = await env.DB.prepare(
-      "SELECT s.id, s.resource_id, s.content_json, s.created_at FROM snapshots s JOIN projects p ON p.id = s.project_id JOIN chapters c ON c.id = s.resource_id AND c.project_id = p.id WHERE s.resource_type = 'chapter' AND s.resource_id = ? AND p.owner_id = ? ORDER BY s.created_at DESC LIMIT 100"
+      "SELECT s.id, s.resource_id, json_extract(s.content_json, '$.title') AS title, s.created_at FROM snapshots s JOIN projects p ON p.id = s.project_id JOIN chapters c ON c.id = s.resource_id AND c.project_id = p.id WHERE s.resource_type = 'chapter' AND s.resource_id = ? AND p.owner_id = ? ORDER BY s.created_at DESC LIMIT 100"
     ).bind(chapterId, ownerId).all();
     return json({ snapshots: rows.results || [] });
   }
