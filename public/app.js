@@ -623,7 +623,7 @@ function renderDashboard() {
 function renderProjects() {
   const list = $("projectList");
   if (!list) return;
-  if (cloud.authenticated) {
+  if (cloud.ready) {
     $("projectListCaption").textContent = "โครงการที่จัดเก็บในบัญชี Private Beta";
     list.innerHTML = cloud.projects.length
       ? cloud.projects.map(item =>
@@ -726,7 +726,7 @@ function setupEvents() {
   // Save project
   $("saveProject").onclick = async () => {
     save();
-    if (cloud.authenticated && cloud.activeChapterId) {
+    if (cloud.ready && cloud.activeChapterId) {
       if (cloud.saveTimer) { clearTimeout(cloud.saveTimer); cloud.saveTimer = null; }
       const savedDraft = await saveCloudChapter();
       if (!savedDraft && !confirm("บทปัจจุบันยังบันทึก Cloud ไม่สำเร็จ ต้องการบันทึกเฉพาะข้อมูลโครงการต่อหรือไม่? ฉบับในเครื่องยังคงอยู่")) return;
@@ -748,7 +748,7 @@ function setupEvents() {
     localStorage.setItem("sf_projects", JSON.stringify(projects));
     creatingProject = false;
 
-    if (cloud.authenticated) {
+    if (cloud.ready) {
       try {
         let saved;
         if (cloud.projects.some(project => project.id === cloud.activeProjectId)) {
@@ -808,7 +808,7 @@ function setupEvents() {
   // Save memory
   $("saveMemory").onclick = async () => {
     save();
-    if (cloud.authenticated && cloud.activeProjectId) {
+    if (cloud.ready && cloud.activeProjectId) {
       localStorage.setItem("sf_cloud_memory_" + cloud.activeProjectId, $("projectMemory").value);
       try {
         const payload = {
@@ -971,7 +971,7 @@ async function deleteCloudProject(projectId) {
 }
 
 async function selectCloudProject(projectId) {
-  if (!projectId || projectId === cloud.activeProjectId) return;
+  if (!cloud.ready || !projectId || projectId === cloud.activeProjectId) return;
   if (cloud.saveTimer) {
     clearTimeout(cloud.saveTimer);
     cloud.saveTimer = null;
@@ -1416,7 +1416,7 @@ function renderChapterSelect() {
   }
   const list = $("chapterList");
   if (list) {
-    if (!cloud.authenticated) {
+    if (!cloud.ready) {
       const localTitle = $("chapterTitle")?.value || "บทปัจจุบัน";
       list.innerHTML = `<div class="chapter-list-item active"><span>01</span><div><b>${escapeHtml(localTitle)}</b><small>ฉบับในอุปกรณ์นี้</small></div></div>`;
     } else if (!cloud.activeProjectId) {
@@ -1482,7 +1482,7 @@ async function selectCloudChapter(chapterId) {
 }
 
 function scheduleCloudSave() {
-  if (!cloud.authenticated || !cloud.activeProjectId || !cloud.activeChapterId) return;
+  if (!cloud.ready || !cloud.activeProjectId || !cloud.activeChapterId) return;
   clearTimeout(cloud.saveTimer);
   $("saveState").innerHTML = '<span class="status-dot"></span>มีการแก้ไข · กำลังรอบันทึก Cloud';
   cloud.saveTimer = setTimeout(saveCloudChapter, 900);
@@ -1537,8 +1537,8 @@ async function saveCloudChapter() {
 }
 
 async function createCloudChapter() {
-  if (!cloud.authenticated || !cloud.activeProjectId) {
-    alert("กรุณาเข้าสู่ระบบและเลือกโครงการก่อนครับ");
+  if (!cloud.ready || !cloud.activeProjectId) {
+    alert("กรุณาเข้าสู่ระบบและเลือกโครงการที่เชื่อมต่อ Cloud ก่อนครับ");
     return;
   }
   if (cloud.activeChapterId) {
@@ -1584,7 +1584,7 @@ async function recoverLocalChapterDraft() {
 }
 
 async function moveActiveChapter(direction) {
-  if (!cloud.authenticated || !cloud.activeChapterId) return;
+  if (!cloud.ready || !cloud.activeChapterId) return;
   if (cloud.saveTimer) { clearTimeout(cloud.saveTimer); cloud.saveTimer = null; }
   const saved = await saveCloudChapter();
   if (!saved) {
@@ -1628,7 +1628,7 @@ async function deleteActiveChapter() {
 
 async function showChapterHistory() {
   const panel = $("chapterHistory");
-  if (!cloud.authenticated || !cloud.activeChapterId) {
+  if (!cloud.ready || !cloud.activeChapterId) {
     panel.hidden = false;
     panel.textContent = "ประวัติเวอร์ชันจะแสดงเมื่อเลือกบทที่บันทึกบน Cloud";
     return;
@@ -1666,7 +1666,7 @@ async function showChapterHistory() {
 }
 
 async function importLocalNovelData() {
-  if (!cloud.authenticated) return;
+  if (!cloud.ready) return;
   const localProjects = localProjectsForImport();
   if (!localProjects.length) {
     alert("ไม่พบข้อมูลนิยายในอุปกรณ์นี้ครับ");
