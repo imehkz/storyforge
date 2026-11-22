@@ -41,34 +41,37 @@ Official references:
 
 ## Implementation state
 
-### Added in this branch
+### Implemented in source on this branch
 
-- `cloudflare/worker.js`: static asset forwarding and a non-sensitive health endpoint. All other API routes fail closed with HTTP 503.
-- `cloudflare/wrangler.toml.example`: configuration template with a deliberate placeholder D1 ID.
-- `cloudflare/migrations/0001_initial_schema.sql`: initial owner, OAuth state, session, credential, project, chapter, project-memory, and snapshot schema.
-- This architecture record.
+- `cloudflare/worker.js`: owner-allowlisted GitHub OAuth, one-use hashed OAuth state, hashed sessions, host-only Secure/HttpOnly cookies, same-origin + CSRF validation, logout revocation, owner-scoped project/chapter/module APIs, chapter revision conflicts, atomic snapshots/restore, chapter ordering, and chapter deletion with snapshot cleanup.
+- Project-scoped CRUD for characters, relationships, plot threads, world lore, timeline events, and notes.
+- Optional secret-protected Telegram backup endpoint.
+- Static asset security headers and Content Security Policy.
+- `cloudflare/wrangler.toml.example`: configuration template with a deliberate placeholder D1 ID and Worker-first routing for API/auth paths.
+- D1 migrations `0001` through `0003`: identity/session, project and chapter data, studio modules, and persisted chapter word counts.
+- Browser sign-in/session UI, API-backed project/chapter workflows, autosave, local draft recovery, explicit idempotent local import, studio module CRUD, chapter history/restore, and TXT/DOCX/EPUB/print-to-PDF export source.
+- Python schema/security-contract tests and Node export-package smoke tests are configured in GitHub Actions.
 
-### Not implemented or verified
+### Not provisioned or verified
 
-- GitHub OAuth callback and token exchange.
-- Owner GitHub numeric-ID allowlist.
-- Session creation, rotation, revocation, CSRF validation, and encryption of OAuth credentials.
-- Any project/chapter API or migration execution against a live D1 database.
-- Frontend migration from localStorage to authenticated server APIs.
-- Cross-project isolation tests, browser tests, and end-to-end tests.
-- Production deployment or a live URL.
-- Copilot runtime integration.
+- No Cloudflare account, D1 database, GitHub OAuth App, secrets, or deployment has been created.
+- Migrations have not been applied to a Cloudflare D1 instance.
+- GitHub Actions passing status has not been confirmed.
+- No live Worker/D1, browser, or cross-device end-to-end test has been run.
+- Independent encrypted D1 backup and full restore test remain outstanding.
+- Copilot runtime integration remains disabled; GitHub identity OAuth is not Copilot SDK authorization.
+- No production deployment or live URL exists.
 
-## Security gates before enabling data APIs
+## Verification gates before private beta
 
-1. Owner allowlist must be a server-side secret/config value and must fail closed when absent.
-2. OAuth state must be random, hashed, expiring, and single-use.
-3. Sessions must be random, stored as hashes, delivered via Secure/HttpOnly/SameSite cookies, and revocable.
-4. CSRF validation must protect every state-changing request.
-5. Every project query must derive owner identity from the verified session and enforce project ownership in SQL.
-6. OAuth tokens must be encrypted at rest with a secret not stored in D1 or the repository.
-7. Add tests for missing auth/config, session expiry/revocation, cross-user access, cross-project child IDs, and restore/export boundaries.
-8. Do not switch the UI to server-save indicators until these gates and runtime tests pass.
+1. Configure the owner allowlist as a server-side value and confirm missing config fails closed.
+2. Verify OAuth state replay/expiry, session expiry/revocation, and host-only cookies.
+3. Verify same-origin and CSRF rejection for every mutating endpoint.
+4. Test project ownership and cross-project isolation for every collection.
+5. Test import retries, chapter autosave, stale revision conflicts, ordering, deletion, and restore.
+6. Validate DOCX/EPUB in common readers and print-to-PDF on desktop and Android.
+7. Configure independent encrypted backups and test restore.
+8. Only deploy after tests pass and the owner explicitly approves.
 
 ## Copilot decision
 
