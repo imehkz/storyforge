@@ -1199,15 +1199,6 @@ async function editModuleItem(collection, itemId) {
   if (collection === "characters") {
     startEditCharacter(item);
     return;
-    let profile = {};
-    try { profile = JSON.parse(item.profile_json || "{}"); } catch {}
-    const name = prompt("ชื่อตัวละคร", item.name);
-    if (name === null) return;
-    const role = prompt("บทบาท", item.role || "");
-    if (role === null) return;
-    const description = prompt("รายละเอียดตัวละคร", profile.description || "");
-    if (description === null) return;
-    payload = { name, role, profile_json: { ...profile, description } };
   } else if (collection === "plot-threads") {
     const title = prompt("ชื่อเส้นเรื่อง", item.title);
     if (title === null) return;
