@@ -1383,8 +1383,7 @@ async function showChapterHistory() {
     panel.hidden = false;
     panel.innerHTML = snapshots.length
       ? "<strong>ประวัติฉบับก่อนหน้า</strong>" + snapshots.map(item => {
-          let title = "ฉบับก่อนหน้า";
-          try { title = JSON.parse(item.content_json).title || title; } catch {}
+          const title = item.title || "ฉบับก่อนหน้า";
           return `<div class="history-row"><span>${escapeHtml(title)} · ${escapeHtml(new Date(item.created_at).toLocaleString("th-TH"))}</span><button type="button" class="outline-button compact" data-restore-snapshot="${escapeHtml(item.id)}">กู้คืน</button></div>`;
         }).join("")
       : "<strong>ประวัติเวอร์ชัน</strong><p>ยังไม่มี Snapshot ก่อนหน้า</p>";
