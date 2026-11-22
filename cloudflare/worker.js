@@ -558,10 +558,15 @@ async function api(request, env, url) {
       return json({ chapter: updated });
     }
     if (method === "DELETE") {
-      const result = await env.DB.prepare(
-        "DELETE FROM chapters WHERE id = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
-      ).bind(chapterId, ownerId).run();
-      if (!result.meta?.changes) throw new Error("NOT_FOUND");
+      const results = await env.DB.batch([
+        env.DB.prepare(
+          "DELETE FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?))"
+        ).bind(chapterId, chapterId, ownerId),
+        env.DB.prepare(
+          "DELETE FROM chapters WHERE id = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
+        ).bind(chapterId, ownerId)
+      ]);
+      if (!results[1]?.meta?.changes) throw new Error("NOT_FOUND");
       return json({ ok: true });
     }
   }
