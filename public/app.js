@@ -1278,8 +1278,8 @@ async function saveCharacter() {
 }
 
 async function createModuleItem(collection, payload) {
-  if (!cloud.authenticated || !cloud.activeProjectId) {
-    alert("กรุณาเข้าสู่ระบบและเลือกโครงการก่อนบันทึกข้อมูลส่วนนี้ครับ");
+  if (!cloud.ready || !cloud.activeProjectId) {
+    alert("กรุณาเข้าสู่ระบบและเลือกโครงการที่เชื่อมต่อ Cloud ก่อนบันทึกข้อมูลส่วนนี้ครับ");
     return;
   }
   try {
