@@ -31,7 +31,8 @@ const cloud = {
   saving: false,
   savePromise: null,
   noteId: "",
-  modules: { characters: [], relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: [] }
+  modules: { characters: [], relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: [] },
+  editingCharacterId: ""
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -1065,7 +1066,7 @@ function renderModuleLists() {
   render("characterList", characters, "characters", item => item.name, item => {
     let profile = {};
     try { profile = JSON.parse(item.profile_json || "{}"); } catch {}
-    return [item.role, profile.description].filter(Boolean).join(" · ");
+    return [item.role, profile.age, profile.personality, profile.motivation].filter(Boolean).join(" · ");
   });
   render("relationshipList", relationships, "relationships", item => {
     const source = characters.find(x => x.id === item.source_character_id)?.name || "ตัวละคร";
@@ -1085,6 +1086,82 @@ function renderModuleLists() {
   if ($("characterCount")) $("characterCount").textContent = characters.length.toLocaleString("th-TH");
   if ($("plotCount")) $("plotCount").textContent = plots.length.toLocaleString("th-TH");
   if ($("worldCount")) $("worldCount").textContent = worlds.length.toLocaleString("th-TH");
+}
+
+const CHARACTER_PROFILE_FIELDS = [
+  "characterAge", "characterPronouns", "characterSpecies", "characterHeight",
+  "characterAppearance", "characterPersonality", "characterMotivation",
+  "characterBackstory", "characterStrengths", "characterWeaknesses",
+  "characterSecret", "characterProfile"
+];
+
+function characterProfileFromForm() {
+  return {
+    age: $("characterAge").value,
+    pronouns: $("characterPronouns").value,
+    species: $("characterSpecies").value,
+    height: $("characterHeight").value,
+    appearance: $("characterAppearance").value,
+    personality: $("characterPersonality").value,
+    motivation: $("characterMotivation").value,
+    backstory: $("characterBackstory").value,
+    strengths: $("characterStrengths").value,
+    weaknesses: $("characterWeaknesses").value,
+    secret: $("characterSecret").value,
+    description: $("characterProfile").value
+  };
+}
+
+function resetCharacterForm() {
+  cloud.editingCharacterId = "";
+  $("characterName").value = "";
+  $("characterRole").value = "";
+  CHARACTER_PROFILE_FIELDS.forEach(id => { if ($(id)) $(id).value = ""; });
+  $("addCharacter").textContent = "บันทึกตัวละคร";
+  $("cancelCharacterEdit").hidden = true;
+}
+
+function startEditCharacter(item) {
+  let profile = {};
+  try { profile = JSON.parse(item.profile_json || "{}"); } catch {}
+  cloud.editingCharacterId = item.id;
+  $("characterName").value = item.name || "";
+  $("characterRole").value = item.role || "";
+  const values = {
+    characterAge: profile.age, characterPronouns: profile.pronouns,
+    characterSpecies: profile.species, characterHeight: profile.height,
+    characterAppearance: profile.appearance, characterPersonality: profile.personality,
+    characterMotivation: profile.motivation, characterBackstory: profile.backstory,
+    characterStrengths: profile.strengths, characterWeaknesses: profile.weaknesses,
+    characterSecret: profile.secret, characterProfile: profile.description
+  };
+  for (const [id, value] of Object.entries(values)) $(id).value = value || "";
+  $("addCharacter").textContent = "บันทึกการแก้ไข";
+  $("cancelCharacterEdit").hidden = false;
+  $("characterName").focus();
+}
+
+async function saveCharacter() {
+  const name = $("characterName").value.trim();
+  if (!name) return alert("กรุณาระบุชื่อตัวละคร");
+  const payload = {
+    name,
+    role: $("characterRole").value,
+    profile_json: characterProfileFromForm(),
+    sort_order: cloud.modules.characters.length
+  };
+  if (cloud.editingCharacterId) {
+    try {
+      await cloudApi("/api/projects/" + encodeURIComponent(cloud.activeProjectId) + "/characters/" + encodeURIComponent(cloud.editingCharacterId), {
+        method: "PATCH", body: JSON.stringify(payload)
+      });
+      await loadProjectModules(cloud.activeProjectId);
+      resetCharacterForm();
+    } catch (error) { alert("แก้ไขตัวละครไม่สำเร็จ: " + error.message); }
+  } else {
+    const ok = await createModuleItem("characters", payload);
+    if (ok) resetCharacterForm();
+  }
 }
 
 async function createModuleItem(collection, payload) {
@@ -1120,6 +1197,8 @@ async function editModuleItem(collection, itemId) {
   if (!item) return;
   let payload = {};
   if (collection === "characters") {
+    startEditCharacter(item);
+    return;
     let profile = {};
     try { profile = JSON.parse(item.profile_json || "{}"); } catch {}
     const name = prompt("ชื่อตัวละคร", item.name);
@@ -1172,15 +1251,8 @@ async function editModuleItem(collection, itemId) {
 }
 
 function setupModuleEvents() {
-  $("addCharacter")?.addEventListener("click", () => {
-    const name = $("characterName").value.trim();
-    if (!name) return alert("กรุณาระบุชื่อตัวละคร");
-    createModuleItem("characters", {
-      name, role: $("characterRole").value,
-      profile_json: { description: $("characterProfile").value },
-      sort_order: cloud.modules.characters.length
-    }).then(ok => { if (ok) { $("characterName").value = ""; $("characterRole").value = ""; $("characterProfile").value = ""; } });
-  });
+  $("addCharacter")?.addEventListener("click", saveCharacter);
+  $("cancelCharacterEdit")?.addEventListener("click", resetCharacterForm);
   $("addRelationship")?.addEventListener("click", () => {
     const source_character_id = $("relationshipSource").value;
     const target_character_id = $("relationshipTarget").value;
