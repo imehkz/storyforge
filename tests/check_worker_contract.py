@@ -64,6 +64,8 @@ class WorkerContractTests(unittest.TestCase):
     def test_chapter_history_and_revision_are_atomic(self):
         self.assertGreaterEqual(WORKER.count("env.DB.batch(["), 2)
         self.assertIn("expectedRevision", WORKER)
+        self.assertIn("countWords(body)", WORKER)
+        self.assertIn("word_count", WORKER)
         self.assertIn("resource_type = 'chapter'", WORKER)
         self.assertIn("DELETE FROM snapshots WHERE resource_type = 'chapter'", WORKER)
         self.assertIn("/move", WORKER)
