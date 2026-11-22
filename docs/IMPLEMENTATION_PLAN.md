@@ -14,14 +14,18 @@ Production deployment: **not authorized**
 - Copilot must run with the authenticated user's own GitHub identity and subscription.
 - No paid service, billing activation, production deployment, or merge to `main` without explicit approval.
 
-## Verified current state
+## Verified current state — 23 November 2026
 
-- The original Node HTTP server remains available, while the Cloudflare Worker now contains owner-only GitHub OAuth, hashed sessions, CSRF validation, logout revocation, project/chapter APIs, snapshots, and project-scoped module CRUD.
-- The browser editor now contains the Cloudflare API integration for server-backed projects, chapters, autosave, chapter snapshots/restore, and project-scoped Character, Plot, World, Timeline, and Notes CRUD.
-- Sign-in and cloud data operations require the Worker, D1 binding, OAuth App, and secrets to be configured and deployed; none is provisioned yet.
-- Local drafts and backups remain on the device. Import is explicit, stable-ID/idempotent, and does not delete the source local data.
-- AI is intentionally disabled; GitHub identity OAuth is not Copilot SDK authorization.
-- No Cloudflare account, D1 database, OAuth App, secrets, or deployment has been provisioned.
+This section supersedes earlier historical status statements below where they conflict.
+
+- The Cloudflare Worker is deployed at `https://storyforge.jastsadakorn-n.workers.dev/` (Worker version 3, 100% traffic) with the `storyforge` D1 binding. The account, D1 database, GitHub OAuth configuration, owner allowlist, and Worker secrets have been provisioned.
+- The Worker source implements owner-only GitHub OAuth, hashed sessions, CSRF/origin validation, logout revocation, project/chapter APIs, snapshots, and project-scoped module CRUD.
+- The browser frontend is connected to authenticated Cloud APIs for projects, chapters, autosave/revisions, snapshots, local recovery/import, and project-scoped studio modules.
+- Backup format v2 includes device-local data plus Cloud projects, chapters, and all six studio module collections. Snapshot history is excluded and explicitly disclosed. Restore preflights Cloud data, preserves stable IDs, and merges rather than deleting existing Cloud data.
+- Latest verified branch: `feature/storyforge-studio-80`, commit `786630aa0053c7b8c5b1ef5c3e27d8a140d09328`. Draft PR #1 targets `feature/character-studio`, not `main`.
+- GitHub Actions run #245 passed JavaScript syntax/export smoke checks, D1 schema validation, and Worker security-contract checks. These are static/source and SQLite checks, not live Worker/D1 or browser end-to-end tests.
+- The deployed Worker is an earlier build; the latest branch changes have not been deployed. No merge to `main` or new deployment is authorized.
+- AI is intentionally disabled. GitHub identity OAuth does not itself authorize the Copilot SDK or establish per-user Copilot entitlement.
 
 ## MVP acceptance criteria
 
