@@ -216,3 +216,11 @@ No hosting resources or secrets have been provisioned, and no production deploym
 
 - Added migration `0003_chapter_word_count.sql`; the browser computes Thai-aware word counts and the Worker validates/persists them. Chapter lists return compact metadata and the Dashboard aggregates project-wide word counts without downloading every chapter body.
 - Added a Figma-aligned manuscript workspace with a chapter sidebar, chapter switching, ordering and deletion, search/replace, version history, and per-chapter writing goals.
+
+
+### Figma-informed workspace refinements
+
+- Reworked Manuscript Studio into a chapter-sidebar/editor workspace, with chapter navigation, reorder/delete controls, revision history, local-draft recovery, search-and-replace, per-chapter word goals, and export actions.
+- Added Thai-aware word counting in the browser, persisted per-chapter counts, and novel-wide Dashboard progress. Chapter lists now fetch metadata only; the full manuscript body is loaded only for the selected chapter.
+- Expanded Character Studio with structured identity, appearance, personality, motivation, backstory, strengths, weaknesses, and secret fields; added in-form editing and a project-scoped SVG relationship map.
+- The World Building UI is still a structured lore catalogue rather than the Figma illustrated atlas/map. Rich character portrait generation and the full visual plot/timeline experiences also remain incomplete.
