@@ -29,7 +29,8 @@ const cloud = {
   saveTimer: null,
   saving: false,
   savePromise: null,
-  noteId: ""
+  noteId: "",
+  modules: { characters: [], relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: [] }
 };
 
 const UUID_RE = /^[a-f0-9-]{36}$/i;
@@ -886,6 +887,7 @@ async function loadCloudProject(projectId) {
     cloudApi("/api/projects/" + encodeURIComponent(projectId) + "/chapters"),
     cloudApi("/api/projects/" + encodeURIComponent(projectId) + "/notes")
   ]);
+  await loadProjectModules(projectId);
   cloud.chapters = chapterResult.chapters || [];
   const memoryNote = (noteResult.items || []).find(note => note.note_type === "project_memory");
   cloud.noteId = memoryNote?.id || "";
@@ -903,6 +905,191 @@ async function loadCloudProject(projectId) {
   }
   renderProjects();
   renderDashboard();
+}
+
+async function loadProjectModules(projectId) {
+  const names = ["characters", "relationships", "plot-threads", "world-lore", "timeline", "notes"];
+  const results = await Promise.all(names.map(name =>
+    cloudApi("/api/projects/" + encodeURIComponent(projectId) + "/" + name)
+  ));
+  names.forEach((name, index) => { cloud.modules[name] = results[index].items || []; });
+  renderModuleLists();
+}
+
+function renderRelationshipOptions() {
+  const options = cloud.modules.characters.map(item =>
+    `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`
+  ).join("");
+  ["relationshipSource", "relationshipTarget"].forEach(id => {
+    const select = $(id);
+    if (select) select.innerHTML = options || '<option value="">ยังไม่มีตัวละคร</option>';
+  });
+}
+
+function renderModuleLists() {
+  const characters = cloud.modules.characters || [];
+  const relationships = cloud.modules.relationships || [];
+  const plots = cloud.modules["plot-threads"] || [];
+  const worlds = cloud.modules["world-lore"] || [];
+  const timeline = cloud.modules.timeline || [];
+  const notes = cloud.modules.notes || [];
+  const empty = "ยังไม่มีรายการในโครงการนี้";
+  const render = (id, items, collection, titleOf, detailOf) => {
+    const target = $(id);
+    if (!target) return;
+    target.innerHTML = items.length ? items.map(item =>
+      `<article class="module-item"><div><b>${escapeHtml(titleOf(item))}</b><small>${escapeHtml(detailOf(item) || "")}</small></div><div class="module-actions"><button type="button" class="outline-button compact" data-module-edit="${collection}" data-module-id="${escapeHtml(item.id)}">แก้ไข</button><button type="button" class="outline-button compact" data-module-delete="${collection}" data-module-id="${escapeHtml(item.id)}">ลบ</button></div></article>`
+    ).join("") : `<p class="muted-note">${empty}</p>`;
+  };
+  render("characterList", characters, "characters", item => item.name, item => {
+    let profile = {};
+    try { profile = JSON.parse(item.profile_json || "{}"); } catch {}
+    return [item.role, profile.description].filter(Boolean).join(" · ");
+  });
+  render("relationshipList", relationships, "relationships", item => {
+    const source = characters.find(x => x.id === item.source_character_id)?.name || "ตัวละคร";
+    const target = characters.find(x => x.id === item.target_character_id)?.name || "ตัวละคร";
+    return source + " ↔ " + target;
+  }, item => [item.relationship_type, item.description].filter(Boolean).join(" · "));
+  render("plotList", plots, "plot-threads", item => item.title, item => {
+    const labels = { planned: "วางแผน", in_progress: "กำลังดำเนิน", completed: "เสร็จแล้ว", paused: "พักไว้" };
+    return (labels[item.status] || item.status) + (item.summary ? " · " + item.summary : "");
+  });
+  render("worldList", worlds, "world-lore", item => item.title, item => [item.category, item.content].filter(Boolean).join(" · "));
+  render("timelineList", timeline, "timeline", item => item.title, item => [item.story_time, item.description].filter(Boolean).join(" · "));
+  render("storyNoteList", notes.filter(item => item.note_type !== "project_memory"), "notes", item => item.title || "บันทึกไม่มีชื่อ", item => item.content);
+  renderRelationshipOptions();
+  document.querySelectorAll("[data-module-delete]").forEach(button => button.addEventListener("click", () => deleteModuleItem(button.dataset.moduleDelete, button.dataset.moduleId)));
+  document.querySelectorAll("[data-module-edit]").forEach(button => button.addEventListener("click", () => editModuleItem(button.dataset.moduleEdit, button.dataset.moduleId)));
+  if ($("characterCount")) $("characterCount").textContent = characters.length.toLocaleString("th-TH");
+}
+
+async function createModuleItem(collection, payload) {
+  if (!cloud.authenticated || !cloud.activeProjectId) {
+    alert("กรุณาเข้าสู่ระบบและเลือกโครงการก่อนบันทึกข้อมูลส่วนนี้ครับ");
+    return;
+  }
+  try {
+    await cloudApi("/api/projects/" + encodeURIComponent(cloud.activeProjectId) + "/" + collection, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    await loadProjectModules(cloud.activeProjectId);
+    $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกข้อมูลโครงการบน Cloud แล้ว';
+  } catch (error) {
+    alert("บันทึกข้อมูลไม่สำเร็จ: " + error.message);
+  }
+}
+
+async function deleteModuleItem(collection, itemId) {
+  if (!confirm("ต้องการลบรายการนี้หรือไม่?")) return;
+  try {
+    await cloudApi("/api/projects/" + encodeURIComponent(cloud.activeProjectId) + "/" + collection + "/" + encodeURIComponent(itemId), { method: "DELETE" });
+    await loadProjectModules(cloud.activeProjectId);
+  } catch (error) { alert("ลบรายการไม่สำเร็จ: " + error.message); }
+}
+
+async function editModuleItem(collection, itemId) {
+  const items = cloud.modules[collection] || [];
+  const item = items.find(row => row.id === itemId);
+  if (!item) return;
+  let payload = {};
+  if (collection === "characters") {
+    let profile = {};
+    try { profile = JSON.parse(item.profile_json || "{}"); } catch {}
+    const name = prompt("ชื่อตัวละคร", item.name);
+    if (name === null) return;
+    const role = prompt("บทบาท", item.role || "");
+    if (role === null) return;
+    const description = prompt("รายละเอียดตัวละคร", profile.description || "");
+    if (description === null) return;
+    payload = { name, role, profile_json: { ...profile, description } };
+  } else if (collection === "plot-threads") {
+    const title = prompt("ชื่อเส้นเรื่อง", item.title);
+    if (title === null) return;
+    const summary = prompt("เรื่องย่อ", item.summary || "");
+    if (summary === null) return;
+    payload = { title, summary };
+  } else if (collection === "world-lore") {
+    const title = prompt("หัวข้อ", item.title);
+    if (title === null) return;
+    const content = prompt("รายละเอียด", item.content || "");
+    if (content === null) return;
+    payload = { title, content };
+  } else if (collection === "timeline") {
+    const title = prompt("ชื่อเหตุการณ์", item.title);
+    if (title === null) return;
+    const story_time = prompt("เวลาในเรื่อง", item.story_time || "");
+    if (story_time === null) return;
+    const description = prompt("รายละเอียด", item.description || "");
+    if (description === null) return;
+    payload = { title, story_time, description };
+  } else if (collection === "notes") {
+    const title = prompt("หัวข้อ", item.title || "");
+    if (title === null) return;
+    const content = prompt("รายละเอียด", item.content || "");
+    if (content === null) return;
+    payload = { title, content };
+  } else if (collection === "relationships") {
+    const relationship_type = prompt("ประเภทความสัมพันธ์", item.relationship_type || "");
+    if (relationship_type === null) return;
+    const description = prompt("รายละเอียด", item.description || "");
+    if (description === null) return;
+    payload = { relationship_type, description };
+  }
+  try {
+    await cloudApi("/api/projects/" + encodeURIComponent(cloud.activeProjectId) + "/" + collection + "/" + encodeURIComponent(itemId), {
+      method: "PATCH",
+      body: JSON.stringify(payload)
+    });
+    await loadProjectModules(cloud.activeProjectId);
+  } catch (error) { alert("แก้ไขรายการไม่สำเร็จ: " + error.message); }
+}
+
+function setupModuleEvents() {
+  $("addCharacter")?.addEventListener("click", () => {
+    const name = $("characterName").value.trim();
+    if (!name) return alert("กรุณาระบุชื่อตัวละคร");
+    createModuleItem("characters", {
+      name, role: $("characterRole").value,
+      profile_json: { description: $("characterProfile").value },
+      sort_order: cloud.modules.characters.length
+    }).then(() => { $("characterName").value = ""; $("characterRole").value = ""; $("characterProfile").value = ""; });
+  });
+  $("addRelationship")?.addEventListener("click", () => {
+    const source_character_id = $("relationshipSource").value;
+    const target_character_id = $("relationshipTarget").value;
+    if (!source_character_id || !target_character_id) return alert("ต้องมีตัวละครอย่างน้อยสองตัวก่อน");
+    createModuleItem("relationships", {
+      source_character_id, target_character_id,
+      relationship_type: $("relationshipType").value,
+      description: $("relationshipDescription").value
+    });
+  });
+  $("addPlot")?.addEventListener("click", () => {
+    const title = $("plotTitle").value.trim();
+    if (!title) return alert("กรุณาระบุชื่อเส้นเรื่อง");
+    createModuleItem("plot-threads", { title, summary: $("plotSummary").value, status: $("plotStatus").value, sort_order: cloud.modules["plot-threads"].length })
+      .then(() => { $("plotTitle").value = ""; $("plotSummary").value = ""; });
+  });
+  $("addWorld")?.addEventListener("click", () => {
+    const title = $("worldTitle").value.trim();
+    if (!title) return alert("กรุณาระบุชื่อข้อมูลโลก");
+    createModuleItem("world-lore", { category: $("worldCategory").value, title, content: $("worldContent").value, sort_order: cloud.modules["world-lore"].length })
+      .then(() => { $("worldTitle").value = ""; $("worldContent").value = ""; });
+  });
+  $("addTimeline")?.addEventListener("click", () => {
+    const title = $("timelineTitle").value.trim();
+    if (!title) return alert("กรุณาระบุชื่อเหตุการณ์");
+    createModuleItem("timeline", { title, story_time: $("timelineTime").value, description: $("timelineDescription").value, sort_order: cloud.modules.timeline.length })
+      .then(() => { $("timelineTitle").value = ""; $("timelineTime").value = ""; $("timelineDescription").value = ""; });
+  });
+  $("addStoryNote")?.addEventListener("click", () => {
+    const title = $("storyNoteTitle").value.trim();
+    if (!title) return alert("กรุณาระบุหัวข้อบันทึก");
+    createModuleItem("notes", { title, content: $("storyNoteContent").value, note_type: "idea", pinned: false })
+      .then(() => { $("storyNoteTitle").value = ""; $("storyNoteContent").value = ""; });
+  });
 }
 
 function renderChapterSelect() {
@@ -1220,6 +1407,7 @@ function init() {
 
   setupAuthEvents();
   setupCloudEvents();
+  setupModuleEvents();
   refreshAuthStatus();
 
   console.log("STORYFORGE initialized successfully");
