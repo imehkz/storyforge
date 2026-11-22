@@ -77,3 +77,6 @@
   .chapter-toolbar > button { flex: 1 1 auto; }
   .history-row { align-items: flex-start; flex-direction: column; }
 }
+
+.project-form-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.project-form-actions > button { flex: 1 1 180px; }
