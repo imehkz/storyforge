@@ -229,7 +229,7 @@ async function api(request, env, url) {
     if (!csrfToken || !safeEqual(await sha256(csrfToken), session.csrf_hash)) {
       return json({ authenticated: false }, 401);
     }
-    return json({ authenticated: true, user: { githubLogin: session.github_login }, csrfToken });
+    return json({ authenticated: true, user: { githubLogin: session.github_login }, userId: session.user_id, csrfToken });
   }
   if (path === "/api/logout" && method === "POST") {
     const session = await requireSession(request, env, true);
