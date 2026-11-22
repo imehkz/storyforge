@@ -1801,9 +1801,7 @@ function setupCloudEvents() {
   $("reloadChapter")?.addEventListener("click", async () => {
     if (!cloud.activeChapterId || !confirm("โหลดฉบับล่าสุดจาก Cloud และแทนที่ข้อความที่กำลังแสดงหรือไม่? ฉบับในเครื่องยังอยู่ใน local backup")) return;
     try {
-      const result = await cloudApi("/api/chapters/" + encodeURIComponent(cloud.activeChapterId));
-      cloud.chapters = cloud.chapters.map(item => item.id === result.chapter.id ? result.chapter : item);
-      await selectCloudChapter(result.chapter.id);
+      await selectCloudChapter(cloud.activeChapterId);
     } catch (error) { alert("โหลดฉบับล่าสุดไม่สำเร็จ: " + error.message); }
   });
 }
