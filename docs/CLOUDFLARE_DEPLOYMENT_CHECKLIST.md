@@ -43,3 +43,15 @@ The current Worker intentionally does not implement login or project APIs. Do no
 ## Current state
 
 The Worker scaffold only serves static assets and a health endpoint; other API routes return 503. The browser app still stores manuscript data locally. Copilot is not hosted on Workers. This checklist does not authorize paid runtime or shared Copilot credentials.
+
+
+## Updated runtime setup
+
+The current Worker requires D1 and these runtime values before owner login can work:
+- GitHub OAuth App client ID and client secret.
+- The owner's numeric GitHub user ID as the allowlist.
+- Optional Telegram backup secret, bot token, and chat ID.
+
+Set the GitHub OAuth App callback URL to the deployed origin plus `/auth/callback`. Store sensitive values with Wrangler secrets; never add them to source files or chat. The Worker now implements the listed authentication and API routes, but the editor remains local-only until its data layer is migrated. Do not treat the login control as proof of cloud persistence.
+
+Before deployment, run the repository's GitHub Actions checks and test the Worker with local D1. No resource provisioning or deployment is authorized by this checklist.
