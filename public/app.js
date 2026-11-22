@@ -16,6 +16,65 @@ const keys = [
   "globalMemory"
 ];
 
+const cloud = {
+  authenticated: false,
+  csrfToken: "",
+  userId: "",
+  projects: [],
+  activeProjectId: "",
+  chapters: [],
+  activeChapterId: "",
+  revision: 0,
+  saveTimer: null,
+  saving: false,
+  noteId: ""
+};
+
+const UUID_RE = /^[a-f0-9-]{36}$/i;
+const localMigrationKey = () => "sf_cloud_migrated_" + (cloud.userId || "owner");
+const migrationMapKey = () => "sf_cloud_migration_map_" + (cloud.userId || "owner");
+
+async function cloudApi(path, options = {}) {
+  const method = (options.method || "GET").toUpperCase();
+  const headers = { ...(options.headers || {}) };
+  if (options.body !== undefined) headers["Content-Type"] = "application/json";
+  if (!["GET", "HEAD"].includes(method)) headers["X-CSRF-Token"] = cloud.csrfToken;
+  const response = await fetch(path, {
+    ...options,
+    method,
+    headers,
+    credentials: "same-origin",
+    cache: "no-store"
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(payload.error || "คำขอไม่สำเร็จ");
+    error.status = response.status;
+    throw error;
+  }
+  return payload;
+}
+
+function hasLocalNovelData() {
+  const projects = safeJSON(localStorage.getItem("sf_projects") || "[]", []);
+  return (Array.isArray(projects) && projects.length > 0) ||
+    keys.some(key => Boolean(localStorage.getItem("sf_" + key)));
+}
+
+function localProjectsForImport() {
+  let projects = safeJSON(localStorage.getItem("sf_projects") || "[]", []);
+  if (!Array.isArray(projects)) projects = [];
+  if (!projects.length && ( $("title").value || $("manuscript").value || $("chapterTitle").value )) {
+    projects = [{
+      id: crypto.randomUUID(),
+      title: $("title").value || "นิยายที่นำเข้าจากอุปกรณ์",
+      genre: $("genre").value || "",
+      context: $("context").value || ""
+    }];
+  }
+  return projects;
+}
+
 // ==========================================
 // BACKUP CENTER
 // ==========================================
@@ -474,18 +533,12 @@ function load() {
 }
 
 function save() {
-
-  keys.forEach(key => {
-    localStorage.setItem(
-      "sf_" + key,
-      $(key).value
-    );
-  });
-
-  $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกในอุปกรณ์นี้แล้ว · ยังไม่ซิงก์ขึ้นเซิร์ฟเวอร์';
+  keys.forEach(key => localStorage.setItem("sf_" + key, $(key).value));
+  $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกฉบับกู้คืนในอุปกรณ์นี้แล้ว';
   renderDashboard();
   const count = $("manuscript").value.length;
   if ($("manuscriptCount")) $("manuscriptCount").textContent = count.toLocaleString("th-TH") + " อักขระ";
+  if (cloud.authenticated && cloud.activeProjectId && cloud.activeChapterId) scheduleCloudSave();
 }
 
 // ==========================================
@@ -515,22 +568,33 @@ function renderDashboard() {
 }
 
 function renderProjects() {
+  const list = $("projectList");
+  if (!list) return;
+  if (cloud.authenticated) {
+    $("projectListCaption").textContent = "โครงการที่จัดเก็บในบัญชี Private Beta";
+    list.innerHTML = cloud.projects.length
+      ? cloud.projects.map(item =>
+          `<button type="button" class="project-pick ${item.id === cloud.activeProjectId ? "active" : ""}" data-cloud-project="${escapeHtml(item.id)}"><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.genre || "ไม่ระบุแนว")} · ${item.status === "archived" ? "เก็บเข้าคลัง" : "กำลังเขียน"}</small></button>`
+        ).join("")
+      : '<p class="muted-note">ยังไม่มีโครงการบน Cloud · สร้างนิยายใหม่หรือย้ายข้อมูลจากอุปกรณ์นี้</p>';
+    list.querySelectorAll("[data-cloud-project]").forEach(button => {
+      button.addEventListener("click", () => selectCloudProject(button.dataset.cloudProject));
+    });
+    const panel = $("cloudMigrationPanel");
+    if (panel) panel.hidden = !hasLocalNovelData() || Boolean(localStorage.getItem(localMigrationKey()));
+    if ($("projectSaveHint")) $("projectSaveHint").textContent = "บันทึกโครงการไปยังบัญชี Private Beta และเก็บฉบับกู้คืนไว้ในอุปกรณ์นี้";
+    return;
+  }
 
-  const projects = safeJSON(
-    localStorage.getItem("sf_projects") || "[]",
-    []
-  );
-
-  const validProjects = Array.isArray(projects)
-    ? projects
-    : [];
-
-  $("projectList").innerHTML = validProjects.length
+  $("projectListCaption").textContent = "รายการที่บันทึกไว้ในเบราว์เซอร์นี้";
+  const projects = safeJSON(localStorage.getItem("sf_projects") || "[]", []);
+  const validProjects = Array.isArray(projects) ? projects : [];
+  list.innerHTML = validProjects.length
     ? validProjects.map(item =>
-        `<p><b>${escapeHtml(item.title)}</b> ` +
-        `<small>— ${escapeHtml(item.genre)}</small></p>`
+        `<p><b>${escapeHtml(item.title)}</b> <small>— ${escapeHtml(item.genre)}</small></p>`
       ).join("")
     : "ยังไม่มีโครงการที่บันทึกไว้";
+  if ($("cloudMigrationPanel")) $("cloudMigrationPanel").hidden = true;
 }
 
 function escapeHtml(value) {
@@ -601,39 +665,53 @@ function setupEvents() {
   });
 
   // Save project
-  $("saveProject").onclick = () => {
-
+  $("saveProject").onclick = async () => {
     save();
-
-    let projects = safeJSON(
-      localStorage.getItem("sf_projects") || "[]",
-      []
-    );
-
-    if (!Array.isArray(projects)) {
-      projects = [];
-    }
-
+    let projects = safeJSON(localStorage.getItem("sf_projects") || "[]", []);
+    if (!Array.isArray(projects)) projects = [];
+    const activeLocalId = localStorage.getItem("sf_active_project_id");
+    const existing = projects.find(x => x.id === activeLocalId) ||
+      projects.find(x => x.title === ($("title").value || "โครงการไม่มีชื่อ"));
     const item = {
-      id: (projects.find(x => x.title === ($("title").value || "โครงการไม่มีชื่อ")) || {}).id || (crypto.randomUUID ? crypto.randomUUID() : "sf-" + Date.now().toString(36)),
+      id: existing?.id || crypto.randomUUID(),
       title: $("title").value || "โครงการไม่มีชื่อ",
       genre: $("genre").value,
       context: $("context").value
     };
-
-    projects = projects.filter(x => x.title !== item.title);
+    projects = projects.filter(x => x.id !== item.id);
     projects.unshift(item);
     localStorage.setItem("sf_active_project_id", item.id);
+    localStorage.setItem("sf_projects", JSON.stringify(projects));
 
-    localStorage.setItem(
-      "sf_projects",
-      JSON.stringify(projects)
-    );
-
-    renderProjects();
-    renderDashboard();
-
-    alert("บันทึกข้อมูลนิยายไว้ในอุปกรณ์นี้แล้วครับ");
+    if (cloud.authenticated) {
+      try {
+        let saved;
+        if (cloud.projects.some(project => project.id === cloud.activeProjectId)) {
+          saved = await cloudApi("/api/projects/" + encodeURIComponent(cloud.activeProjectId), {
+            method: "PATCH",
+            body: JSON.stringify({ title: item.title, genre: item.genre, synopsis: item.context })
+          });
+        } else {
+          saved = await cloudApi("/api/projects", {
+            method: "POST",
+            body: JSON.stringify({ title: item.title, genre: item.genre, synopsis: item.context })
+          });
+        }
+        const project = saved.project;
+        cloud.activeProjectId = project.id;
+        cloud.projects = [project, ...cloud.projects.filter(x => x.id !== project.id)];
+        await loadCloudProject(project.id);
+        $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกโครงการบน Cloud แล้ว';
+        alert("บันทึกโครงการไปยังบัญชี Private Beta แล้วครับ");
+      } catch (error) {
+        $("saveState").textContent = "บันทึก Cloud ไม่สำเร็จ · ฉบับในเครื่องยังอยู่";
+        alert("บันทึกขึ้น Cloud ไม่สำเร็จ: " + error.message + "\nข้อมูลฉบับในเครื่องยังคงอยู่ครับ");
+      }
+    } else {
+      renderProjects();
+      renderDashboard();
+      alert("บันทึกข้อมูลนิยายไว้ในอุปกรณ์นี้แล้วครับ");
+    }
   };
 
   // Save memory
@@ -706,6 +784,234 @@ function setupBackupEvents() {
 // PRIVATE BETA ACCOUNT STATUS
 // ==========================================
 
+async function loadCloudProjects() {
+  const result = await cloudApi("/api/projects");
+  cloud.projects = result.projects || [];
+  if (!cloud.projects.some(item => item.id === cloud.activeProjectId)) {
+    cloud.activeProjectId = cloud.projects[0]?.id || "";
+  }
+  renderProjects();
+  if (cloud.activeProjectId) await loadCloudProject(cloud.activeProjectId);
+  else {
+    cloud.chapters = [];
+    cloud.activeChapterId = "";
+    if ($("chapterSelect")) $("chapterSelect").innerHTML = '<option value="">ยังไม่มีบท</option>';
+    if ($("chapterSaveHint")) $("chapterSaveHint").textContent = "เลือกหรือสร้างโครงการก่อน จึงจะบันทึกบทบน Cloud ได้";
+  }
+}
+
+async function loadCloudProject(projectId) {
+  const result = await cloudApi("/api/projects/" + encodeURIComponent(projectId));
+  const project = result.project;
+  cloud.activeProjectId = project.id;
+  $("title").value = project.title || "";
+  $("genre").value = project.genre || $("genre").options[0]?.value || "";
+  $("context").value = project.synopsis || "";
+  localStorage.setItem("sf_active_project_id", project.id);
+  const [chapterResult, noteResult] = await Promise.all([
+    cloudApi("/api/projects/" + encodeURIComponent(projectId) + "/chapters"),
+    cloudApi("/api/projects/" + encodeURIComponent(projectId) + "/notes")
+  ]);
+  cloud.chapters = chapterResult.chapters || [];
+  const memoryNote = (noteResult.items || []).find(note => note.note_type === "project_memory");
+  cloud.noteId = memoryNote?.id || "";
+  if ($("projectMemory")) $("projectMemory").value = memoryNote?.content || localStorage.getItem("sf_projectMemory") || "";
+  renderChapterSelect();
+  const preferred = cloud.chapters.find(item => item.id === cloud.activeChapterId) || cloud.chapters[0];
+  if (preferred) await selectCloudChapter(preferred.id);
+  else {
+    cloud.activeChapterId = "";
+    cloud.revision = 0;
+    $("chapterTitle").value = "";
+    $("manuscript").value = "";
+    if ($("chapterSaveHint")) $("chapterSaveHint").textContent = "โครงการนี้ยังไม่มีบท · กด “เพิ่มบท” เพื่อเริ่มเขียน";
+    renderDashboard();
+  }
+  renderProjects();
+  renderDashboard();
+}
+
+function renderChapterSelect() {
+  const select = $("chapterSelect");
+  if (!select) return;
+  select.innerHTML = cloud.chapters.length
+    ? cloud.chapters.map((item, index) =>
+        `<option value="${escapeHtml(item.id)}" ${item.id === cloud.activeChapterId ? "selected" : ""}>${index + 1}. ${escapeHtml(item.title || "บทไม่มีชื่อ")}</option>`
+      ).join("")
+    : '<option value="">ยังไม่มีบท</option>';
+}
+
+async function selectCloudChapter(chapterId) {
+  const item = cloud.chapters.find(chapter => chapter.id === chapterId);
+  if (!item) return;
+  cloud.activeChapterId = item.id;
+  cloud.revision = item.revision || 1;
+  $("chapterTitle").value = item.title || "";
+  $("manuscript").value = item.body || "";
+  renderChapterSelect();
+  if ($("chapterSaveHint")) $("chapterSaveHint").textContent =
+    "บันทึกบทบน Cloud · Revision " + cloud.revision + " · มีฉบับกู้คืนในอุปกรณ์นี้";
+  $("saveState").innerHTML = '<span class="status-dot"></span>โหลดบทจาก Cloud แล้ว';
+  renderDashboard();
+}
+
+function scheduleCloudSave() {
+  if (!cloud.authenticated || !cloud.activeProjectId || !cloud.activeChapterId) return;
+  clearTimeout(cloud.saveTimer);
+  $("saveState").innerHTML = '<span class="status-dot"></span>มีการแก้ไข · กำลังรอบันทึก Cloud';
+  cloud.saveTimer = setTimeout(saveCloudChapter, 900);
+}
+
+async function saveCloudChapter() {
+  if (cloud.saving || !cloud.activeChapterId) return;
+  cloud.saving = true;
+  const chapterId = cloud.activeChapterId;
+  const expectedRevision = cloud.revision;
+  const draft = { title: $("chapterTitle").value, body: $("manuscript").value };
+  try {
+    const result = await cloudApi("/api/chapters/" + encodeURIComponent(chapterId), {
+      method: "PATCH",
+      body: JSON.stringify({ ...draft, expectedRevision })
+    });
+    if (cloud.activeChapterId !== chapterId) return;
+    cloud.revision = result.chapter.revision;
+    cloud.chapters = cloud.chapters.map(item => item.id === chapterId ? result.chapter : item);
+    renderChapterSelect();
+    $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกต้นฉบับบน Cloud แล้ว';
+    if ($("chapterSaveHint")) $("chapterSaveHint").textContent =
+      "บันทึกบน Cloud แล้ว · Revision " + cloud.revision + " · ฉบับกู้คืนในอุปกรณ์ยังคงอยู่";
+  } catch (error) {
+    if (error.status === 409) {
+      $("saveState").textContent = "พบฉบับใหม่กว่าใน Cloud · ฉบับนี้ยังเก็บไว้ในอุปกรณ์";
+      if ($("chapterSaveHint")) $("chapterSaveHint").textContent =
+        "มีการแก้ไขจากอีกหน้าต่างหรืออุปกรณ์ กรุณาโหลดฉบับล่าสุดก่อนบันทึกทับ";
+    } else {
+      $("saveState").textContent = "บันทึก Cloud ไม่สำเร็จ · ฉบับในเครื่องยังอยู่";
+    }
+    console.error("Cloud chapter save failed:", error);
+  } finally {
+    cloud.saving = false;
+  }
+}
+
+async function createCloudChapter() {
+  if (!cloud.authenticated || !cloud.activeProjectId) {
+    alert("กรุณาเข้าสู่ระบบและเลือกโครงการก่อนครับ");
+    return;
+  }
+  try {
+    const result = await cloudApi("/api/projects/" + encodeURIComponent(cloud.activeProjectId) + "/chapters", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "บทใหม่",
+        body: "",
+        sortOrder: cloud.chapters.length
+      })
+    });
+    cloud.chapters.push(result.chapter);
+    await selectCloudChapter(result.chapter.id);
+    $("chapterTitle").focus();
+  } catch (error) {
+    alert("สร้างบทไม่สำเร็จ: " + error.message);
+  }
+}
+
+async function showChapterHistory() {
+  const panel = $("chapterHistory");
+  if (!cloud.authenticated || !cloud.activeChapterId) {
+    panel.hidden = false;
+    panel.textContent = "ประวัติเวอร์ชันจะแสดงเมื่อเลือกบทที่บันทึกบน Cloud";
+    return;
+  }
+  try {
+    const result = await cloudApi("/api/chapters/" + encodeURIComponent(cloud.activeChapterId) + "/snapshots");
+    const snapshots = result.snapshots || [];
+    panel.hidden = false;
+    panel.innerHTML = snapshots.length
+      ? "<strong>ประวัติฉบับก่อนหน้า</strong>" + snapshots.map(item => {
+          let title = "ฉบับก่อนหน้า";
+          try { title = JSON.parse(item.content_json).title || title; } catch {}
+          return `<div class="history-row"><span>${escapeHtml(title)} · ${escapeHtml(new Date(item.created_at).toLocaleString("th-TH"))}</span><button type="button" class="outline-button compact" data-restore-snapshot="${escapeHtml(item.id)}">กู้คืน</button></div>`;
+        }).join("")
+      : "<strong>ประวัติเวอร์ชัน</strong><p>ยังไม่มี Snapshot ก่อนหน้า</p>";
+    panel.querySelectorAll("[data-restore-snapshot]").forEach(button => {
+      button.addEventListener("click", async () => {
+        if (!confirm("ต้องการกู้คืนฉบับนี้หรือไม่? ระบบจะเก็บฉบับปัจจุบันเป็น Snapshot ก่อน")) return;
+        try {
+          const restored = await cloudApi("/api/chapters/" + encodeURIComponent(cloud.activeChapterId) + "/restore", {
+            method: "POST",
+            body: JSON.stringify({ snapshotId: button.dataset.restoreSnapshot })
+          });
+          cloud.revision = restored.chapter.revision;
+          cloud.chapters = cloud.chapters.map(item => item.id === restored.chapter.id ? restored.chapter : item);
+          await selectCloudChapter(restored.chapter.id);
+          await showChapterHistory();
+          $("saveState").innerHTML = '<span class="status-dot"></span>กู้คืนเวอร์ชันจาก Cloud แล้ว';
+        } catch (error) { alert("กู้คืนไม่สำเร็จ: " + error.message); }
+      });
+    });
+  } catch (error) {
+    panel.hidden = false;
+    panel.textContent = "โหลดประวัติเวอร์ชันไม่สำเร็จ: " + error.message;
+  }
+}
+
+async function importLocalNovelData() {
+  if (!cloud.authenticated) return;
+  const localProjects = localProjectsForImport();
+  if (!localProjects.length) {
+    alert("ไม่พบข้อมูลนิยายในอุปกรณ์นี้ครับ");
+    return;
+  }
+  if (!confirm("นำเข้า " + localProjects.length + " โครงการไปยังบัญชี Private Beta? ข้อมูลเดิมในอุปกรณ์จะไม่ถูกลบ และการนำเข้าซ้ำจะใช้รหัสเดิมเพื่อลดโอกาสสร้างรายการซ้ำ")) return;
+  const button = $("importLocalData");
+  button.disabled = true;
+  const map = safeJSON(localStorage.getItem(migrationMapKey()) || "{}", {});
+  const activeLocalId = localStorage.getItem("sf_active_project_id") || localProjects[0].id;
+  try {
+    for (const localProject of localProjects) {
+      const localId = UUID_RE.test(localProject.id || "") ? localProject.id : crypto.randomUUID();
+      if (!localProject.id || localProject.id !== localId) localProject.id = localId;
+      map[localId] = map[localId] || { projectId: crypto.randomUUID(), chapterId: crypto.randomUUID() };
+      localStorage.setItem(migrationMapKey(), JSON.stringify(map));
+      const projectResult = await cloudApi("/api/projects", {
+        method: "POST",
+        body: JSON.stringify({
+          clientId: map[localId].projectId,
+          title: localProject.title || "นิยายที่นำเข้า",
+          genre: localProject.genre || "",
+          synopsis: localProject.context || ""
+        })
+      });
+      map[localId].projectId = projectResult.project.id;
+      if (localId === activeLocalId && ($("chapterTitle").value || $("manuscript").value)) {
+        await cloudApi("/api/projects/" + encodeURIComponent(projectResult.project.id) + "/chapters", {
+          method: "POST",
+          body: JSON.stringify({
+            clientId: map[localId].chapterId,
+            title: $("chapterTitle").value || "ต้นฉบับที่นำเข้า",
+            body: $("manuscript").value || "",
+            sortOrder: 0
+          })
+        });
+      }
+      localStorage.setItem(migrationMapKey(), JSON.stringify(map));
+      $("migrationStatus").textContent = "นำเข้าแล้ว: " + (localProject.title || "นิยายที่นำเข้า");
+    }
+    localStorage.setItem(localMigrationKey(), new Date().toISOString());
+    cloud.activeProjectId = map[activeLocalId]?.projectId || "";
+    await loadCloudProjects();
+    if ($("migrationStatus")) $("migrationStatus").textContent = "นำเข้าข้อมูลแล้ว · ข้อมูลต้นฉบับในอุปกรณ์ยังไม่ถูกลบ";
+    renderProjects();
+    alert("นำเข้าข้อมูลนิยายสำเร็จแล้วครับ ข้อมูลเดิมในเครื่องยังคงอยู่");
+  } catch (error) {
+    $("migrationStatus").textContent = "นำเข้าได้บางส่วน · กดนำเข้าอีกครั้งเพื่อดำเนินการต่อ: " + error.message;
+    alert("การนำเข้าหยุดก่อนเสร็จ: " + error.message + "\nข้อมูลในเครื่องยังไม่ถูกลบ และสามารถลองนำเข้าอีกครั้งได้ครับ");
+  } finally {
+    button.disabled = false;
+  }
+}
+
 async function refreshAuthStatus() {
   const state = $("authState");
   const login = $("loginButton");
@@ -728,14 +1034,26 @@ async function refreshAuthStatus() {
     if (!response.ok) throw new Error("ตรวจสอบบัญชีไม่สำเร็จ");
     const result = await response.json();
     if (result.authenticated) {
-      state.textContent = "GitHub: " + result.user.githubLogin + " · ข้อมูลนิยายยังอยู่ในอุปกรณ์นี้";
+      cloud.authenticated = true;
+      cloud.csrfToken = result.csrfToken;
+      cloud.userId = result.userId || result.user.githubLogin;
+      state.textContent = "GitHub: " + result.user.githubLogin + " · Private Beta";
       login.hidden = true;
       logout.hidden = false;
       logout.dataset.csrf = result.csrfToken;
+      await loadCloudProjects();
     } else {
+      cloud.authenticated = false;
+      cloud.csrfToken = "";
+      cloud.userId = "";
+      cloud.projects = [];
+      cloud.activeProjectId = "";
+      cloud.chapters = [];
+      cloud.activeChapterId = "";
       state.textContent = "ยังไม่ได้เข้าสู่ระบบ · ข้อมูลนิยายยังอยู่ในอุปกรณ์นี้";
       login.hidden = false;
       logout.hidden = true;
+      renderProjects();
     }
     if (callbackState) history.replaceState(null, "", location.pathname);
   } catch (error) {
@@ -743,6 +1061,13 @@ async function refreshAuthStatus() {
     login.hidden = true;
     logout.hidden = true;
   }
+}
+
+function setupCloudEvents() {
+  $("importLocalData")?.addEventListener("click", importLocalNovelData);
+  $("newChapter")?.addEventListener("click", createCloudChapter);
+  $("chapterSelect")?.addEventListener("change", event => selectCloudChapter(event.target.value));
+  $("chapterHistoryButton")?.addEventListener("click", showChapterHistory);
 }
 
 function setupAuthEvents() {
@@ -783,6 +1108,7 @@ function init() {
   setupBackupEvents();
 
   setupAuthEvents();
+  setupCloudEvents();
   refreshAuthStatus();
 
   console.log("STORYFORGE initialized successfully");
