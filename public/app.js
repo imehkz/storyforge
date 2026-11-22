@@ -1765,6 +1765,10 @@ async function refreshAuthStatus() {
       cloud.noteId = "";
       cloud.modules = { characters: [], relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: [] };
       resetCharacterForm();
+      keys.forEach(key => {
+        const value = localStorage.getItem(storageKeyFor(key));
+        if (value !== null && $(key)) $(key).value = value;
+      });
       renderProjects();
       renderModuleLists();
       renderChapterSelect();
@@ -1869,6 +1873,10 @@ async function refreshAuthStatus() {
     cloud.noteId = "";
     cloud.modules = { characters: [], relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: [] };
     resetCharacterForm();
+    keys.forEach(key => {
+      const value = localStorage.getItem(storageKeyFor(key));
+      if (value !== null && $(key)) $(key).value = value;
+    });
     state.textContent = "ตรวจสอบสถานะบัญชีไม่ได้ · " + error.message;
     login.hidden = false;
     logout.hidden = true;
