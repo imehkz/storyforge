@@ -869,7 +869,9 @@ function setupEvents() {
 
   // Export manuscript
   $("export").onclick = () => {
-    download(exportBaseName() + ".txt", $("manuscriptBody").value);
+    download(exportBaseName() + ".txt", [
+      $("title").value, $("chapterTitle").value, "", $("manuscriptBody").value
+    ].join("\n"));
   };
   $("exportDocx").onclick = exportManuscriptDocx;
   $("exportEpub").onclick = exportManuscriptEpub;
