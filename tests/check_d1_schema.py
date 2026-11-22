@@ -12,16 +12,22 @@ MIGRATIONS = ROOT / "cloudflare" / "migrations"
 
 
 class D1SchemaTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.db = sqlite3.connect(":memory:")
-        cls.db.execute("PRAGMA foreign_keys = ON")
+    def setUp(self):
+        self.db = sqlite3.connect(":memory:")
+        self.db.execute("PRAGMA foreign_keys = ON")
         for migration in sorted(MIGRATIONS.glob("*.sql")):
-            cls.db.executescript(migration.read_text(encoding="utf-8"))
+            self.db.executescript(migration.read_text(encoding="utf-8"))
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.db.close()
+    def tearDown(self):
+        self.db.close()
+
+    def seed_project(self):
+        self.db.execute(
+            "INSERT INTO users(id, github_user_id, github_login) VALUES ('u1','gh-1','writer')"
+        )
+        self.db.execute(
+            "INSERT INTO projects(id, owner_id, title) VALUES ('p1','u1','Novel One')"
+        )
 
     def test_expected_tables_exist(self):
         expected = {
@@ -44,12 +50,7 @@ class D1SchemaTests(unittest.TestCase):
             )
 
     def test_relationship_cannot_cross_project_boundaries(self):
-        self.db.execute(
-            "INSERT INTO users(id, github_user_id, github_login) VALUES ('u1','gh-1','writer')"
-        )
-        self.db.execute(
-            "INSERT INTO projects(id, owner_id, title) VALUES ('p1','u1','Novel One')"
-        )
+        self.seed_project()
         self.db.execute(
             "INSERT INTO projects(id, owner_id, title) VALUES ('p2','u1','Novel Two')"
         )
@@ -61,12 +62,11 @@ class D1SchemaTests(unittest.TestCase):
         )
         with self.assertRaises(sqlite3.IntegrityError):
             self.db.execute(
-                """INSERT INTO relationships
-                   (id, project_id, source_character_id, target_character_id)
-                   VALUES ('r1','p1','a','b')"""
+                "INSERT INTO relationships(id, project_id, source_character_id, target_character_id) VALUES ('r1','p1','a','b')"
             )
 
     def test_project_delete_cascades_to_children(self):
+        self.seed_project()
         self.db.execute(
             "INSERT INTO chapters(id, project_id, title) VALUES ('c2','p1','Chapter')"
         )
