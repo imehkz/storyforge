@@ -100,10 +100,10 @@ This test validates SQLite-compatible migration behavior only. It does not prove
 
 ## Worker implementation status — 22 November 2026
 
-The Worker now includes owner-allowlisted GitHub OAuth, hashed one-time OAuth state, hashed seven-day sessions, CSRF double-submit validation, logout revocation, project/chapter endpoints, chapter revision conflicts and snapshot restore, and project-scoped CRUD routes for characters, relationships, plot threads, world lore, timeline events, and notes. Telegram backup is supported through optional Worker secrets. Static assets receive security headers and a restrictive Content Security Policy.
+The Worker now includes owner-allowlisted GitHub OAuth, hashed one-time OAuth state, hashed sessions, host-only Secure/HttpOnly cookies, same-origin and CSRF checks, logout revocation, project/chapter APIs, optimistic revisions, atomic snapshots/restore, chapter ordering, and project-scoped CRUD for characters, relationships, plot threads, world lore, timeline, and notes. Telegram backup is supported through optional Worker secrets. Static assets receive security headers and a restrictive Content Security Policy.
 
-Important: this is code-level implementation only. No Cloudflare account, D1 database, OAuth app, secrets, or deployment has been configured. The browser editor still writes to localStorage and clearly states that it is not synced. Authentication UI is connected to the new session endpoint, but project/manuscript data has not yet been migrated to the APIs. Copilot remains disabled.
+The browser editor source now calls these APIs for projects, chapters, autosave, history/restore, and studio modules. It retains per-chapter local recovery drafts and an explicit idempotent import flow; local source data is not deleted. DOCX and EPUB packages are generated offline, and PDF uses the browser print-to-PDF dialog. Copilot remains disabled.
 
-Source-level Python checks and JavaScript syntax checks are configured in GitHub Actions. A passing CI run and deployed integration test have not yet been verified.
+Important: this is code-level implementation only. No Cloudflare account, D1 database, OAuth app, secrets, or deployment has been configured. Migrations have not been applied to Cloudflare D1. In-session JavaScript parsing, static contract checks, SQLite migration/SQL smoke tests, and DOCX/EPUB archive checks have been performed; GitHub Actions passing status and deployed integration tests have not been verified.
 
 - Added migration `0003_chapter_word_count.sql`; the browser calculates Thai-aware word counts and the Worker validates/persists them so project-wide totals can be computed from compact chapter metadata without fetching every manuscript body.
