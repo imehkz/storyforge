@@ -62,7 +62,7 @@ const $ = id => values[id];
 const downloads = [];
 const downloadBlob = (filename, blob) => downloads.push({ filename, blob });
 const mockCrypto = { randomUUID: () => "11111111-1111-4111-8111-111111111111" };
-const countWords = new Function(extractFunction("countWords") + "\\nreturn countWords;")();
+const countWords = new Function(extractFunction("countWords") + "\nreturn countWords;")();
 assert.equal(countWords(""), 0);
 assert.equal(countWords("ห้องสมุดแห่งความทรงจำ"), 6, "Thai word segmentation");
 const exportsApi = new Function("$", "downloadBlob", "crypto", code +
