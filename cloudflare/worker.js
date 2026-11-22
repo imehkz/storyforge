@@ -360,7 +360,7 @@ async function api(request, env, url) {
       return json({ items: rows.results || [] });
     }
     if (!itemId && method === "POST") {
-      const input = await readJson(request);
+      const input = await readJson(request, 128 * 1024);
       const values = {};
       for (const [field, spec] of Object.entries(config.fields)) {
         if (input[field] !== undefined) values[field] = normalize(field, input[field]);
@@ -385,7 +385,7 @@ async function api(request, env, url) {
       return json({ item, created: Boolean(inserted.meta?.changes) }, inserted.meta?.changes ? 201 : 200);
     }
     if (itemId && method === "PATCH") {
-      const input = await readJson(request);
+      const input = await readJson(request, 128 * 1024);
       const values = {};
       for (const field of Object.keys(config.fields)) {
         if (input[field] !== undefined) values[field] = normalize(field, input[field]);
@@ -430,7 +430,7 @@ async function api(request, env, url) {
       return json({ chapters: rows.results || [] });
     }
     if (method === "POST") {
-      const input = await readJson(request, 1024 * 1024);
+      const input = await readJson(request, 2 * 1024 * 1024);
       const clientId = input.clientId;
       if (clientId !== undefined && (typeof clientId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientId))) {
         throw new Error("INVALID_CLIENTID");
