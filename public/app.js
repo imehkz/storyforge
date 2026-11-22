@@ -591,26 +591,26 @@ function renderDashboard() {
   const projects = safeJSON(localStorage.getItem("sf_projects") || "[]", []);
   const list = Array.isArray(projects) ? projects : [];
   const activeId = localStorage.getItem("sf_active_project_id");
-  const active = cloud.authenticated
+  const active = cloud.ready
     ? cloud.projects.find(item => item.id === cloud.activeProjectId) || null
     : list.find(item => item.id && item.id === activeId) || list[0] || null;
   const title = active && active.title ? active.title : $("title").value;
   const chapter = $("chapterTitle").value;
   const manuscript = $("manuscriptBody").value;
   const chapterWords = countWords(manuscript);
-  const savedNovelWords = cloud.authenticated
+  const savedNovelWords = cloud.ready
     ? cloud.chapters.reduce((total, item) => total + (Number(item.word_count) || 0), 0)
     : chapterWords;
   const activeSavedWords = cloud.chapters.find(item => item.id === cloud.activeChapterId)?.word_count || 0;
-  const count = cloud.authenticated && cloud.activeChapterId
+  const count = cloud.ready && cloud.activeChapterId
     ? Math.max(0, savedNovelWords - activeSavedWords + chapterWords)
     : chapterWords;
   const novelGoal = Math.max(1, Number.parseInt(localStorage.getItem("sf_novel_word_goal") || "60000", 10) || 60000);
   if ($("sidebarProjectName")) $("sidebarProjectName").textContent = title || "ยังไม่ได้เลือกนิยาย";
-  if ($("sidebarProjectMeta")) $("sidebarProjectMeta").textContent = active ? (active.genre || "นิยายของฉัน") + (cloud.authenticated ? " · Private Beta Cloud" : " · บันทึกในอุปกรณ์นี้") : "เริ่มต้นสร้างเรื่องราวของคุณ";
+  if ($("sidebarProjectMeta")) $("sidebarProjectMeta").textContent = active ? (active.genre || "นิยายของฉัน") + (cloud.ready ? " · Private Beta Cloud" : " · บันทึกในอุปกรณ์นี้") : "เริ่มต้นสร้างเรื่องราวของคุณ";
   if ($("dashboardProjectTitle")) $("dashboardProjectTitle").textContent = title || "ยังไม่มีนิยายในห้องสมุด";
   if ($("dashboardChapterLine")) $("dashboardChapterLine").textContent = chapter ? "บทล่าสุด · " + chapter : (title ? "เพิ่มชื่อบทและเริ่มเขียนต้นฉบับของคุณ" : "เริ่มต้นสร้างโลกและตัวละครของคุณได้เลย");
-  if ($("dashboardLastEdited")) $("dashboardLastEdited").textContent = active ? (cloud.authenticated ? "โครงการนี้เชื่อมต่อกับบัญชี Private Beta" : "โครงการนี้บันทึกไว้ในเบราว์เซอร์เครื่องนี้") : "พื้นที่เขียนนิยายส่วนตัว · บันทึกในอุปกรณ์นี้";
+  if ($("dashboardLastEdited")) $("dashboardLastEdited").textContent = active ? (cloud.ready ? "โครงการนี้เชื่อมต่อกับบัญชี Private Beta" : "โครงการนี้บันทึกไว้ในเบราว์เซอร์เครื่องนี้") : "พื้นที่เขียนนิยายส่วนตัว · บันทึกในอุปกรณ์นี้";
   if ($("dashboardWordCount")) $("dashboardWordCount").textContent = count.toLocaleString("th-TH");
   if ($("dashboardWordGoal")) $("dashboardWordGoal").textContent = "/ " + novelGoal.toLocaleString("th-TH") + " คำ";
   if ($("dashboardProgress")) $("dashboardProgress").style.width = Math.min(100, (count / novelGoal) * 100) + "%";
