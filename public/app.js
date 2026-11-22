@@ -596,11 +596,17 @@ function renderProjects() {
     $("projectListCaption").textContent = "โครงการที่จัดเก็บในบัญชี Private Beta";
     list.innerHTML = cloud.projects.length
       ? cloud.projects.map(item =>
-          `<button type="button" class="project-pick ${item.id === cloud.activeProjectId ? "active" : ""}" data-cloud-project="${escapeHtml(item.id)}"><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.genre || "ไม่ระบุแนว")} · ${item.status === "archived" ? "เก็บเข้าคลัง" : "กำลังเขียน"}</small></button>`
+          `<div class="project-pick-row"><button type="button" class="project-pick ${item.id === cloud.activeProjectId ? "active" : ""}" data-cloud-project="${escapeHtml(item.id)}"><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.genre || "ไม่ระบุแนว")} · ${item.status === "archived" ? "เก็บเข้าคลัง" : "กำลังเขียน"}</small></button><div class="project-actions"><button type="button" class="outline-button compact" data-archive-project="${escapeHtml(item.id)}">${item.status === "archived" ? "นำกลับ" : "เก็บเข้าคลัง"}</button><button type="button" class="outline-button compact" data-delete-project="${escapeHtml(item.id)}">ลบ</button></div></div>`
         ).join("")
       : '<p class="muted-note">ยังไม่มีโครงการบน Cloud · สร้างนิยายใหม่หรือย้ายข้อมูลจากอุปกรณ์นี้</p>';
     list.querySelectorAll("[data-cloud-project]").forEach(button => {
       button.addEventListener("click", () => selectCloudProject(button.dataset.cloudProject));
+    });
+    list.querySelectorAll("[data-archive-project]").forEach(button => {
+      button.addEventListener("click", () => toggleCloudProjectArchive(button.dataset.archiveProject));
+    });
+    list.querySelectorAll("[data-delete-project]").forEach(button => {
+      button.addEventListener("click", () => deleteCloudProject(button.dataset.deleteProject));
     });
     const panel = $("cloudMigrationPanel");
     if (panel) panel.hidden = !hasLocalNovelData() || Boolean(localStorage.getItem(localMigrationKey()));
@@ -882,6 +888,46 @@ async function loadCloudProjects() {
     if ($("projectMemory")) $("projectMemory").value = "";
     renderModuleLists();
   }
+}
+
+async function toggleCloudProjectArchive(projectId) {
+  const project = cloud.projects.find(item => item.id === projectId);
+  if (!project) return;
+  const status = project.status === "archived" ? "active" : "archived";
+  try {
+    const result = await cloudApi("/api/projects/" + encodeURIComponent(projectId), {
+      method: "PATCH", body: JSON.stringify({ status })
+    });
+    cloud.projects = cloud.projects.map(item => item.id === projectId ? result.project : item);
+    renderProjects();
+  } catch (error) { alert("เปลี่ยนสถานะโครงการไม่สำเร็จ: " + error.message); }
+}
+
+async function deleteCloudProject(projectId) {
+  const project = cloud.projects.find(item => item.id === projectId);
+  if (!project || !confirm("ลบโครงการ “" + project.title + "” พร้อมบทและข้อมูลทั้งหมดบน Cloud หรือไม่? ฉบับสำรองในอุปกรณ์จะไม่ถูกลบ")) return;
+  try {
+    await cloudApi("/api/projects/" + encodeURIComponent(projectId), { method: "DELETE" });
+    cloud.projects = cloud.projects.filter(item => item.id !== projectId);
+    if (cloud.activeProjectId === projectId) {
+      cloud.activeProjectId = cloud.projects[0]?.id || "";
+      cloud.activeChapterId = "";
+      if (cloud.activeProjectId) await loadCloudProject(cloud.activeProjectId);
+      else {
+        $("title").value = "";
+        $("context").value = "";
+        $("chapterTitle").value = "";
+        $("manuscriptBody").value = "";
+        $("projectMemory").value = "";
+        cloud.chapters = [];
+        cloud.modules = { characters: [], relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: [] };
+        renderChapterSelect();
+        renderModuleLists();
+      }
+    }
+    renderProjects();
+    renderDashboard();
+  } catch (error) { alert("ลบโครงการไม่สำเร็จ: " + error.message); }
 }
 
 async function selectCloudProject(projectId) {
