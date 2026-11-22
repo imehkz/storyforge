@@ -49,9 +49,11 @@ Chapter updates require `expectedRevision`. A stale revision returns HTTP 409 in
 
 Telegram backup remains a separate secret-protected endpoint. It is optional and does not replace an independent encrypted database backup.
 
-## Important frontend limitation
+## Frontend integration status
 
-The current manuscript editor still uses browser localStorage and explicitly labels saves as device-local. The GitHub sign-in controls only show account status; the editor has not yet been migrated to these APIs. Do not describe the current UI as cloud-synced, and do not remove local data or migrate it automatically until an explicit import/migration workflow with conflict and rollback handling is implemented.
+The browser app now calls these APIs for project listing/creation/update, chapter creation and autosave, snapshot history/restore, project memory, and Character/Relationship/Plot/World/Timeline/Notes CRUD. Cloud saves use optimistic chapter revisions. Local chapter drafts are retained per Chapter ID and can be recovered after a conflict. Local-to-cloud import is an explicit user action and uses stable client-generated IDs so a retry does not create duplicate projects, chapters, or notes.
+
+The browser still keeps a local recovery copy and Global Memory on the device. Cloud operations are not live until the owner configures and deploys the Worker, D1, OAuth App, and secrets. No local data is deleted by the import flow.
 
 ## Deployment checklist
 
