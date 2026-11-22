@@ -103,3 +103,6 @@
   .module-item { flex-direction: column; }
   .module-actions { width: 100%; }
 }
+
+#reloadChapter[hidden],
+#recoverLocalDraft[hidden] { display: none !important; }
