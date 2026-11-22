@@ -856,8 +856,12 @@ async function loadCloudProjects() {
   else {
     cloud.chapters = [];
     cloud.activeChapterId = "";
+    cloud.noteId = "";
+    cloud.modules = { characters: [], relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: [] };
     if ($("chapterSelect")) $("chapterSelect").innerHTML = '<option value="">ยังไม่มีบท</option>';
     if ($("chapterSaveHint")) $("chapterSaveHint").textContent = "เลือกหรือสร้างโครงการก่อน จึงจะบันทึกบทบน Cloud ได้";
+    if ($("projectMemory")) $("projectMemory").value = "";
+    renderModuleLists();
   }
 }
 
@@ -1357,7 +1361,12 @@ async function refreshAuthStatus() {
       state.textContent = "ยังไม่ได้เข้าสู่ระบบ · ข้อมูลนิยายยังอยู่ในอุปกรณ์นี้";
       login.hidden = false;
       logout.hidden = true;
+      keys.forEach(key => {
+        const value = localStorage.getItem("sf_" + key);
+        if (value !== null && $(key)) $(key).value = value;
+      });
       renderProjects();
+      renderDashboard();
     }
     if (callbackState) history.replaceState(null, "", location.pathname);
     const disclosure = document.querySelector(".local-disclosure");
