@@ -56,7 +56,7 @@ Important:
 - No Cloudflare account, D1 database, secret, custom domain, billing, or deployment has been created by this work.
 - No paid service, paid plan, paid add-on, or billing activation is authorized.
 - Use the provider's `.workers.dev` hostname for the first deployment if available; a custom domain may cost extra.
-- Keep the UI clearly labeled as local-device prototype until OAuth, server-side authorization, D1 APIs, and end-to-end tests pass.
+- Keep the UI's local-recovery and Cloud-sync states distinct. Do not claim live Cloud persistence until the owner provisions D1/OAuth and the deployed integration tests pass.
 - Never silently fall back to local disk on a production host for durable user content.
 - Copilot SDK is not part of the Workers runtime; do not share the owner's credentials or quota and do not silently introduce paid hosting.
 
@@ -77,14 +77,13 @@ Required automated tests:
 
 ## 6. Immediate next steps
 
-1. Verify the Cloudflare Worker scaffold and D1 migration locally using the supported Wrangler toolchain.
-2. Create a Cloudflare account and D1 database only through the owner's own account actions; do not activate paid billing.
-3. Configure GitHub OAuth App callback and secrets in Cloudflare's secret store; never paste secrets into chat or commit them.
-4. Implement OAuth state, token exchange, owner numeric-ID allowlist, encrypted token storage, session lifecycle, and CSRF protection.
-5. Implement project/chapter APIs with server-enforced owner checks and cross-project isolation tests.
-6. Migrate the browser UI from localStorage to API-backed projects and chapters only after the security gates pass.
-7. Add snapshots, restore, conflict handling, encrypted off-site backup, and TXT export.
-8. Integrate Copilot only when a compatible Node.js runtime is explicitly approved and each user uses their own GitHub identity.
+1. Owner creates the GitHub OAuth App and configures the exact callback URL.
+2. Owner creates the Cloudflare D1 database, configures bindings/secrets, and applies migrations 0001–0003.
+3. Confirm GitHub Actions checks pass; run the Worker against local D1 and complete owner-denial, CSRF/origin, isolation, import retry, autosave, conflict, ordering, deletion, and restore tests.
+4. Configure independent encrypted off-site backups and test a full restore.
+5. Validate DOCX/EPUB in common readers and print-to-PDF on desktop and Android.
+6. Review tablet layout, accessibility, and contrast against the approved Figma source.
+7. Integrate Copilot only when a compatible Node.js runtime is explicitly approved and each user uses their own GitHub identity.
 
 ## Sources reviewed
 
