@@ -894,6 +894,7 @@ async function selectCloudChapter(chapterId) {
   renderChapterSelect();
   if ($("chapterSaveHint")) $("chapterSaveHint").textContent =
     "บันทึกบทบน Cloud · Revision " + cloud.revision + " · มีฉบับกู้คืนในอุปกรณ์นี้";
+  if ($("reloadChapter")) $("reloadChapter").hidden = true;
   $("saveState").innerHTML = '<span class="status-dot"></span>โหลดบทจาก Cloud แล้ว';
   renderDashboard();
 }
@@ -927,7 +928,8 @@ async function saveCloudChapter() {
     if (error.status === 409) {
       $("saveState").textContent = "พบฉบับใหม่กว่าใน Cloud · ฉบับนี้ยังเก็บไว้ในอุปกรณ์";
       if ($("chapterSaveHint")) $("chapterSaveHint").textContent =
-        "มีการแก้ไขจากอีกหน้าต่างหรืออุปกรณ์ กรุณาโหลดฉบับล่าสุดก่อนบันทึกทับ";
+        "มีการแก้ไขจากอีกหน้าต่างหรืออุปกรณ์ ฉบับปัจจุบันยังอยู่ในเครื่อง กด “โหลดฉบับล่าสุด” เมื่อต้องการเปลี่ยนมาใช้ฉบับ Cloud";
+      if ($("reloadChapter")) $("reloadChapter").hidden = false;
     } else {
       $("saveState").textContent = "บันทึก Cloud ไม่สำเร็จ · ฉบับในเครื่องยังอยู่";
     }
@@ -1104,6 +1106,10 @@ async function refreshAuthStatus() {
       renderProjects();
     }
     if (callbackState) history.replaceState(null, "", location.pathname);
+    const disclosure = document.querySelector(".local-disclosure");
+    if (disclosure) disclosure.textContent = cloud.authenticated
+      ? "เชื่อมต่อบัญชี Private Beta แล้ว · ต้นฉบับและโครงการที่เลือกจะบันทึกขึ้น Cloud พร้อมเก็บฉบับกู้คืนไว้ในอุปกรณ์นี้"
+      : "ต้นแบบพื้นที่ทำงานส่วนตัว · ข้อมูลในรุ่นนี้เก็บไว้ในเบราว์เซอร์เครื่องนี้ ยังไม่ซิงก์ขึ้นเซิร์ฟเวอร์";
   } catch (error) {
     state.textContent = "ตรวจสอบสถานะบัญชีไม่ได้ · " + error.message;
     login.hidden = true;
@@ -1116,6 +1122,14 @@ function setupCloudEvents() {
   $("newChapter")?.addEventListener("click", createCloudChapter);
   $("chapterSelect")?.addEventListener("change", event => selectCloudChapter(event.target.value));
   $("chapterHistoryButton")?.addEventListener("click", showChapterHistory);
+  $("reloadChapter")?.addEventListener("click", async () => {
+    if (!cloud.activeChapterId || !confirm("โหลดฉบับล่าสุดจาก Cloud และแทนที่ข้อความที่กำลังแสดงหรือไม่? ฉบับในเครื่องยังอยู่ใน local backup")) return;
+    try {
+      const result = await cloudApi("/api/chapters/" + encodeURIComponent(cloud.activeChapterId));
+      cloud.chapters = cloud.chapters.map(item => item.id === result.chapter.id ? result.chapter : item);
+      await selectCloudChapter(result.chapter.id);
+    } catch (error) { alert("โหลดฉบับล่าสุดไม่สำเร็จ: " + error.message); }
+  });
 }
 
 function setupAuthEvents() {
