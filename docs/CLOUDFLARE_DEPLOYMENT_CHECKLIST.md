@@ -52,6 +52,6 @@ The current Worker requires D1 and these runtime values before owner login can w
 - The owner's numeric GitHub user ID as the allowlist.
 - Optional Telegram backup secret, bot token, and chat ID.
 
-Set the GitHub OAuth App callback URL to the deployed origin plus `/auth/callback`. Store sensitive values with Wrangler secrets; never add them to source files or chat. The Worker now implements the listed authentication and API routes, but the editor remains local-only until its data layer is migrated. Do not treat the login control as proof of cloud persistence.
+Set the GitHub OAuth App callback URL to the deployed origin plus `/auth/callback`. Store sensitive values with Wrangler secrets; never add them to source files or chat. The Worker and browser editor source now implement the listed authentication and API workflows, but cloud operation remains unavailable until the owner configures and deploys D1, OAuth, and Worker secrets. Do not treat the login control alone as proof that the live service is configured.
 
 Before deployment, run the repository's GitHub Actions checks and test the Worker with local D1. No resource provisioning or deployment is authorized by this checklist.
