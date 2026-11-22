@@ -16,12 +16,12 @@ Production deployment: **not authorized**
 
 ## Verified current state
 
-- The current web app is a small Node HTTP server serving static files plus a Telegram backup endpoint.
-- The current writer, project list, and memories are stored in browser `localStorage`; they are not account-backed, server-synced, or isolated by server-enforced Project IDs.
-- The current project list deduplicates by title rather than stable Project ID.
-- AI is intentionally disabled.
-- The UI previously said “OWNER ONLY”, but no sign-in or owner authorization is implemented. The label has been changed to disclose local-device storage instead of implying an enforced access policy.
-- Render configuration no longer contains unused `OPENAI_API_KEY` or `OPENAI_MODEL` entries.
+- The original Node HTTP server remains available, while the Cloudflare Worker now contains owner-only GitHub OAuth, hashed sessions, CSRF validation, logout revocation, project/chapter APIs, snapshots, and project-scoped module CRUD.
+- The browser editor still stores the manuscript, project metadata, and notes in `localStorage`; these are not yet synced to D1 or migrated between devices.
+- The browser now displays GitHub sign-in/session status, but successful sign-in does not mean the editor is cloud-synced.
+- The project list still needs a complete migration from title-based local records to server-owned stable Project IDs.
+- AI is intentionally disabled; GitHub identity OAuth is not Copilot SDK authorization.
+- No Cloudflare account, D1 database, OAuth App, secrets, or deployment has been provisioned.
 
 ## MVP acceptance criteria
 
@@ -79,12 +79,11 @@ Create a novel → add a chapter → write text → save → sign out/in → res
 
 ## Current known blockers
 
-- No authentication or server-side owner allowlist.
-- No database or persistent user/project storage.
-- Current browser storage is device-local and can be lost with browser data.
-- No automated test suite is currently confirmed.
-- Copilot OAuth app credentials and callback configuration have not been provisioned.
-- Hosting/database pricing and persistent-storage limits must be verified before selecting infrastructure.
+- Cloudflare runtime configuration, D1 binding/database, GitHub OAuth App, owner allowlist secret, and Worker secrets are not provisioned.
+- Browser editor is still device-local; no frontend API integration, cloud autosave, or cross-device sync.
+- No verified end-to-end Worker/D1 run has been completed. CI has been configured, but no successful GitHub Actions result is confirmed yet.
+- Independent encrypted D1 backup and full restore verification remain outstanding.
+- Copilot SDK requires a separately approved compatible runtime and each user's own Copilot entitlement; it remains disabled.
 
 ## Progress update — 22 November 2026
 
@@ -124,16 +123,16 @@ See [SECURITY_AND_STORAGE_DECISIONS.md](./SECURITY_AND_STORAGE_DECISIONS.md) for
 
 ### Added on `feature/storyforge-studio-80`
 
-- Added a Cloudflare Worker entry point that serves existing static assets and exposes a non-sensitive health endpoint.
-- All other `/api/*` routes return HTTP 503 until authentication and authorization are implemented; no unauthenticated data API is exposed.
-- Added a Wrangler configuration template (not deploy-ready until a real D1 database ID is supplied).
-- Added the initial D1 schema for users, OAuth states, sessions, encrypted OAuth credential storage, projects, chapters, project memories, and snapshots.
-- Added `docs/CLOUDFLARE_FREE_ARCHITECTURE.md` documenting current free-tier limits and the remaining security/runtime gates.
+- Added the Cloudflare Worker entry point and Wrangler configuration template.
+- The Worker now implements owner-only GitHub OAuth, hashed one-time state, hashed seven-day sessions, CSRF double-submit protection, logout revocation, project/chapter APIs, optimistic chapter revisions, snapshot list/restore, and project-scoped CRUD for characters, relationships, plot threads, world lore, timeline events, and notes.
+- Added optional secret-protected Telegram backup support and security headers/CSP for static assets.
+- Added D1 migrations for identity, projects, chapters, snapshots, and project studio modules.
+- Added Python schema/security-contract tests and GitHub Actions checks for Python tests and JavaScript syntax.
 
 ### Still not complete
 
 - The existing browser UI still reads and writes localStorage. It has not been migrated to D1.
-- No GitHub OAuth, session, owner allowlist, API CRUD, autosave endpoint, snapshot/restore API, or server-side project isolation is active.
+- Worker-side OAuth, sessions, owner allowlist, project/chapter/module APIs, chapter snapshots, and server-side project ownership checks are implemented in source but have not been verified against a live or local Cloudflare Worker/D1 runtime.
 - The Cloudflare scaffold has not been deployed and no Cloudflare resource has been created.
 - Copilot SDK is not hosted on Workers; keep AI disabled until a separately approved compatible runtime is available.
 - No runtime, migration, security, or browser test has been executed. Do not treat scaffold commits as a working hosted app.
@@ -152,11 +151,11 @@ See [SECURITY_AND_STORAGE_DECISIONS.md](./SECURITY_AND_STORAGE_DECISIONS.md) for
 
 1. Run the schema test in a local environment with Python 3: `python3 tests/check_d1_schema.py`.
 2. Verify Wrangler config and migration behavior with a local D1 database before any remote database is created.
-3. Implement GitHub OAuth and owner allowlist, then secure sessions and CSRF.
-4. Add authenticated project and chapter API handlers with SQL owner checks.
-5. Migrate UI state only after API authorization and autosave tests pass.
-6. Add version snapshots, restore, conflict handling, and independent encrypted backup.
-7. Reassess Copilot separately; Workers is not the Node.js SDK runtime.
+3. Complete CI and local Worker/D1 integration tests, including owner denial, CSRF, cross-project isolation, chapter conflicts, and restore.
+4. Implement frontend API integration and a reversible localStorage-to-D1 import flow; do not overwrite local drafts automatically.
+5. Add cloud autosave indicators, network retry/conflict handling, and cross-device recovery.
+6. Implement independent encrypted D1 backups and test restore.
+7. Reassess Copilot separately; Workers is not assumed to support the Node.js SDK runtime.
 
 No deployment, remote D1 creation, OAuth app, secret, paid plan, or production release has been performed.
 
