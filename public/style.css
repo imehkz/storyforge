@@ -342,3 +342,23 @@
   .topbar-right { flex-direction: column; align-items: stretch; }
   .topbar-right .save-indicator, #loginButton, #logoutButton { width: 100%; justify-content: flex-start; }
 }
+
+
+/* Rich manuscript editor and compact word-processing toolbar */
+.manuscript-layout::before,.manuscript-layout::after,.manuscript-main::before,.manuscript-main::after{content:none!important;display:none!important}
+.manuscript-layout{border:0!important}
+.manuscript-main{border-inline-start:0!important;box-shadow:none!important}
+.manuscript-format-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:7px;padding:10px;margin:8px 0 10px;border:1px solid var(--line);border-radius:6px;background:#111d2d}
+.manuscript-format-toolbar select,.manuscript-format-toolbar button{width:auto;min-height:36px;padding:6px 9px;border:1px solid #46536a;border-radius:4px;background:#18263b;color:var(--parchment);font:500 13px var(--sans)}
+.manuscript-format-toolbar button{cursor:pointer}
+.manuscript-format-toolbar button:hover,.manuscript-format-toolbar button:focus-visible{border-color:var(--gold);background:#26364e;outline:none}
+.manuscript-format-toolbar .toolbar-divider{width:1px;height:25px;background:var(--line);margin:0 3px}
+.manuscript-format-toolbar .ai-format-button{background:linear-gradient(135deg,#d4b779,#b9914c);color:#1c2430;border-color:#d8bd85}
+.manuscript-editor-surface{min-height:500px;padding:36px;border:1px solid #c5a15b;border-radius:5px;background:#e8d8b8;color:#302a25;font:400 16px/1.75 "Noto Serif Thai",serif;white-space:normal;overflow-wrap:anywhere;outline:none}
+.manuscript-editor-surface:focus{box-shadow:0 0 0 2px rgba(197,161,91,.22)}
+.manuscript-editor-surface:empty::before{content:attr(data-placeholder);color:#897d6b;pointer-events:none}
+.manuscript-editor-surface p{margin:0 0 .85em;text-indent:1.2em}
+.manuscript-editor-surface h1,.manuscript-editor-surface h2,.manuscript-editor-surface h3{line-height:1.4;text-indent:0;margin:1.2em 0 .7em}
+.manuscript-editor-surface blockquote{margin:1em 2em;padding-inline-start:1em;border-inline-start:2px solid #a88950}
+@media(max-width:760px){.manuscript-format-toolbar{gap:6px;padding:8px}.manuscript-format-toolbar select,.manuscript-format-toolbar button{font-size:12px;min-height:38px}.manuscript-editor-surface{min-height:360px;padding:22px 18px;font-size:16px}}
+@media print{.manuscript-editor-surface{background:#fff!important;color:#111!important;border:0!important;padding:0!important}}
