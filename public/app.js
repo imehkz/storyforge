@@ -65,6 +65,51 @@ function setProjectGenre(value = "") {
   if ($("customGenreField")) $("customGenreField").hidden = select.value !== "__custom__";
 }
 
+
+function writingSettingsKey(projectId) { return "sf_writing_settings_" + (projectId || localStorage.getItem("sf_active_project_id") || "draft"); }
+function readWritingSettings() {
+  const genres = {};
+  document.querySelectorAll("[data-genre-level]").forEach(input => { genres[input.dataset.genreLevel] = Number(input.value) || 1; });
+  return {
+    chapterCount: Math.max(1,Math.min(500,Number($("plannedChapterCount")?.value)||20)),
+    wordsPerChapter: Math.max(100,Math.min(20000,Number($("plannedWordsPerChapter")?.value)||2000)),
+    pov: $("writingPov")?.value || "third",
+    style: $("writingStyle")?.value || "literary",
+    adultContent: $("adultContentMode")?.value || "off",
+    extraNotes: $("writingExtraNotes")?.value || "",
+    genres
+  };
+}
+function loadWritingSettings(projectId) {
+  let data={};
+  try { data=JSON.parse(localStorage.getItem(writingSettingsKey(projectId))||"{}"); } catch {}
+  if ($("plannedChapterCount")) $("plannedChapterCount").value=data.chapterCount||20;
+  if ($("plannedWordsPerChapter")) $("plannedWordsPerChapter").value=data.wordsPerChapter||2000;
+  if ($("writingPov")) $("writingPov").value=data.pov||"third";
+  if ($("writingStyle")) $("writingStyle").value=data.style||"literary";
+  if ($("adultContentMode")) $("adultContentMode").value=data.adultContent||"off";
+  if ($("writingExtraNotes")) $("writingExtraNotes").value=data.extraNotes||"";
+  document.querySelectorAll("[data-genre-level]").forEach(input=>{
+    input.value=data.genres?.[input.dataset.genreLevel]||5;
+    const output=document.querySelector('output[for="'+input.id+'"]');
+    if(output) output.textContent=input.value+"/10";
+  });
+}
+function setupWritingSettings() {
+  document.querySelectorAll("[data-genre-level]").forEach(input=>{
+    input.addEventListener("input",()=>{
+      const output=document.querySelector('output[for="'+input.id+'"]');
+      if(output) output.textContent=input.value+"/10";
+      localStorage.setItem(writingSettingsKey(),JSON.stringify(readWritingSettings()));
+    });
+  });
+  ["plannedChapterCount","plannedWordsPerChapter","writingPov","writingStyle","adultContentMode","writingExtraNotes"].forEach(id=>{
+    $(id)?.addEventListener("input",()=>localStorage.setItem(writingSettingsKey(),JSON.stringify(readWritingSettings())));
+    $(id)?.addEventListener("change",()=>localStorage.setItem(writingSettingsKey(),JSON.stringify(readWritingSettings())));
+  });
+  loadWritingSettings();
+}
+
 function setupCustomGenre() {
   const select = $("genre");
   if (!select) return;
@@ -882,6 +927,7 @@ function setupEvents() {
       genre: getProjectGenre(),
       context: $("context").value
     };
+    localStorage.setItem(writingSettingsKey(item.id), JSON.stringify(readWritingSettings()));
     projects = projects.filter(x => x.id !== item.id);
     projects.unshift(item);
     localStorage.setItem("sf_active_project_id", item.id);
@@ -935,6 +981,7 @@ function setupEvents() {
     setProjectGenre("");
     $("context").value = "";
     $("projectMemory").value = "";
+    loadWritingSettings("draft");
     cloud.noteId = "";
     $("chapterTitle").value = "";
     $("manuscriptBody").value = "";
@@ -1190,51 +1237,76 @@ function renderRelationshipOptions() {
 function renderRelationshipGraph() {
   const target = $("relationshipGraph");
   if (!target) return;
-  const characters = cloud.modules.characters.slice(0, 12);
+  const characters = cloud.modules.characters || [];
   const relationships = cloud.modules.relationships || [];
   if (!cloud.ready) {
     target.textContent = "เข้าสู่ระบบและเลือกโครงการเพื่อดูแผนผังความสัมพันธ์";
     return;
   }
-  if (!characters.length || !relationships.length) {
-    target.textContent = "เพิ่มตัวละครและกำหนดความสัมพันธ์เพื่อสร้างแผนผัง";
+  if (!characters.length) {
+    target.textContent = "เพิ่มตัวละครเพื่อเริ่มสร้างแผนผังสายใยความสัมพันธ์";
     return;
   }
-  const columns = 4;
-  const nodeWidth = 148;
-  const nodeHeight = 48;
-  const gapX = 28;
-  const gapY = 72;
+  const width = Math.max(620, Math.ceil(Math.sqrt(characters.length)) * 190 + 60);
+  const nodeWidth = 154, nodeHeight = 66, gapX = 34, gapY = 54;
+  const columns = Math.max(2, Math.floor((width - 40) / (nodeWidth + gapX)));
   const rows = Math.ceil(characters.length / columns);
-  const width = columns * nodeWidth + (columns - 1) * gapX + 40;
-  const height = rows * (nodeHeight + gapY) + 24;
+  const height = Math.max(180, rows * (nodeHeight + gapY) + 40);
+  const layoutKey = "sf_relationship_layout_" + (cloud.activeProjectId || "local");
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(layoutKey) || "{}"); } catch {}
   const positions = new Map();
-  characters.forEach((item, index) => {
-    positions.set(item.id, {
-      x: 20 + (index % columns) * (nodeWidth + gapX),
-      y: 12 + Math.floor(index / columns) * (nodeHeight + gapY)
+  characters.forEach((item,index) => {
+    const fallback = {x:24+(index%columns)*(nodeWidth+gapX),y:20+Math.floor(index/columns)*(nodeHeight+gapY)};
+    const pos = saved[item.id] && Number.isFinite(saved[item.id].x) && Number.isFinite(saved[item.id].y) ? saved[item.id] : fallback;
+    positions.set(item.id,{x:Math.max(0,Math.min(width-nodeWidth,pos.x)),y:Math.max(0,Math.min(height-nodeHeight,pos.y))});
+  });
+  const relationColor = value => {
+    const t=String(value||"").toLowerCase();
+    if(/ศัตรู|เกลียด|หักหลัง|คู่แข่ง/.test(t)) return "#c66b70";
+    if(/ครอบครัว|พ่อ|แม่|พี่|น้อง|ลูก/.test(t)) return "#7da7d8";
+    if(/รัก|คนรัก|คู่หมั้น|แอบรัก/.test(t)) return "#d58aa9";
+    if(/พันธมิตร|เพื่อน|ร่วมมือ/.test(t)) return "#83b99a";
+    if(/ธุรกิจ|เจ้านาย|ลูกน้อง/.test(t)) return "#a7adb8";
+    if(/อาจารย์|ผู้ชี้แนะ|ศิษย์/.test(t)) return "#c5a15b";
+    return "#b99a62";
+  };
+  const edges = relationships.map((rel,index) => {
+    const a=positions.get(rel.source_character_id), b=positions.get(rel.target_character_id);
+    if(!a||!b) return "";
+    const x1=a.x+nodeWidth/2,y1=a.y+nodeHeight/2,x2=b.x+nodeWidth/2,y2=b.y+nodeHeight/2;
+    const color=relationColor(rel.relationship_type);
+    return `<g class="relationship-edge" data-edge-id="${escapeHtml(rel.id||String(index))}"><path d="M ${x1} ${y1} L ${x2} ${y2}" stroke="${color}" stroke-width="2" opacity=".78" fill="none"/><text x="${(x1+x2)/2}" y="${(y1+y2)/2-8}" fill="${color}" font-size="12" text-anchor="middle" paint-order="stroke" stroke="#0c1626" stroke-width="4">${escapeHtml(rel.relationship_type||"เกี่ยวข้อง")}</text></g>`;
+  }).join("");
+  const nodes=characters.map(item=>{
+    const p=positions.get(item.id), initials=String(item.name||"?").trim().slice(0,1);
+    return `<g class="relationship-node" data-character-id="${escapeHtml(item.id)}" tabindex="0" role="button" aria-label="ตัวละคร ${escapeHtml(item.name)}" style="cursor:grab"><rect x="${p.x}" y="${p.y}" width="${nodeWidth}" height="${nodeHeight}" rx="9" fill="#18263a" stroke="#c5a15b" stroke-width="1.5"/><circle cx="${p.x+27}" cy="${p.y+33}" r="17" fill="#382d29" stroke="#c5a15b"/><text x="${p.x+27}" y="${p.y+38}" fill="#eadbb9" font-size="15" text-anchor="middle">${escapeHtml(initials)}</text><text x="${p.x+52}" y="${p.y+28}" fill="#eadbb9" font-size="13">${escapeHtml(String(item.name||"ตัวละคร").slice(0,14))}</text><text x="${p.x+52}" y="${p.y+47}" fill="#a99b7e" font-size="10">${escapeHtml(String(item.role||"ตัวละคร").slice(0,18))}</text></g>`;
+  }).join("");
+  target.innerHTML = `<div class="relationship-graph-tools"><span>ลากการ์ดเพื่อจัดตำแหน่ง · แตะตัวละครเพื่อดูข้อมูล</span><button type="button" class="outline-button compact" id="resetRelationshipLayout">จัดผังใหม่</button></div><svg viewBox="0 0 ${width} ${height}" width="100%" role="img" aria-label="แผนผังสายใยความสัมพันธ์ของตัวละคร">${edges}${nodes}</svg><div class="relationship-legend"><span><i style="background:#d58aa9"></i>ความรัก</span><span><i style="background:#c66b70"></i>ศัตรู/ขัดแย้ง</span><span><i style="background:#7da7d8"></i>ครอบครัว</span><span><i style="background:#83b99a"></i>พันธมิตร</span><span><i style="background:#c5a15b"></i>ผู้ชี้แนะ</span></div>`;
+  const svg=target.querySelector("svg");
+  target.querySelectorAll(".relationship-node").forEach(node=>{
+    node.addEventListener("pointerdown",event=>{
+      if(event.button!==0) return;
+      const id=node.dataset.characterId, start=positions.get(id), rect=svg.getBoundingClientRect();
+      const sx=(event.clientX-rect.left)*width/rect.width-start.x, sy=(event.clientY-rect.top)*height/rect.height-start.y;
+      node.setPointerCapture?.(event.pointerId);
+      const move=e=>{
+        const x=Math.max(0,Math.min(width-nodeWidth,(e.clientX-rect.left)*width/rect.width-sx));
+        const y=Math.max(0,Math.min(height-nodeHeight,(e.clientY-rect.top)*height/rect.height-sy));
+        positions.set(id,{x,y});
+        saved[id]={x,y}; localStorage.setItem(layoutKey,JSON.stringify(saved));
+        renderRelationshipGraph();
+      };
+      const up=()=>{node.removeEventListener("pointermove",move);node.removeEventListener("pointerup",up);};
+      node.addEventListener("pointermove",move);node.addEventListener("pointerup",up,{once:true});
+    });
+    node.addEventListener("click",()=> {
+      const character=characters.find(item=>item.id===node.dataset.characterId);
+      if(character) alert(character.name+" · "+(character.role||"ตัวละคร")+"\n"+(character.description||"เปิดรายละเอียดได้จากคลังตัวละคร"));
     });
   });
-  const edges = relationships.map(rel => {
-    const from = positions.get(rel.source_character_id);
-    const to = positions.get(rel.target_character_id);
-    if (!from || !to) return "";
-    const cx1 = from.x + nodeWidth / 2, cy1 = from.y + nodeHeight / 2;
-    const cx2 = to.x + nodeWidth / 2, cy2 = to.y + nodeHeight / 2;
-    const dx = cx2 - cx1, dy = cy2 - cy1;
-    const scale = Math.min((nodeWidth / 2) / Math.max(1, Math.abs(dx)), (nodeHeight / 2) / Math.max(1, Math.abs(dy)));
-    const x1 = cx1 + dx * scale, y1 = cy1 + dy * scale;
-    const x2 = cx2 - dx * scale, y2 = cy2 - dy * scale;
-    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - 8;
-    return `<g><path d="M ${x1} ${y1} L ${x2} ${y2}" stroke="#8b744e" stroke-width="1.6" fill="none" marker-end="url(#relationArrow)"/><text x="${mx}" y="${my}" fill="#d9c79f" font-size="10" text-anchor="middle">${escapeHtml(rel.relationship_type || "เกี่ยวข้อง")}</text></g>`;
-  }).join("");
-  const nodes = characters.map(item => {
-    const p = positions.get(item.id);
-    return `<g><rect x="${p.x}" y="${p.y}" width="${nodeWidth}" height="${nodeHeight}" rx="5" fill="#18263a" stroke="#b18d4d" stroke-width="1.2"/><text x="${p.x + nodeWidth / 2}" y="${p.y + 20}" fill="#eadbb9" font-size="12" text-anchor="middle">${escapeHtml(item.name.slice(0, 20))}</text><text x="${p.x + nodeWidth / 2}" y="${p.y + 36}" fill="#a99b7e" font-size="9" text-anchor="middle">${escapeHtml(item.role || "ตัวละคร")}</text></g>`;
-  }).join("");
-  target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" width="100%" role="img" aria-label="แผนผังตัวละครและความสัมพันธ์"><defs><marker id="relationArrow" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#8b744e"/></marker></defs>${edges}${nodes}</svg>`;
+  $("resetRelationshipLayout")?.addEventListener("click",()=>{localStorage.removeItem(layoutKey);renderRelationshipGraph();});
 }
-
 function renderPlotBoard(items) {
   const target = $("plotBoard");
   if (!target) return;
@@ -2396,6 +2468,7 @@ function init() {
   load();
 
   setupCustomGenre();
+  setupWritingSettings();
   setProjectGenre(localStorage.getItem("sf_genre") || $("genre")?.value || "");
   setupEvents();
 
