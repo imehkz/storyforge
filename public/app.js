@@ -703,6 +703,72 @@ function setupBackupEvents() {
 }
 
 // ==========================================
+// PRIVATE BETA ACCOUNT STATUS
+// ==========================================
+
+async function refreshAuthStatus() {
+  const state = $("authState");
+  const login = $("loginButton");
+  const logout = $("logoutButton");
+  if (!state || !login || !logout) return;
+
+  const callbackState = new URLSearchParams(location.search).get("auth");
+  if (callbackState === "not-allowed") state.textContent = "此 GitHub 帳戶沒有私人測試權์";
+  else if (callbackState === "failed") state.textContent = "เข้าสู่ระบบไม่สำเร็จ";
+  else if (callbackState === "success") state.textContent = "เข้าสู่ระบบสำเร็จ กำลังตรวจสอบ…";
+
+  try {
+    const response = await fetch("/api/session", { credentials: "same-origin", cache: "no-store" });
+    if (response.status === 503) {
+      state.textContent = "ระบบบัญชียังไม่พร้อม · ต้องตั้งค่า D1 และ GitHub OAuth";
+      login.hidden = true;
+      logout.hidden = true;
+      return;
+    }
+    if (!response.ok) throw new Error("ตรวจสอบบัญชีไม่สำเร็จ");
+    const result = await response.json();
+    if (result.authenticated) {
+      state.textContent = "GitHub: " + result.user.githubLogin + " · ข้อมูลนิยายยังอยู่ในอุปกรณ์นี้";
+      login.hidden = true;
+      logout.hidden = false;
+      logout.dataset.csrf = result.csrfToken;
+    } else {
+      state.textContent = "ยังไม่ได้เข้าสู่ระบบ · ข้อมูลนิยายยังอยู่ในอุปกรณ์นี้";
+      login.hidden = false;
+      logout.hidden = true;
+    }
+    if (callbackState) history.replaceState(null, "", location.pathname);
+  } catch (error) {
+    state.textContent = "ตรวจสอบสถานะบัญชีไม่ได้ · " + error.message;
+    login.hidden = true;
+    logout.hidden = true;
+  }
+}
+
+function setupAuthEvents() {
+  $("loginButton")?.addEventListener("click", () => {
+    location.href = "/auth/login";
+  });
+  $("logoutButton")?.addEventListener("click", async () => {
+    const button = $("logoutButton");
+    button.disabled = true;
+    try {
+      const response = await fetch("/api/logout", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "X-CSRF-Token": button.dataset.csrf || "" }
+      });
+      if (!response.ok) throw new Error("ออกจากระบบไม่สำเร็จ");
+      await refreshAuthStatus();
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
+
+// ==========================================
 // START STORYFORGE
 // ==========================================
 
@@ -715,6 +781,9 @@ function init() {
   setupEvents();
 
   setupBackupEvents();
+
+  setupAuthEvents();
+  refreshAuthStatus();
 
   console.log("STORYFORGE initialized successfully");
 }
