@@ -80,13 +80,14 @@ const optionalString = (value, max, field) => {
 };
 const errorResponse = (error) => {
   const code = error?.message || "INTERNAL_ERROR";
+  const constraint = /FOREIGN KEY constraint failed|UNIQUE constraint failed|CHECK constraint failed/i.test(code);
   const status = code === "BODY_TOO_LARGE" ? 413 :
     code === "INVALID_JSON" || code.startsWith("INVALID_") ? 400 :
     code === "UNAUTHENTICATED" ? 401 :
     code === "FORBIDDEN" ? 403 :
     code === "NOT_FOUND" ? 404 :
-    code === "CONFLICT" ? 409 : 500;
-  return json({ error: status === 500 ? "INTERNAL_ERROR" : code }, status);
+    code === "CONFLICT" || constraint ? 409 : 500;
+  return json({ error: status === 500 ? "INTERNAL_ERROR" : constraint ? "CONSTRAINT_VIOLATION" : code }, status);
 };
 
 async function getSession(request, env) {
@@ -509,7 +510,18 @@ export default {
       if (url.pathname === "/auth/callback" && request.method === "GET") return await oauthCallback(request, env);
       if (url.pathname.startsWith("/api/")) return await api(request, env, url);
       if (!env.ASSETS) return new Response("Static asset binding is not configured.", { status: 503 });
-      return env.ASSETS.fetch(request);
+      const assetResponse = await env.ASSETS.fetch(request);
+      const headers = new Headers(assetResponse.headers);
+      headers.set("X-Content-Type-Options", "nosniff");
+      headers.set("X-Frame-Options", "DENY");
+      headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+      headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+      headers.set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'");
+      return new Response(assetResponse.body, {
+        status: assetResponse.status,
+        statusText: assetResponse.statusText,
+        headers
+      });
     } catch (error) {
       return errorResponse(error);
     }
