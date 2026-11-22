@@ -229,27 +229,54 @@ function safeJSON(value, fallback) {
   }
 }
 
-function collectBackup() {
+function collectLocalBackup() {
   const data = {};
-
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-
-    if (key && key.startsWith("sf_")) {
-      data[key] = localStorage.getItem(key);
-    }
+    if (key && key.startsWith("sf_")) data[key] = localStorage.getItem(key);
   }
+  return data;
+}
 
+async function collectCloudBackup() {
+  if (!cloud.authenticated || !cloud.ready) return [];
+  const projectsResult = await cloudApi("/api/projects");
+  const projects = [];
+  const collections = ["characters", "relationships", "plot-threads", "world-lore", "timeline", "notes"];
+  for (const project of (projectsResult.projects || [])) {
+    const [chapterResult, ...moduleResults] = await Promise.all([
+      cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/chapters"),
+      ...collections.map(name => cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/" + name))
+    ]);
+    const chapters = await Promise.all((chapterResult.chapters || []).map(async chapter => {
+      const detail = await cloudApi("/api/chapters/" + encodeURIComponent(chapter.id));
+      return detail.chapter;
+    }));
+    const modules = {};
+    collections.forEach((name, index) => { modules[name] = moduleResults[index].items || []; });
+    projects.push({ project, chapters, modules });
+  }
+  return projects;
+}
+
+async function collectBackup() {
+  const cloudProjects = await collectCloudBackup();
   return {
     app: "STORYFORGE",
-    version: 1,
+    version: 2,
     createdAt: new Date().toISOString(),
-    data
+    scope: {
+      localDeviceData: true,
+      cloudProjects: cloud.authenticated && cloud.ready,
+      snapshotHistory: false
+    },
+    data: collectLocalBackup(),
+    cloud: { projects: cloudProjects }
   };
 }
 
-function makeBackupFile() {
-  return JSON.stringify(collectBackup(), null, 2);
+async function makeBackupFile() {
+  return JSON.stringify(await collectBackup(), null, 2);
 }
 
 // ==========================================
@@ -278,13 +305,11 @@ function download(name, text) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function downloadCurrentBackup() {
+async function downloadCurrentBackup() {
   const date = new Date().toISOString().replace(/[:.]/g, "-");
-
-  download(
-    `STORYFORGE-backup-${date}.json`,
-    makeBackupFile()
-  );
+  const backupText = await makeBackupFile();
+  download(`STORYFORGE-backup-${date}.json`, backupText);
+  return true;
 }
 
 // ==========================================
@@ -327,7 +352,7 @@ async function sendTelegramBackup(isAutomatic = false) {
 
       body: JSON.stringify({
         filename: "STORYFORGE-backup.json",
-        content: makeBackupFile()
+        content: await makeBackupFile()
       })
     });
 
@@ -445,130 +470,97 @@ function setupAutoBackup() {
 // RESTORE BACKUP
 // ==========================================
 
+async function restoreCloudBackup(backupProjects) {
+  if (!Array.isArray(backupProjects)) throw new Error("ข้อมูล Cloud Backup ไม่ถูกต้อง");
+  if (backupProjects.length && (!cloud.authenticated || !cloud.ready)) {
+    throw new Error("ไฟล์นี้มีข้อมูล Cloud กรุณาเข้าสู่ระบบ StoryForge ก่อนกู้คืน");
+  }
+  const collections = ["characters", "plot-threads", "world-lore", "timeline", "notes", "relationships"];
+  for (const entry of backupProjects) {
+    if (!entry?.project?.id || !Array.isArray(entry.chapters) || !entry.modules || typeof entry.modules !== "object") {
+      throw new Error("โครงสร้างข้อมูลโครงการใน Backup ไม่ถูกต้อง");
+    }
+    const project = entry.project;
+    await cloudApi("/api/projects", {
+      method: "POST",
+      body: JSON.stringify({ clientId: project.id, title: project.title || "นิยายที่กู้คืน", genre: project.genre || "", synopsis: project.synopsis || "" })
+    });
+    for (const chapter of entry.chapters) {
+      await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/chapters", {
+        method: "POST",
+        body: JSON.stringify({ clientId: chapter.id, title: chapter.title || "", body: chapter.body || "", sortOrder: Number.isInteger(chapter.sort_order) ? chapter.sort_order : 0, wordCount: Number.isInteger(chapter.word_count) ? chapter.word_count : countWords(chapter.body || "") })
+      });
+    }
+    for (const collection of collections) {
+      const rows = entry.modules[collection] || [];
+      if (!Array.isArray(rows)) throw new Error("ข้อมูล " + collection + " ใน Backup ไม่ถูกต้อง");
+      for (const item of rows) {
+        const payload = { clientId: item.id };
+        const allowed = {
+          characters: ["name", "role", "profile_json", "sort_order"],
+          relationships: ["source_character_id", "target_character_id", "relationship_type", "description"],
+          "plot-threads": ["title", "summary", "status", "sort_order"],
+          "world-lore": ["category", "title", "content", "sort_order"],
+          timeline: ["title", "description", "story_time", "sort_order"],
+          notes: ["title", "content", "note_type", "pinned"]
+        }[collection];
+        for (const field of allowed) if (item[field] !== undefined) payload[field] = item[field];
+        await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/" + collection, {
+          method: "POST", body: JSON.stringify(payload)
+        });
+      }
+    }
+  }
+}
+
 function restoreFromFile() {
-
   const file = $("restoreFile").files[0];
-
-  if (!file) {
-    alert("กรุณาเลือกไฟล์ Backup ก่อนครับ");
-    return;
-  }
-
-  if (file.size > 40 * 1024 * 1024) {
-    alert("ไฟล์ Backup มีขนาดใหญ่เกินกำหนด 40 MB");
-    return;
-  }
-
+  if (!file) { alert("กรุณาเลือกไฟล์ Backup ก่อนครับ"); return; }
+  if (file.size > 40 * 1024 * 1024) { alert("ไฟล์ Backup มีขนาดใหญ่เกินกำหนด 40 MB"); return; }
   const reader = new FileReader();
-
-  reader.onload = () => {
-
+  reader.onload = async () => {
     try {
-
       const backup = JSON.parse(reader.result);
-
-      if (
-        backup.app !== "STORYFORGE" ||
-        backup.version !== 1 ||
-        !backup.data ||
-        typeof backup.data !== "object" ||
-        Array.isArray(backup.data)
-      ) {
-        throw new Error(
-          "ไฟล์นี้ไม่ใช่ Backup ของ STORYFORGE"
-        );
+      if (backup.app !== "STORYFORGE" || ![1, 2].includes(backup.version) ||
+          !backup.data || typeof backup.data !== "object" || Array.isArray(backup.data)) {
+        throw new Error("ไฟล์นี้ไม่ใช่ Backup ของ STORYFORGE");
       }
-
       const entries = Object.entries(backup.data);
-
-      if (
-        entries.length === 0 ||
-        entries.some(([key, value]) =>
-          !key.startsWith("sf_") ||
-          typeof value !== "string"
-        )
-      ) {
-        throw new Error(
-          "ข้อมูลในไฟล์ Backup ไม่ถูกต้อง"
-        );
+      if (entries.some(([key, value]) => !key.startsWith("sf_") || typeof value !== "string")) {
+        throw new Error("ข้อมูลในไฟล์ Backup ไม่ถูกต้อง");
       }
-
+      const cloudProjects = backup.version === 2 ? (backup.cloud?.projects || []) : [];
+      if (backup.version === 2 && !Array.isArray(cloudProjects)) throw new Error("ข้อมูล Cloud Backup ไม่ถูกต้อง");
+      if (!entries.length && !cloudProjects.length) throw new Error("ไม่พบข้อมูลสำหรับกู้คืน");
       const confirmed = confirm(
-        "ระบบจะดาวน์โหลดข้อมูลปัจจุบันเก็บไว้ก่อน " +
-        "จากนั้นจะแทนที่ข้อมูล STORYFORGE ปัจจุบันด้วยข้อมูลในไฟล์นี้\n\n" +
-        "ต้องการดำเนินการต่อหรือไม่?"
+        "ระบบจะดาวน์โหลดข้อมูลปัจจุบันเก็บไว้ก่อน แล้วนำข้อมูลจาก Backup เข้ามาเพิ่ม\n\n" +
+        "ข้อมูล Cloud จะถูกรวมด้วยรหัสเดิมโดยไม่ลบโครงการปัจจุบัน และข้อมูลในอุปกรณ์จะถูกแทนที่\n" +
+        "ประวัติ Snapshot ไม่รวมอยู่ใน Backup รุ่นนี้\n\nต้องการดำเนินการต่อหรือไม่?"
       );
-
       if (!confirmed) return;
-
-      // เก็บข้อมูลปัจจุบันไว้สำหรับย้อนกลับ
-      const previousData = {};
-
-      for (let i = 0; i < localStorage.length; i++) {
-
-        const key = localStorage.key(i);
-
-        if (key && key.startsWith("sf_")) {
-          previousData[key] = localStorage.getItem(key);
-        }
+      await downloadCurrentBackup();
+      if (cloudProjects.length) {
+        $("backupStatus").textContent = "กำลังกู้คืนโครงการและข้อมูล Cloud...";
+        await restoreCloudBackup(cloudProjects);
       }
-
-      downloadCurrentBackup();
-
+      const previousData = collectLocalBackup();
       try {
-
-        // ลบข้อมูล STORYFORGE ชุดเดิม
-        for (const key of Object.keys(localStorage)) {
-          if (key.startsWith("sf_")) {
-            localStorage.removeItem(key);
-          }
-        }
-
-        // นำข้อมูลจาก Backup กลับมา
-        for (const [key, value] of entries) {
-          localStorage.setItem(key, value);
-        }
-
+        for (const key of Object.keys(localStorage)) if (key.startsWith("sf_")) localStorage.removeItem(key);
+        for (const [key, value] of entries) localStorage.setItem(key, value);
       } catch (error) {
-
-        // หากเกิดข้อผิดพลาด พยายามคืนข้อมูลเดิม
         try {
-
-          for (const key of Object.keys(localStorage)) {
-            if (key.startsWith("sf_")) {
-              localStorage.removeItem(key);
-            }
-          }
-
-          for (const [key, value] of Object.entries(previousData)) {
-            localStorage.setItem(key, value);
-          }
-
-        } catch (rollbackError) {
-          console.error("Restore rollback failed:", rollbackError);
-        }
-
+          for (const key of Object.keys(localStorage)) if (key.startsWith("sf_")) localStorage.removeItem(key);
+          for (const [key, value] of Object.entries(previousData)) localStorage.setItem(key, value);
+        } catch (rollbackError) { console.error("Restore rollback failed:", rollbackError); }
         throw error;
       }
-
-      alert(
-        "กู้คืนข้อมูลสำเร็จแล้วครับ เว็บไซต์จะโหลดใหม่"
-      );
-
+      alert("กู้คืนข้อมูลสำเร็จแล้วครับ เว็บไซต์จะโหลดใหม่");
       location.reload();
-
     } catch (error) {
-
-      alert(
-        "ไม่สามารถกู้คืนข้อมูลได้: " + error.message
-      );
+      alert("ไม่สามารถกู้คืนข้อมูลได้: " + error.message);
     }
   };
-
-  reader.onerror = () => {
-    alert("อ่านไฟล์ Backup ไม่สำเร็จ");
-  };
-
+  reader.onerror = () => alert("อ่านไฟล์ Backup ไม่สำเร็จ");
   reader.readAsText(file);
 }
 
@@ -931,10 +923,9 @@ function setupBackupEvents() {
 
   $("downloadBackup").onclick = () => {
 
-    downloadCurrentBackup();
-
-    $("backupStatus").textContent =
-      "ดาวน์โหลดไฟล์ Backup ลงอุปกรณ์แล้ว";
+    downloadCurrentBackup()
+      .then(() => { $("backupStatus").textContent = "ดาวน์โหลดไฟล์ Backup ลงอุปกรณ์แล้ว"; })
+      .catch(error => { $("backupStatus").textContent = "สำรองข้อมูลไม่สำเร็จ: " + error.message; });
   };
 
   $("restoreBackup").onclick = restoreFromFile;
