@@ -61,7 +61,11 @@ const readJson = async (request, maxBytes = 64 * 1024) => {
   if (declared > maxBytes) throw new Error("BODY_TOO_LARGE");
   const raw = await request.text();
   if (new TextEncoder().encode(raw).byteLength > maxBytes) throw new Error("BODY_TOO_LARGE");
-  try { return JSON.parse(raw); } catch { throw new Error("INVALID_JSON"); }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("INVALID_JSON");
+    return parsed;
+  } catch { throw new Error("INVALID_JSON"); }
 };
 const requiredString = (value, max, field) => {
   if (typeof value !== "string" || !value.trim() || value.length > max) {
@@ -192,6 +196,27 @@ async function api(request, env, url) {
 
   if (path === "/api/health" && method === "GET") {
     return json({ ok: true, service: "storyforge-worker", databaseBindingPresent: true });
+  }
+  if (path === "/api/telegram-backup" && method === "POST") {
+    if (!env.BACKUP_SECRET || !env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
+      return json({ error: "TELEGRAM_BACKUP_NOT_CONFIGURED" }, 503);
+    }
+    const supplied = request.headers.get("x-backup-secret") || "";
+    if (!safeEqual(supplied, env.BACKUP_SECRET)) return json({ error: "FORBIDDEN" }, 403);
+    const input = await readJson(request, 20 * 1024 * 1024);
+    const filename = requiredString(input.filename || "storyforge-backup.json", 120, "filename")
+      .replace(/[^a-zA-Z0-9._-]/g, "_");
+    const content = requiredString(input.content, 19 * 1024 * 1024, "content");
+    const form = new FormData();
+    form.append("chat_id", env.TELEGRAM_CHAT_ID);
+    form.append("document", new Blob([content], { type: "application/json" }), filename);
+    const telegram = await fetch("https://api.telegram.org/bot" + env.TELEGRAM_BOT_TOKEN + "/sendDocument", {
+      method: "POST",
+      body: form
+    });
+    const result = await telegram.json();
+    if (!telegram.ok || !result.ok) return json({ error: "TELEGRAM_SEND_FAILED" }, 502);
+    return json({ success: true });
   }
   if (path === "/api/session" && method === "GET") {
     if (!env.GITHUB_CLIENT_ID || !env.GITHUB_CLIENT_SECRET || !env.GITHUB_OWNER_ID) {
