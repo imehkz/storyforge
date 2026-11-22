@@ -556,7 +556,7 @@ function countWords(text) {
     return Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment(value))
       .filter(part => part.isWordLike).length;
   }
-  return value.trim().split(/\\s+/).filter(Boolean).length;
+  return value.trim().split(/\s+/).filter(Boolean).length;
 }
 
 function updateWordGoal() {
