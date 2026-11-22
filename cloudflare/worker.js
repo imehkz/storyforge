@@ -5,6 +5,7 @@ const JSON_HEADERS = {
   "Referrer-Policy": "same-origin"
 };
 const SESSION_COOKIE = "__Host-storyforge_session";
+const CSRF_COOKIE = "__Host-storyforge_csrf";
 const STATE_COOKIE = "__Secure-storyforge_oauth_state";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 const STATE_TTL_SECONDS = 10 * 60;
@@ -65,7 +66,7 @@ const cookie = (name, value, maxAge, path = "/") =>
 const clearCookie = (name, path = "/") =>
   `${name}=; Path=${path}; Max-Age=0; Secure; HttpOnly; SameSite=Lax`;
 const csrfCookie = (value, maxAge = SESSION_TTL_SECONDS) =>
-  `storyforge_csrf=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; Secure; SameSite=Strict`;
+  `${CSRF_COOKIE}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; Secure; SameSite=Strict`;
 
 const readJson = async (request, maxBytes = 64 * 1024) => {
   const declared = Number(request.headers.get("Content-Length") || 0);
@@ -120,7 +121,7 @@ async function requireSession(request, env, mutate = false) {
     const origin = request.headers.get("Origin") || "";
     if (!origin || origin !== new URL(request.url).origin) throw new Error("FORBIDDEN");
     const supplied = request.headers.get("X-CSRF-Token") || "";
-    const csrfCookieValue = cookieValue(request, "storyforge_csrf") || "";
+    const csrfCookieValue = cookieValue(request, CSRF_COOKIE) || "";
     if (!supplied || !csrfCookieValue || !safeEqual(supplied, csrfCookieValue) ||
         !safeEqual(await sha256(supplied), session.csrf_hash)) throw new Error("FORBIDDEN");
   }
@@ -249,7 +250,7 @@ async function api(request, env, url) {
     await env.DB.prepare("UPDATE sessions SET revoked_at = ? WHERE session_hash = ?")
       .bind(nowIso(), session.session_hash).run();
     return json({ ok: true }, 200, {
-      "Set-Cookie": [clearCookie(SESSION_COOKIE), clearCookie("storyforge_csrf")]
+      "Set-Cookie": [clearCookie(SESSION_COOKIE), clearCookie(CSRF_COOKIE)]
     });
   }
 
