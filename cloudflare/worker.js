@@ -34,7 +34,7 @@ const redirect = (url, extraHeaders = {}) => {
 };
 const countWords = (value) => {
   const text = typeof value === "string" ? value.trim() : "";
-  return text ? text.split(/\\s+/).filter(Boolean).length : 0;
+  return text ? text.split(/\s+/).filter(Boolean).length : 0;
 };
 const validateWordCount = (value, fallback) => {
   if (value === undefined) return fallback;
