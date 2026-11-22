@@ -106,3 +106,17 @@
 
 #reloadChapter[hidden],
 #recoverLocalDraft[hidden] { display: none !important; }
+
+.project-pick-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+  margin-bottom: 8px;
+}
+.project-pick-row .project-pick { margin: 0; height: 100%; }
+.project-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+@media (max-width: 620px) {
+  .project-pick-row { grid-template-columns: 1fr; }
+  .project-actions { justify-content: flex-end; }
+}
