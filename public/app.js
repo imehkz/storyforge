@@ -28,6 +28,7 @@ const cloud = {
   revision: 0,
   saveTimer: null,
   saving: false,
+  savePromise: null,
   noteId: ""
 };
 
@@ -718,7 +719,12 @@ function setupEvents() {
     }
   };
 
-  $("newProject")?.addEventListener("click", () => {
+  $("newProject")?.addEventListener("click", async () => {
+    if (cloud.activeChapterId) {
+      if (cloud.saveTimer) { clearTimeout(cloud.saveTimer); cloud.saveTimer = null; }
+      const saved = await saveCloudChapter();
+      if (!saved && !confirm("ต้นฉบับปัจจุบันยังบันทึก Cloud ไม่สำเร็จ ต้องการสร้างโครงการใหม่หรือไม่? ฉบับในเครื่องยังคงอยู่")) return;
+    }
     creatingProject = true;
     cloud.activeProjectId = "";
     cloud.activeChapterId = "";
@@ -727,6 +733,8 @@ function setupEvents() {
     $("title").value = "";
     $("genre").selectedIndex = 0;
     $("context").value = "";
+    $("projectMemory").value = "";
+    cloud.noteId = "";
     $("chapterTitle").value = "";
     $("manuscript").value = "";
     if ($("chapterSelect")) $("chapterSelect").innerHTML = '<option value="">ยังไม่มีบท</option>';
@@ -852,7 +860,10 @@ async function selectCloudProject(projectId) {
   if (cloud.saveTimer) {
     clearTimeout(cloud.saveTimer);
     cloud.saveTimer = null;
-    await saveCloudChapter();
+  }
+  if (cloud.activeChapterId) {
+    const saved = await saveCloudChapter();
+    if (!saved && !confirm("ฉบับปัจจุบันยังบันทึกขึ้น Cloud ไม่สำเร็จ ต้องการเปลี่ยนโครงการหรือไม่? ฉบับในเครื่องยังคงอยู่")) return;
   }
   cloud.activeChapterId = "";
   cloud.revision = 0;
@@ -878,7 +889,7 @@ async function loadCloudProject(projectId) {
   cloud.chapters = chapterResult.chapters || [];
   const memoryNote = (noteResult.items || []).find(note => note.note_type === "project_memory");
   cloud.noteId = memoryNote?.id || "";
-  if ($("projectMemory")) $("projectMemory").value = memoryNote?.content || localStorage.getItem("sf_projectMemory") || "";
+  if ($("projectMemory")) $("projectMemory").value = memoryNote?.content || "";
   renderChapterSelect();
   const preferred = cloud.chapters.find(item => item.id === cloud.activeChapterId) || cloud.chapters[0];
   if (preferred) await selectCloudChapter(preferred.id);
@@ -907,6 +918,17 @@ function renderChapterSelect() {
 async function selectCloudChapter(chapterId) {
   const item = cloud.chapters.find(chapter => chapter.id === chapterId);
   if (!item) return;
+  if (cloud.activeChapterId && cloud.activeChapterId !== chapterId) {
+    if (cloud.saveTimer) {
+      clearTimeout(cloud.saveTimer);
+      cloud.saveTimer = null;
+    }
+    const saved = await saveCloudChapter();
+    if (!saved && !confirm("บทปัจจุบันยังบันทึกขึ้น Cloud ไม่สำเร็จ ต้องการเปลี่ยนบทหรือไม่? ฉบับในเครื่องยังคงอยู่")) {
+      renderChapterSelect();
+      return;
+    }
+  }
   cloud.activeChapterId = item.id;
   cloud.revision = item.revision || 1;
   $("chapterTitle").value = item.title || "";
@@ -927,40 +949,47 @@ function scheduleCloudSave() {
 }
 
 async function saveCloudChapter() {
-  if (cloud.saving || !cloud.activeChapterId) return;
+  if (!cloud.activeChapterId) return false;
+  if (cloud.saving) return cloud.savePromise || false;
   cloud.saving = true;
   const chapterId = cloud.activeChapterId;
   const expectedRevision = cloud.revision;
   const draft = { title: $("chapterTitle").value, body: $("manuscript").value };
-  try {
-    const result = await cloudApi("/api/chapters/" + encodeURIComponent(chapterId), {
-      method: "PATCH",
-      body: JSON.stringify({ ...draft, expectedRevision })
-    });
-    if (cloud.activeChapterId !== chapterId) return;
-    cloud.revision = result.chapter.revision;
-    cloud.chapters = cloud.chapters.map(item => item.id === chapterId ? result.chapter : item);
-    renderChapterSelect();
-    $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกต้นฉบับบน Cloud แล้ว';
-    if ($("chapterSaveHint")) $("chapterSaveHint").textContent =
-      "บันทึกบน Cloud แล้ว · Revision " + cloud.revision + " · ฉบับกู้คืนในอุปกรณ์ยังคงอยู่";
-  } catch (error) {
-    if (error.status === 409) {
-      $("saveState").textContent = "พบฉบับใหม่กว่าใน Cloud · ฉบับนี้ยังเก็บไว้ในอุปกรณ์";
+  cloud.savePromise = (async () => {
+    try {
+      const result = await cloudApi("/api/chapters/" + encodeURIComponent(chapterId), {
+        method: "PATCH",
+        body: JSON.stringify({ ...draft, expectedRevision })
+      });
+      if (cloud.activeChapterId !== chapterId) return true;
+      cloud.revision = result.chapter.revision;
+      cloud.chapters = cloud.chapters.map(item => item.id === chapterId ? result.chapter : item);
+      renderChapterSelect();
+      $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกต้นฉบับบน Cloud แล้ว';
       if ($("chapterSaveHint")) $("chapterSaveHint").textContent =
-        "มีการแก้ไขจากอีกหน้าต่างหรืออุปกรณ์ ฉบับปัจจุบันยังอยู่ในเครื่อง กด “โหลดฉบับล่าสุด” เมื่อต้องการเปลี่ยนมาใช้ฉบับ Cloud";
-      if ($("reloadChapter")) $("reloadChapter").hidden = false;
-    } else {
-      $("saveState").textContent = "บันทึก Cloud ไม่สำเร็จ · ฉบับในเครื่องยังอยู่";
+        "บันทึกบน Cloud แล้ว · Revision " + cloud.revision + " · ฉบับกู้คืนในอุปกรณ์ยังคงอยู่";
+      return true;
+    } catch (error) {
+      if (error.status === 409) {
+        $("saveState").textContent = "พบฉบับใหม่กว่าใน Cloud · ฉบับนี้ยังเก็บไว้ในอุปกรณ์";
+        if ($("chapterSaveHint")) $("chapterSaveHint").textContent =
+          "มีการแก้ไขจากอีกหน้าต่างหรืออุปกรณ์ ฉบับปัจจุบันยังอยู่ในเครื่อง กด “โหลดฉบับล่าสุด” เมื่อต้องการเปลี่ยนมาใช้ฉบับ Cloud";
+        if ($("reloadChapter")) $("reloadChapter").hidden = false;
+      } else {
+        $("saveState").textContent = "บันทึก Cloud ไม่สำเร็จ · ฉบับในเครื่องยังอยู่";
+      }
+      console.error("Cloud chapter save failed:", error);
+      return false;
+    } finally {
+      cloud.saving = false;
+      cloud.savePromise = null;
+      if (cloud.activeChapterId === chapterId &&
+          ($("chapterTitle").value !== draft.title || $("manuscript").value !== draft.body)) {
+        scheduleCloudSave();
+      }
     }
-    console.error("Cloud chapter save failed:", error);
-  } finally {
-    cloud.saving = false;
-    if (cloud.activeChapterId === chapterId &&
-        ( $("chapterTitle").value !== draft.title || $("manuscript").value !== draft.body )) {
-      scheduleCloudSave();
-    }
-  }
+  })();
+  return cloud.savePromise;
 }
 
 async function createCloudChapter() {
