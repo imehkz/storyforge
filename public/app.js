@@ -1286,7 +1286,7 @@ async function createCloudChapter() {
       body: JSON.stringify({
         title: "บทใหม่",
         body: "",
-        sortOrder: cloud.chapters.length
+        sortOrder: cloud.chapters.reduce((max, item) => Math.max(max, item.sort_order || 0), -1) + 1
       })
     });
     cloud.chapters.push(result.chapter);
