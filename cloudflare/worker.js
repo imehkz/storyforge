@@ -378,8 +378,11 @@ async function api(request, env, url) {
     };
 
     if (!itemId && method === "GET") {
+      const ordering = ["characters", "plot-threads", "world-lore", "timeline"].includes(collection)
+        ? "sort_order ASC, created_at ASC"
+        : "created_at DESC";
       const rows = await env.DB.prepare(
-        `SELECT * FROM ${config.table} WHERE project_id = ? ORDER BY created_at DESC LIMIT 100`
+        `SELECT * FROM ${config.table} WHERE project_id = ? ORDER BY ${ordering} LIMIT 100`
       ).bind(projectId).all();
       return json({ items: rows.results || [] });
     }
