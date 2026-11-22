@@ -57,7 +57,7 @@ Production deployment: **not authorized**
 
 - `users`: GitHub identity, role, created/updated timestamps.
 - `sessions`: hashed session identifier, user ID, expiry, revocation.
-- `oauth_credentials`: encrypted token material and expiry, never returned to the browser.
+- `oauth_credentials`: reserved for future encrypted token material and expiry; the current identity-only OAuth flow discards the access token, so this table is unused.
 - `projects`: stable ID, owner ID, title, genre, status, timestamps.
 - `chapters`: stable ID, project ID, title, body, ordering, timestamps.
 - `project_memories`: stable ID, project ID, memory type, content, version.
