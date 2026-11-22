@@ -1013,7 +1013,7 @@ function renderModuleLists() {
   const worlds = cloud.modules["world-lore"] || [];
   const timeline = cloud.modules.timeline || [];
   const notes = cloud.modules.notes || [];
-  const empty = "ยังไม่มีรายการในโครงการนี้";
+  const empty = cloud.authenticated ? "ยังไม่มีรายการในโครงการนี้" : "เข้าสู่ระบบและเลือกโครงการเพื่อดูข้อมูล";
   const render = (id, items, collection, titleOf, detailOf) => {
     const target = $(id);
     if (!target) return;
@@ -1521,6 +1521,9 @@ async function refreshAuthStatus() {
       cloud.activeProjectId = "";
       cloud.chapters = [];
       cloud.activeChapterId = "";
+      cloud.noteId = "";
+      cloud.modules = { characters: [], relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: [] };
+      localStorage.removeItem("sf_cloud_active_project_id");
       state.textContent = "ยังไม่ได้เข้าสู่ระบบ · ข้อมูลนิยายยังอยู่ในอุปกรณ์นี้";
       login.hidden = false;
       logout.hidden = true;
@@ -1529,6 +1532,10 @@ async function refreshAuthStatus() {
         if (value !== null && $(key)) $(key).value = value;
       });
       renderProjects();
+      renderModuleLists();
+      if ($("chapterHistory")) $("chapterHistory").hidden = true;
+      if ($("reloadChapter")) $("reloadChapter").hidden = true;
+      if ($("recoverLocalDraft")) $("recoverLocalDraft").hidden = true;
       renderDashboard();
     }
     if (callbackState) history.replaceState(null, "", location.pathname);
