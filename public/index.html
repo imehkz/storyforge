@@ -243,7 +243,25 @@
             </div>
             <div class="card-frame manuscript-card">
               <label for="chapterTitle">ชื่อบท</label><input id="chapterTitle" placeholder="เช่น บทที่ 1 — จุดเริ่มต้น">
-              <label for="manuscriptBody">ต้นฉบับ</label><textarea id="manuscriptBody" rows="22" placeholder="เริ่มเขียนต้นฉบับของคุณที่นี่..."></textarea>
+              <label for="manuscriptEditor">ต้นฉบับ</label>
+              <div class="manuscript-format-toolbar" role="toolbar" aria-label="เครื่องมือจัดรูปแบบต้นฉบับ">
+                <select id="editorFont" aria-label="แบบอักษร"><option value='"Noto Serif Thai",serif'>Noto Serif Thai</option><option value='"Noto Sans Thai",sans-serif'>Noto Sans Thai</option><option value='"TH Sarabun New",serif'>TH Sarabun New</option><option value="Georgia,serif">Georgia</option></select>
+                <select id="editorSize" aria-label="ขนาดตัวอักษร"><option value="14px">14</option><option value="16px" selected>16</option><option value="18px">18</option><option value="20px">20</option><option value="22px">22</option><option value="24px">24</option></select>
+                <button type="button" data-editor-command="bold" title="ตัวหนา"><b>B</b></button>
+                <button type="button" data-editor-command="italic" title="ตัวเอียง"><i>I</i></button>
+                <button type="button" data-editor-command="underline" title="ขีดเส้นใต้"><u>U</u></button>
+                <span class="toolbar-divider" aria-hidden="true"></span>
+                <button type="button" data-editor-command="justifyLeft" title="ชิดซ้าย">☰←</button>
+                <button type="button" data-editor-command="justifyCenter" title="กึ่งกลาง">☰</button>
+                <button type="button" data-editor-command="justifyRight" title="ชิดขว">→☰</button>
+                <button type="button" data-editor-command="insertUnorderedList" title="รายการหัวข้อ">• รายการ</button>
+                <select id="editorLineHeight" aria-label="ระยะบรรทัด"><option value="1.5">บรรทัด 1.5</option><option value="1.75" selected>บรรทัด 1.75</option><option value="2">บรรทัด 2</option></select>
+                <select id="editorPageMargin" aria-label="ระยะขอบหน้า"><option value="24px">ขอบแคบ</option><option value="36px" selected>ขอบปกติ</option><option value="52px">ขอบกว้าง</option></select>
+                <button type="button" id="autoFormatManuscript" title="จัดย่อหน้าและช่องไฟให้เป็นระเบียบ">จัดหน้าอัตโนมัติ</button>
+                <button type="button" id="aiFormatManuscript" class="ai-format-button" title="ขอความช่วยเหลือจาก AI ในการจัดหน้า">✦ AI ช่วยจัดหน้า</button>
+              </div>
+              <div id="manuscriptEditor" class="manuscript-editor-surface" contenteditable="true" role="textbox" aria-multiline="true" aria-label="พื้นที่เขียนต้นฉบับ" data-placeholder="เริ่มเขียนต้นฉบับของคุณที่นี่..."></div>
+              <textarea id="manuscriptBody" rows="22" hidden aria-hidden="true"></textarea>
               <div class="editor-footer">
                 <span id="manuscriptCount">0 คำ</span>
                 <div class="export-actions">
