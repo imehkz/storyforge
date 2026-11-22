@@ -911,6 +911,8 @@ async function deleteCloudProject(projectId) {
   try {
     await cloudApi("/api/projects/" + encodeURIComponent(projectId), { method: "DELETE" });
     cloud.projects = cloud.projects.filter(item => item.id !== projectId);
+    // Keep the device copy and allow the owner to re-import it if the deletion was accidental.
+    localStorage.removeItem(localMigrationKey());
     if (cloud.activeProjectId === projectId) {
       cloud.activeProjectId = cloud.projects[0]?.id || "";
       cloud.activeChapterId = "";
