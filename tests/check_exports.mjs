@@ -98,3 +98,11 @@ assert.ok(stylesheet.includes("@page { size: A4"));
 assert.ok(stylesheet.includes("#printManuscriptText"));
 
 console.log("Export smoke tests passed: DOCX and EPUB ZIP packages are valid; A4 print-to-PDF flow is wired.");
+
+assert.ok(source.includes("async function collectCloudBackup()"), "Cloud backup collector is implemented");
+assert.ok(source.includes("cloudApi(\"/api/projects/\" + encodeURIComponent(project.id) + \"/chapters\")"), "Backup includes project chapters");
+assert.ok(source.includes('["characters", "relationships", "plot-threads", "world-lore", "timeline", "notes"]'), "Backup includes project studio modules");
+assert.ok(source.includes("snapshotHistory: false"), "Backup explicitly discloses that snapshot history is not included");
+assert.ok(source.includes("async function restoreCloudBackup(backupProjects)"), "Cloud backup restore is implemented");
+assert.ok(source.includes("clientId: chapter.id"), "Cloud restore preserves stable chapter IDs");
+assert.ok(source.includes("version: 2"), "New backup format is versioned");
