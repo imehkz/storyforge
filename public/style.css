@@ -291,3 +291,35 @@
 .form-card label {
   font-size: 12px;
 }
+
+
+.plot-board {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(150px,1fr));
+  gap: 10px;
+  margin-top: 14px;
+  overflow-x: auto;
+}
+.plot-board-column {
+  min-width: 150px;
+  padding: 10px;
+  border: 1px solid var(--line-cool);
+  border-radius: 5px;
+  background: #111d2d;
+}
+.plot-board-column > header { display: flex; justify-content: space-between; align-items: center; color: var(--gold); font-size: 12px; padding: 2px 3px 9px; border-bottom: 1px solid var(--line-cool); margin-bottom: 9px; }
+.plot-board-column > header span { color: var(--muted); }
+.plot-board-card { padding: 10px; margin-bottom: 8px; background: #1b2a40; border: 1px solid #34445b; border-radius: 4px; }
+.plot-board-card > b { color: var(--parchment); font: 500 14px var(--serif); }
+.plot-board-card > p { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 6px 0 8px; }
+.plot-board-card > select { width: 100%; margin: 0 0 8px; font-size: 12px; padding: 6px; }
+.timeline-view { margin-top: 14px; padding: 18px; border: 1px solid var(--line-cool); border-radius: 5px; background: #111d2d; }
+.timeline-track { position: relative; display: grid; gap: 14px; }
+.timeline-track::before { content: ""; position: absolute; top: 14px; bottom: 14px; left: 17px; width: 1px; background: var(--gold); opacity: .55; }
+.timeline-event { position: relative; display: grid; grid-template-columns: 36px minmax(0,1fr); gap: 10px; }
+.timeline-index { z-index: 1; display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--gold); border-radius: 50%; background: #17243a; color: var(--gold); font: 12px var(--serif); }
+.timeline-event-content { padding: 10px 12px; border: 1px solid var(--line-cool); border-radius: 4px; background: #18263a; }
+.timeline-event-content time { display: block; color: var(--gold); font-size: 12px; margin-bottom: 4px; }
+.timeline-event-content b { color: var(--parchment); font: 500 15px var(--serif); }
+.timeline-event-content p { color: var(--muted); font-size: 12px; line-height: 1.6; margin: 6px 0; }
+@media (max-width: 900px) { .plot-board { grid-template-columns: repeat(4,minmax(170px,1fr)); } }
