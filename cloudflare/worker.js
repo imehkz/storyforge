@@ -569,7 +569,7 @@ async function api(request, env, url) {
       const wordCount = validateWordCount(input.wordCount, countWords(body));
       const results = await env.DB.batch([
         env.DB.prepare(
-          "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'sort_order', sort_order, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
+          "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'sort_order', sort_order, 'word_count', word_count, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
         ).bind(crypto.randomUUID(), chapterId, input.expectedRevision, ownerId),
         env.DB.prepare(
           "UPDATE chapters SET title = ?, body = ?, sort_order = ?, word_count = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, sort_order, word_count, revision, updated_at"
