@@ -216,7 +216,16 @@
           <div id="chapterHistory" class="chapter-history" hidden aria-live="polite"></div>
           <label for="chapterTitle">ชื่อบท</label><input id="chapterTitle" placeholder="เช่น บทที่ 1 — จุดเริ่มต้น">
           <label for="manuscriptBody">ต้นฉบับ</label><textarea id="manuscriptBody" rows="22" placeholder="เริ่มเขียนต้นฉบับของคุณที่นี่..."></textarea>
-          <div class="editor-footer"><span id="manuscriptCount">0 อักขระ</span><button id="export" class="gold-button">ส่งออกข้อความ .txt <span>↓</span></button></div>
+          <div class="editor-footer">
+            <span id="manuscriptCount">0 อักขระ</span>
+            <div class="export-actions">
+              <button id="export" class="outline-button compact">TXT</button>
+              <button id="exportDocx" class="outline-button compact">DOCX</button>
+              <button id="exportEpub" class="outline-button compact">EPUB</button>
+              <button id="exportPdf" class="gold-button compact">PDF</button>
+            </div>
+          </div>
+          <div id="printManuscriptText" class="print-manuscript-text" hidden></div>
           <p class="form-hint" id="chapterSaveHint">ระบบบันทึกในอุปกรณ์นี้ก่อน เมื่อเข้าสู่ระบบ Private Beta จะสามารถบันทึกบทไปยัง Cloud ได้</p>
         </div>
       </section>
