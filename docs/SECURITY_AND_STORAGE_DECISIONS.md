@@ -41,17 +41,24 @@ The SDK does not manage the OAuth lifecycle; token storage, refresh, expiry, and
 
 ## 4. Storage and hosting decision
 
-Do not use the Render free filesystem for user content. Render documents that its filesystem is ephemeral and loses changes on restart, redeploy, or spin-down.
+The selected target for a $0/month prototype/private beta is Cloudflare Workers Static Assets + Workers Free + D1 Free. This is a reviewed architecture choice, not a provisioned account or deployed service.
 
-Do not use Render Free Postgres as the production manuscript store: the free database expires after 30 days, has a 1 GB limit, and has no backups. Render Free web services also spin down after 15 minutes of inactivity.
+Current documented limits reviewed 22 November 2026:
+- Workers Free: 100,000 Worker requests/day and 10 ms CPU per invocation.
+- Static asset requests are free and unlimited; API routes that invoke the Worker count against Worker limits.
+- D1 Free: 10 databases/account, 500 MB per database, 5 GB aggregate account storage, 5 million rows read/day, 100,000 rows written/day, and 7 days of Time Travel recovery.
+- D1 daily read/write limits are enforced; queries fail until reset if exceeded.
 
-A persistent Render disk requires a paid web service. Render's currently published pricing lists the smallest paid web compute tier at $7/month and SSD storage at $0.25/GB/month. This is a potential cost and is NOT approved.
+The initial scaffold is in `cloudflare/` and the full record is in `docs/CLOUDFLARE_FREE_ARCHITECTURE.md`.
 
-Decision:
-- No paid service, paid database, persistent disk, billing activation, or production deployment is authorized by this record.
-- Keep the app clearly labeled as local-device prototype until a durable storage provider and its full cost/retention/backup terms are reviewed and explicitly approved.
-- Evaluate alternative free tiers only with current official pricing, data retention, backup, sleeping, and export limits documented before selection.
+Important:
+- D1 Time Travel is not an independent backup. Encrypted off-site exports are still required before irreplaceable manuscripts are stored.
+- No Cloudflare account, D1 database, secret, custom domain, billing, or deployment has been created by this work.
+- No paid service, paid plan, paid add-on, or billing activation is authorized.
+- Use the provider's `.workers.dev` hostname for the first deployment if available; a custom domain may cost extra.
+- Keep the UI clearly labeled as local-device prototype until OAuth, server-side authorization, D1 APIs, and end-to-end tests pass.
 - Never silently fall back to local disk on a production host for durable user content.
+- Copilot SDK is not part of the Workers runtime; do not share the owner's credentials or quota and do not silently introduce paid hosting.
 
 ## 5. Project data isolation contract
 
@@ -70,13 +77,14 @@ Required automated tests:
 
 ## 6. Immediate next steps
 
-1. Build and test the local Node 22 smoke-test harness and baseline UI behavior.
-2. Define the repository interfaces and schema migrations for users, sessions, OAuth credentials, projects, chapters, project memories, and snapshots.
-3. Compare durable storage options and total costs; obtain approval before provisioning.
-4. Implement GitHub OAuth and owner allowlist only after the owner has supplied OAuth App configuration through hosting secrets.
-5. Implement project and chapter APIs with server-enforced ownership before enabling cross-device sync.
-6. Add version snapshots, restore, conflict handling, and TXT export.
-7. Integrate Copilot after identity and project isolation tests pass.
+1. Verify the Cloudflare Worker scaffold and D1 migration locally using the supported Wrangler toolchain.
+2. Create a Cloudflare account and D1 database only through the owner's own account actions; do not activate paid billing.
+3. Configure GitHub OAuth App callback and secrets in Cloudflare's secret store; never paste secrets into chat or commit them.
+4. Implement OAuth state, token exchange, owner numeric-ID allowlist, encrypted token storage, session lifecycle, and CSRF protection.
+5. Implement project/chapter APIs with server-enforced owner checks and cross-project isolation tests.
+6. Migrate the browser UI from localStorage to API-backed projects and chapters only after the security gates pass.
+7. Add snapshots, restore, conflict handling, encrypted off-site backup, and TXT export.
+8. Integrate Copilot only when a compatible Node.js runtime is explicitly approved and each user uses their own GitHub identity.
 
 ## Sources reviewed
 
