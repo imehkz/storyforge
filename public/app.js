@@ -1754,8 +1754,21 @@ async function refreshAuthStatus() {
       state.textContent = "ระบบบัญชียังไม่พร้อม · ต้องตั้งค่า D1 และ GitHub OAuth";
       login.hidden = true;
       logout.hidden = true;
+      cloud.authenticated = false;
       cloud.ready = false;
+      cloud.csrfToken = "";
+      cloud.userId = "";
+      cloud.projects = [];
+      cloud.activeProjectId = "";
+      cloud.chapters = [];
+      cloud.activeChapterId = "";
+      cloud.noteId = "";
+      cloud.modules = { characters: [], relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: [] };
+      resetCharacterForm();
+      renderProjects();
+      renderModuleLists();
       renderChapterSelect();
+      renderDashboard();
       return;
     }
     if (response.status === 401) {
