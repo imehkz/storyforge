@@ -194,6 +194,9 @@ async function api(request, env, url) {
     return json({ ok: true, service: "storyforge-worker", databaseBindingPresent: true });
   }
   if (path === "/api/session" && method === "GET") {
+    if (!env.GITHUB_CLIENT_ID || !env.GITHUB_CLIENT_SECRET || !env.GITHUB_OWNER_ID) {
+      return json({ error: "AUTH_NOT_CONFIGURED" }, 503);
+    }
     const session = await getSession(request, env);
     if (!session) return json({ authenticated: false });
     const csrfToken = cookieValue(request, "storyforge_csrf") || "";
@@ -265,6 +268,105 @@ async function api(request, env, url) {
       const result = await env.DB.prepare("DELETE FROM projects WHERE id = ? AND owner_id = ?")
         .bind(projectId, ownerId).run();
       if (!result.meta?.changes) throw new Error("NOT_FOUND");
+      return json({ ok: true });
+    }
+  }
+
+  const moduleMatch = path.match(/^\/api\/projects\/([a-f0-9-]+)\/(characters|relationships|plot-threads|world-lore|timeline|notes)(?:\/([a-f0-9-]+))?$/i);
+  if (moduleMatch) {
+    const projectId = moduleMatch[1];
+    const collection = moduleMatch[2];
+    const itemId = moduleMatch[3] || null;
+    const modules = {
+      characters: { table: "characters", fields: { name: ["string", 160], role: ["string", 80], profile_json: ["json", 20000], sort_order: ["number", 1000000] }, required: ["name"] },
+      relationships: { table: "relationships", fields: { source_character_id: ["id", 80], target_character_id: ["id", 80], relationship_type: ["string", 100], description: ["string", 5000] }, required: ["source_character_id", "target_character_id"] },
+      "plot-threads": { table: "plot_threads", fields: { title: ["string", 200], summary: ["string", 10000], status: ["status", 30], sort_order: ["number", 1000000] }, required: ["title"] },
+      "world-lore": { table: "world_lore", fields: { category: ["string", 80], title: ["string", 200], content: ["string", 30000], sort_order: ["number", 1000000] }, required: ["title"] },
+      timeline: { table: "timeline_events", fields: { title: ["string", 200], description: ["string", 10000], story_time: ["string", 120], sort_order: ["number", 1000000] }, required: ["title"] },
+      notes: { table: "story_notes", fields: { title: ["string", 200], content: ["string", 30000], note_type: ["string", 60], pinned: ["boolean", 1] }, required: [] }
+    };
+    const config = modules[collection];
+    const owned = await env.DB.prepare("SELECT id FROM projects WHERE id = ? AND owner_id = ?").bind(projectId, ownerId).first();
+    if (!owned) throw new Error("NOT_FOUND");
+
+    const normalize = (field, value) => {
+      const [type, limit] = config.fields[field];
+      if (type === "string") return optionalString(value, limit, field);
+      if (type === "id") return requiredString(value, limit, field);
+      if (type === "number") {
+        if (!Number.isInteger(value) || value < 0 || value > limit) throw new Error("INVALID_" + field.toUpperCase());
+        return value;
+      }
+      if (type === "boolean") {
+        if (typeof value !== "boolean") throw new Error("INVALID_" + field.toUpperCase());
+        return value ? 1 : 0;
+      }
+      if (type === "status") {
+        if (!["planned", "in_progress", "completed", "paused"].includes(value)) throw new Error("INVALID_STATUS");
+        return value;
+      }
+      if (type === "json") {
+        const serialized = typeof value === "string" ? value : JSON.stringify(value);
+        if (typeof serialized !== "string" || serialized.length > limit) throw new Error("INVALID_" + field.toUpperCase());
+        try { JSON.parse(serialized); } catch { throw new Error("INVALID_" + field.toUpperCase()); }
+        return serialized;
+      }
+      throw new Error("INVALID_FIELD");
+    };
+
+    if (!itemId && method === "GET") {
+      const rows = await env.DB.prepare(
+        `SELECT * FROM ${config.table} WHERE project_id = ? ORDER BY created_at DESC LIMIT 500`
+      ).bind(projectId).all();
+      return json({ items: rows.results || [] });
+    }
+    if (!itemId && method === "POST") {
+      const input = await readJson(request);
+      const values = {};
+      for (const [field, spec] of Object.entries(config.fields)) {
+        if (input[field] !== undefined) values[field] = normalize(field, input[field]);
+        else if (config.required.includes(field)) throw new Error("INVALID_" + field.toUpperCase());
+      }
+      if (collection === "relationships" && values.source_character_id === values.target_character_id) throw new Error("INVALID_RELATIONSHIP");
+      const id = crypto.randomUUID();
+      const columns = ["id", "project_id", ...Object.keys(values)];
+      const params = [id, projectId, ...Object.values(values)];
+      const marks = columns.map(() => "?").join(", ");
+      await env.DB.prepare(
+        `INSERT INTO ${config.table} (${columns.join(", ")}) VALUES (${marks})`
+      ).bind(...params).run();
+      return json({ item: { id, project_id: projectId, ...values } }, 201);
+    }
+    if (itemId && method === "PATCH") {
+      const input = await readJson(request);
+      const values = {};
+      for (const field of Object.keys(config.fields)) {
+        if (input[field] !== undefined) values[field] = normalize(field, input[field]);
+      }
+      if (!Object.keys(values).length) throw new Error("INVALID_UPDATE");
+      if (collection === "relationships") {
+        const existing = await env.DB.prepare(
+          "SELECT source_character_id, target_character_id FROM relationships WHERE id = ? AND project_id = ?"
+        ).bind(itemId, projectId).first();
+        if (!existing) throw new Error("NOT_FOUND");
+        const source = values.source_character_id ?? existing.source_character_id;
+        const target = values.target_character_id ?? existing.target_character_id;
+        if (source === target) throw new Error("INVALID_RELATIONSHIP");
+      }
+      const sets = Object.keys(values).map(field => field + " = ?");
+      const params = [...Object.values(values), nowIso(), itemId, projectId];
+      sets.push("updated_at = ?");
+      const updated = await env.DB.prepare(
+        `UPDATE ${config.table} SET ${sets.join(", ")} WHERE id = ? AND project_id = ? RETURNING *`
+      ).bind(...params).first();
+      if (!updated) throw new Error("NOT_FOUND");
+      return json({ item: updated });
+    }
+    if (itemId && method === "DELETE") {
+      const deleted = await env.DB.prepare(
+        `DELETE FROM ${config.table} WHERE id = ? AND project_id = ? RETURNING id`
+      ).bind(itemId, projectId).first();
+      if (!deleted) throw new Error("NOT_FOUND");
       return json({ ok: true });
     }
   }
