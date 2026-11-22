@@ -464,15 +464,16 @@ async function api(request, env, url) {
     try { restored = JSON.parse(snapshot.content_json); } catch { throw new Error("INVALID_SNAPSHOT"); }
     const title = optionalString(restored.title, 240, "title");
     const body = optionalString(restored.body, 500000, "body");
-    await env.DB.prepare(
-      "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) VALUES (?, ?, 'chapter', ?, ?)"
-    ).bind(crypto.randomUUID(), current.project_id, chapterId, JSON.stringify({
-      title: current.title, body: current.body, revision: current.revision
-    })).run();
-    const updated = await env.DB.prepare(
-      "UPDATE chapters SET title = ?, body = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, sort_order, revision, updated_at"
-    ).bind(title, body, nowIso(), chapterId, current.revision, ownerId).first();
-    if (!updated) throw new Error("CONFLICT");
+    const results = await env.DB.batch([
+      env.DB.prepare(
+        "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
+      ).bind(crypto.randomUUID(), chapterId, current.revision, ownerId),
+      env.DB.prepare(
+        "UPDATE chapters SET title = ?, body = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, sort_order, revision, updated_at"
+      ).bind(title, body, nowIso(), chapterId, current.revision, ownerId)
+    ]);
+    const updated = results[1]?.results?.[0];
+    if (!updated || !results[0]?.meta?.changes) throw new Error("CONFLICT");
     return json({ chapter: updated, restoredFrom: snapshotId });
   }
 
