@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   github_user_id TEXT NOT NULL UNIQUE,
   github_login TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'owner' CHECK (role IN ('owner')),
+  role TEXT NOT NULL DEFAULT 'owner' CHECK (role IN ('owner', 'member')),
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS oauth_states (
 CREATE INDEX IF NOT EXISTS idx_oauth_states_expires_at ON oauth_states(expires_at);
 
 CREATE TABLE IF NOT EXISTS sessions (
-  id TEXT PRIMARY KEY,
+  session_hash TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   csrf_hash TEXT NOT NULL,
   expires_at TEXT NOT NULL,
