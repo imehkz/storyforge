@@ -11,8 +11,17 @@ const STATE_TTL_SECONDS = 10 * 60;
 
 const json = (body, status = 200, headers = {}) =>
   new Response(JSON.stringify(body), { status, headers: { ...JSON_HEADERS, ...headers } });
-const redirect = (url, headers = {}) =>
-  new Response(null, { status: 302, headers: { Location: url, "Cache-Control": "no-store", ...headers } });
+const redirect = (url, extraHeaders = {}) => {
+  const headers = new Headers({ Location: url, "Cache-Control": "no-store" });
+  for (const [key, value] of Object.entries(extraHeaders)) {
+    if (key.toLowerCase() === "set-cookie" && Array.isArray(value)) {
+      for (const item of value) headers.append("Set-Cookie", item);
+    } else {
+      headers.set(key, value);
+    }
+  }
+  return new Response(null, { status: 302, headers });
+};
 const nowIso = () => new Date().toISOString();
 const addSeconds = (seconds) => new Date(Date.now() + seconds * 1000).toISOString();
 const randomToken = (bytes = 32) => {
@@ -44,6 +53,8 @@ const cookie = (name, value, maxAge, path = "/") =>
   `${name}=${encodeURIComponent(value)}; Path=${path}; Max-Age=${maxAge}; Secure; HttpOnly; SameSite=Lax`;
 const clearCookie = (name, path = "/") =>
   `${name}=; Path=${path}; Max-Age=0; Secure; HttpOnly; SameSite=Lax`;
+const csrfCookie = (value, maxAge = SESSION_TTL_SECONDS) =>
+  `storyforge_csrf=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; Secure; SameSite=Strict`;
 
 const readJson = async (request, maxBytes = 64 * 1024) => {
   const declared = Number(request.headers.get("Content-Length") || 0);
@@ -91,7 +102,9 @@ async function requireSession(request, env, mutate = false) {
   if (!session) throw new Error("UNAUTHENTICATED");
   if (mutate) {
     const supplied = request.headers.get("X-CSRF-Token") || "";
-    if (!supplied || !safeEqual(await sha256(supplied), session.csrf_hash)) throw new Error("FORBIDDEN");
+    const csrfCookieValue = cookieValue(request, "storyforge_csrf") || "";
+    if (!supplied || !csrfCookieValue || !safeEqual(supplied, csrfCookieValue) ||
+        !safeEqual(await sha256(supplied), session.csrf_hash)) throw new Error("FORBIDDEN");
   }
   return session;
 }
@@ -164,7 +177,11 @@ async function oauthCallback(request, env) {
 
   // The GitHub access token is intentionally discarded; StoryForge only uses it to verify identity.
   return redirect("/?auth=success", {
-    "Set-Cookie": [clearState, cookie(SESSION_COOKIE, sessionToken, SESSION_TTL_SECONDS)].join(", ")
+    "Set-Cookie": [
+      clearState,
+      cookie(SESSION_COOKIE, sessionToken, SESSION_TTL_SECONDS),
+      csrfCookie(csrfToken)
+    ]
   });
 }
 
@@ -179,13 +196,19 @@ async function api(request, env, url) {
   if (path === "/api/session" && method === "GET") {
     const session = await getSession(request, env);
     if (!session) return json({ authenticated: false });
-    return json({ authenticated: true, user: { githubLogin: session.github_login }, csrfToken: randomTokenForSession(session) });
+    const csrfToken = cookieValue(request, "storyforge_csrf") || "";
+    if (!csrfToken || !safeEqual(await sha256(csrfToken), session.csrf_hash)) {
+      return json({ authenticated: false }, 401);
+    }
+    return json({ authenticated: true, user: { githubLogin: session.github_login }, csrfToken });
   }
   if (path === "/api/logout" && method === "POST") {
     const session = await requireSession(request, env, true);
     await env.DB.prepare("UPDATE sessions SET revoked_at = ? WHERE session_hash = ?")
       .bind(nowIso(), session.session_hash).run();
-    return json({ ok: true }, 200, { "Set-Cookie": clearCookie(SESSION_COOKIE) });
+    return json({ ok: true }, 200, {
+      "Set-Cookie": [clearCookie(SESSION_COOKIE), clearCookie("storyforge_csrf")]
+    });
   }
 
   const session = await requireSession(request, env, !["GET", "HEAD"].includes(method));
@@ -312,11 +335,6 @@ async function api(request, env, url) {
   return json({ error: "NOT_FOUND" }, 404);
 }
 
-function randomTokenForSession(_session) {
-  // CSRF token is intentionally not persisted in plaintext. Clients obtain it
-  // through a short-lived, session-bound endpoint added below in later rollout.
-  return "";
-}
 
 export default {
   async fetch(request, env) {
