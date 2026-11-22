@@ -1549,6 +1549,7 @@ async function deleteActiveChapter() {
       $("chapterTitle").value = "";
       $("manuscriptBody").value = "";
       renderChapterSelect();
+      renderDashboard();
       $("saveState").textContent = "ลบบทแล้ว · โครงการยังไม่มีบท";
     }
   } catch (error) { alert("ลบบทไม่สำเร็จ: " + error.message); }
