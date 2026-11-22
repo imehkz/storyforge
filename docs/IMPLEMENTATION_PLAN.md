@@ -213,3 +213,6 @@ No hosting resources or secrets have been provisioned, and no production deploym
 4. Validate the new DOCX and EPUB ZIP packages in Microsoft Word/LibreOffice and an EPUB reader; validate the A4 browser print-to-PDF flow on desktop and Android. TXT, DOCX, EPUB, and print-to-PDF source implementations are now present.
 5. Design and approve a compatible per-user Copilot runtime; AI remains disabled.
 6. Only after the above, request explicit approval for a private preview deployment. No production deployment or merge to `main` is authorized.
+
+- Added migration `0003_chapter_word_count.sql` and Thai-aware word counting in the Worker. Chapter lists now return compact metadata and the Dashboard can aggregate project-wide word counts without downloading every chapter body.
+- Added a Figma-aligned manuscript workspace with a chapter sidebar, chapter switching, ordering and deletion, search/replace, version history, and per-chapter writing goals.
