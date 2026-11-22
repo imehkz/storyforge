@@ -253,7 +253,7 @@ async function api(request, env, url) {
     }
     const session = await getSession(request, env);
     if (!session) return json({ authenticated: false });
-    const csrfToken = cookieValue(request, "storyforge_csrf") || "";
+    const csrfToken = cookieValue(request, CSRF_COOKIE) || "";
     if (!csrfToken || !safeEqual(await sha256(csrfToken), session.csrf_hash)) {
       return json({ authenticated: false }, 401);
     }
