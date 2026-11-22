@@ -1056,8 +1056,10 @@ async function createModuleItem(collection, payload) {
     });
     await loadProjectModules(cloud.activeProjectId);
     $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกข้อมูลโครงการบน Cloud แล้ว';
+    return true;
   } catch (error) {
     alert("บันทึกข้อมูลไม่สำเร็จ: " + error.message);
+    return false;
   }
 }
 
@@ -1134,7 +1136,7 @@ function setupModuleEvents() {
       name, role: $("characterRole").value,
       profile_json: { description: $("characterProfile").value },
       sort_order: cloud.modules.characters.length
-    }).then(() => { $("characterName").value = ""; $("characterRole").value = ""; $("characterProfile").value = ""; });
+    }).then(ok => { if (ok) { $("characterName").value = ""; $("characterRole").value = ""; $("characterProfile").value = ""; } });
   });
   $("addRelationship")?.addEventListener("click", () => {
     const source_character_id = $("relationshipSource").value;
@@ -1150,25 +1152,25 @@ function setupModuleEvents() {
     const title = $("plotTitle").value.trim();
     if (!title) return alert("กรุณาระบุชื่อเส้นเรื่อง");
     createModuleItem("plot-threads", { title, summary: $("plotSummary").value, status: $("plotStatus").value, sort_order: cloud.modules["plot-threads"].length })
-      .then(() => { $("plotTitle").value = ""; $("plotSummary").value = ""; });
+      .then(ok => { if (ok) { $("plotTitle").value = ""; $("plotSummary").value = ""; } });
   });
   $("addWorld")?.addEventListener("click", () => {
     const title = $("worldTitle").value.trim();
     if (!title) return alert("กรุณาระบุชื่อข้อมูลโลก");
     createModuleItem("world-lore", { category: $("worldCategory").value, title, content: $("worldContent").value, sort_order: cloud.modules["world-lore"].length })
-      .then(() => { $("worldTitle").value = ""; $("worldContent").value = ""; });
+      .then(ok => { if (ok) { $("worldTitle").value = ""; $("worldContent").value = ""; } });
   });
   $("addTimeline")?.addEventListener("click", () => {
     const title = $("timelineTitle").value.trim();
     if (!title) return alert("กรุณาระบุชื่อเหตุการณ์");
     createModuleItem("timeline", { title, story_time: $("timelineTime").value, description: $("timelineDescription").value, sort_order: cloud.modules.timeline.length })
-      .then(() => { $("timelineTitle").value = ""; $("timelineTime").value = ""; $("timelineDescription").value = ""; });
+      .then(ok => { if (ok) { $("timelineTitle").value = ""; $("timelineTime").value = ""; $("timelineDescription").value = ""; } });
   });
   $("addStoryNote")?.addEventListener("click", () => {
     const title = $("storyNoteTitle").value.trim();
     if (!title) return alert("กรุณาระบุหัวข้อบันทึก");
     createModuleItem("notes", { title, content: $("storyNoteContent").value, note_type: "idea", pinned: false })
-      .then(() => { $("storyNoteTitle").value = ""; $("storyNoteContent").value = ""; });
+      .then(ok => { if (ok) { $("storyNoteTitle").value = ""; $("storyNoteContent").value = ""; } });
   });
 }
 
