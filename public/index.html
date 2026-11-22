@@ -116,9 +116,15 @@
             <label for="genre">แนวนิยาย</label><select id="genre"><option>แฟนตาซี</option><option>โรแมนซ์</option><option>สืบสวน / ระทึกขวัญ</option><option>วาย / BL</option><option>ไซไฟ</option><option>ดราม่า</option><option>Historical</option><option>อื่น ๆ</option></select>
             <label for="context">เรื่องย่อและข้อมูลสำคัญ</label><textarea id="context" rows="6" placeholder="โลกของเรื่อง ตัวละครหลัก แนวคิด และสิ่งที่ต้องจำ..."></textarea>
             <button id="saveProject" class="gold-button">บันทึกข้อมูลนิยาย <span>→</span></button>
-            <p class="form-hint">บันทึกลงในอุปกรณ์นี้เท่านั้น · ยังไม่มีระบบซิงก์หรือแยกข้อมูลหลายบัญชี</p>
+            <p class="form-hint" id="projectSaveHint">บันทึกลงในอุปกรณ์นี้เท่านั้น · ยังไม่เชื่อมต่อ Cloud</p>
+            <div id="cloudMigrationPanel" class="cloud-migration-panel" hidden>
+              <strong>พบข้อมูลนิยายในอุปกรณ์นี้</strong>
+              <p>นำเข้าข้อมูลไปยังบัญชี Private Beta ได้ โดยข้อมูลเดิมในเครื่องจะไม่ถูกลบ</p>
+              <button id="importLocalData" class="outline-button" type="button">นำเข้าข้อมูลจากอุปกรณ์นี้</button>
+              <small id="migrationStatus" aria-live="polite"></small>
+            </div>
           </div>
-          <div class="card-frame collection-card"><div class="section-heading"><div><h2>นิยายของฉัน</h2><p>รายการที่บันทึกไว้ในเบราว์เซอร์นี้</p></div></div><div id="projectList" class="project-list">ยังไม่มีโครงการที่บันทึกไว้</div></div>
+          <div class="card-frame collection-card"><div class="section-heading"><div><h2>นิยายของฉัน</h2><p id="projectListCaption">รายการที่บันทึกไว้ในเบราว์เซอร์นี้</p></div></div><div id="projectList" class="project-list">ยังไม่มีโครงการที่บันทึกไว้</div></div>
         </div>
       </section>
 
@@ -144,7 +150,19 @@
       </section>
       <section id="manuscript" class="panel hidden">
         <div class="page-intro"><div><span class="eyebrow">MANUSCRIPT STUDIO</span><h1>ห้องเขียนต้นฉบับ</h1><p>พื้นที่เขียนและส่งออกข้อความฉบับร่าง</p></div></div>
-        <div class="card-frame manuscript-card"><label for="chapterTitle">ชื่อบท</label><input id="chapterTitle" placeholder="เช่น บทที่ 1 — จุดเริ่มต้น"><label for="manuscript">ต้นฉบับ</label><textarea id="manuscript" rows="22" placeholder="เริ่มเขียนต้นฉบับของคุณที่นี่..."></textarea><div class="editor-footer"><span id="manuscriptCount">0 คำ</span><button id="export" class="gold-button">ส่งออกข้อความ .txt <span>↓</span></button></div><p class="form-hint">การบันทึกอัตโนมัติในรุ่นนี้ทำงานภายในเบราว์เซอร์เครื่องนี้เท่านั้น ยังไม่มี Chapter ID หรือประวัติเวอร์ชันบนเซิร์ฟเวอร์</p></div>
+        <div class="card-frame manuscript-card">
+          <div class="chapter-toolbar">
+            <label for="chapterSelect">บทในโครงการนี้</label>
+            <select id="chapterSelect" aria-label="เลือกบทนิยาย"><option value="">ยังไม่มีบท</option></select>
+            <button id="newChapter" class="outline-button compact" type="button">+ เพิ่มบท</button>
+            <button id="chapterHistoryButton" class="outline-button compact" type="button">ประวัติเวอร์ชัน</button>
+          </div>
+          <div id="chapterHistory" class="chapter-history" hidden aria-live="polite"></div>
+          <label for="chapterTitle">ชื่อบท</label><input id="chapterTitle" placeholder="เช่น บทที่ 1 — จุดเริ่มต้น">
+          <label for="manuscript">ต้นฉบับ</label><textarea id="manuscript" rows="22" placeholder="เริ่มเขียนต้นฉบับของคุณที่นี่..."></textarea>
+          <div class="editor-footer"><span id="manuscriptCount">0 อักขระ</span><button id="export" class="gold-button">ส่งออกข้อความ .txt <span>↓</span></button></div>
+          <p class="form-hint" id="chapterSaveHint">ระบบบันทึกในอุปกรณ์นี้ก่อน เมื่อเข้าสู่ระบบ Private Beta จะสามารถบันทึกบทไปยัง Cloud ได้</p>
+        </div>
       </section>
       <section id="assistant" class="panel hidden">
         <div class="page-intro"><div><span class="eyebrow">AI STORY ASSISTANT</span><h1>ผู้ช่วยเขียนนิยาย AI</h1><p>ผู้ช่วยที่ควรเข้าใจบริบทของนิยายที่คุณกำลังเขียน</p></div></div>
