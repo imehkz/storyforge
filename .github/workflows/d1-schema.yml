@@ -25,7 +25,7 @@ jobs:
           python-version: "3.12"
       - name: Check JavaScript syntax
         run: |
-          node --check cloudflare/worker.js
+          node --input-type=module --check < cloudflare/worker.js
           node --check public/app.js
       - name: Validate D1 schema
         run: python tests/check_d1_schema.py
