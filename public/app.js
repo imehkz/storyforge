@@ -148,7 +148,7 @@ function addBackupPanel() {
       <h3>🛡️ STORYFORGE Backup Center</h3>
 
       <p class="hint">
-        สำรองและกู้คืนข้อมูลโครงการของคุณ
+        สำรองข้อมูลในอุปกรณ์และทุกโครงการบน Cloud (ประวัติ Snapshot ยังไม่รวม)
       </p>
 
       <label>Backup Secret สำหรับ Telegram</label>
