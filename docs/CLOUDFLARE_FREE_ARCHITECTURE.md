@@ -93,3 +93,12 @@ This test validates SQLite-compatible migration behavior only. It does not prove
 - Added .github/workflows/d1-schema.yml to run the Python schema test on pushes and pull requests. GitHub-hosted CI has not yet reported a result for this commit.
 - The workflow validates SQLite-compatible schema constraints only. It does not test Cloudflare runtime behavior or authentication.
 
+
+
+## Worker implementation status — 22 November 2026
+
+The Worker now includes owner-allowlisted GitHub OAuth, hashed one-time OAuth state, hashed seven-day sessions, CSRF double-submit validation, logout revocation, project/chapter endpoints, chapter revision conflicts and snapshot restore, and project-scoped CRUD routes for characters, relationships, plot threads, world lore, timeline events, and notes. Telegram backup is supported through optional Worker secrets. Static assets receive security headers and a restrictive Content Security Policy.
+
+Important: this is code-level implementation only. No Cloudflare account, D1 database, OAuth app, secrets, or deployment has been configured. The browser editor still writes to localStorage and clearly states that it is not synced. Authentication UI is connected to the new session endpoint, but project/manuscript data has not yet been migrated to the APIs. Copilot remains disabled.
+
+Source-level Python checks and JavaScript syntax checks are configured in GitHub Actions. A passing CI run and deployed integration test have not yet been verified.
