@@ -103,4 +103,4 @@ Important: this is code-level implementation only. No Cloudflare account, D1 dat
 
 Source-level Python checks and JavaScript syntax checks are configured in GitHub Actions. A passing CI run and deployed integration test have not yet been verified.
 
-- Added migration `0003_chapter_word_count.sql` so project-wide word totals can be computed from compact chapter metadata without fetching every manuscript body.
+- Added migration `0003_chapter_word_count.sql`; the browser calculates Thai-aware word counts and the Worker validates/persists them so project-wide totals can be computed from compact chapter metadata without fetching every manuscript body.
