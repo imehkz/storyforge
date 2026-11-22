@@ -120,3 +120,51 @@
   .project-pick-row { grid-template-columns: 1fr; }
   .project-actions { justify-content: flex-end; }
 }
+
+
+.export-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.print-manuscript-text { display: none; }
+@page { size: A4; margin: 18mm; }
+@media print {
+  body.print-manuscript {
+    background: #fff !important;
+    color: #111 !important;
+  }
+  body.print-manuscript * { visibility: hidden !important; }
+  body.print-manuscript #manuscript,
+  body.print-manuscript #manuscript * { visibility: visible !important; }
+  body.print-manuscript #manuscript {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+  body.print-manuscript #manuscript .chapter-toolbar,
+  body.print-manuscript #manuscript .chapter-history,
+  body.print-manuscript #manuscript label,
+  body.print-manuscript #manuscript input,
+  body.print-manuscript #manuscript textarea,
+  body.print-manuscript #manuscript .editor-footer,
+  body.print-manuscript #manuscript .form-hint {
+    display: none !important;
+  }
+  body.print-manuscript #manuscript .card-frame {
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+  body.print-manuscript #printManuscriptText {
+    display: block !important;
+    visibility: visible !important;
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
+    color: #111 !important;
+    background: #fff !important;
+    font-family: "Noto Sans Thai", "TH Sarabun New", serif !important;
+    font-size: 12pt !important;
+    line-height: 1.75 !important;
+  }
+}
