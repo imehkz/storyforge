@@ -1,14 +1,29 @@
-"""Static security-contract checks for the Cloudflare Worker.
+"""Static security and frontend contract checks.
 
-These checks guard important source-level invariants. They are not a substitute
-for integration tests against a deployed Worker and D1 database.
+These source-level checks are not a substitute for integration tests against a
+Cloudflare Worker and D1 database.
 """
+from collections import Counter
+from html.parser import HTMLParser
 from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKER = (ROOT / "cloudflare" / "worker.js").read_text(encoding="utf-8")
+APP = (ROOT / "public" / "app.js").read_text(encoding="utf-8")
+HTML = (ROOT / "public" / "index.html").read_text(encoding="utf-8")
 WRANGLER = (ROOT / "cloudflare" / "wrangler.toml.example").read_text(encoding="utf-8")
+
+
+class IdCollector(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.ids = []
+
+    def handle_starttag(self, tag, attrs):
+        for key, value in attrs:
+            if key == "id" and value:
+                self.ids.append(value)
 
 
 class WorkerContractTests(unittest.TestCase):
@@ -35,10 +50,36 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("projects.owner_id = ?", WORKER)
         self.assertIn("project_id = ?", WORKER)
 
-    def test_editor_is_not_claimed_as_cloud_synced(self):
-        app = (ROOT / "public" / "app.js").read_text(encoding="utf-8")
-        self.assertIn("ยังไม่ซิงก์ขึ้นเซิร์ฟเวอร์", app)
-        self.assertIn('localStorage.setItem("sf_" + key', app)
+    def test_local_import_uses_stable_client_ids(self):
+        self.assertIn("INSERT OR IGNORE INTO projects", WORKER)
+        self.assertIn("INSERT OR IGNORE INTO chapters", WORKER)
+        self.assertIn("INSERT OR IGNORE INTO ${config.table}", WORKER)
+        self.assertIn("clientId", APP)
+        self.assertIn("migrationMapKey", APP)
+
+    def test_chapter_history_and_revision_are_atomic(self):
+        self.assertGreaterEqual(WORKER.count("env.DB.batch(["), 2)
+        self.assertIn("expectedRevision", WORKER)
+        self.assertIn("resource_type = 'chapter'", WORKER)
+
+    def test_frontend_has_cloud_project_and_editor_integration(self):
+        for fragment in (
+            "/api/projects", "/api/chapters/", "scheduleCloudSave",
+            "importLocalNovelData", "showChapterHistory",
+            "loadProjectModules", "createModuleItem"
+        ):
+            self.assertIn(fragment, APP)
+
+    def test_editor_backup_key_is_preserved(self):
+        self.assertIn('key === "manuscriptBody" ? "sf_manuscript"', APP)
+        self.assertIn("storageKeyFor", APP)
+        self.assertIn("sf_manuscript", APP)
+
+    def test_html_ids_are_unique(self):
+        parser = IdCollector()
+        parser.feed(HTML)
+        duplicates = [value for value, count in Counter(parser.ids).items() if count > 1]
+        self.assertEqual(duplicates, [], "Duplicate HTML IDs: " + ", ".join(duplicates))
 
     def test_worker_routes_auth_before_static_fallback(self):
         self.assertIn('run_worker_first = ["/api/*", "/auth/*"]', WRANGLER)
