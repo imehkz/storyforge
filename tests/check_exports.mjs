@@ -1,0 +1,90 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+
+const source = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
+
+function extractFunction(name) {
+  const expression = new RegExp("function " + name + "\\([\\s\\S]*?\\n\\}");
+  const match = source.match(expression);
+  assert.ok(match, "Missing function " + name);
+  return match[0];
+}
+
+function readStoredZip(buffer) {
+  const endOffset = buffer.length - 22;
+  assert.equal(buffer.readUInt32LE(endOffset), 0x06054b50, "ZIP end record");
+  const count = buffer.readUInt16LE(endOffset + 10);
+  let cursor = buffer.readUInt32LE(endOffset + 16);
+  const files = new Map();
+  for (let i = 0; i < count; i++) {
+    assert.equal(buffer.readUInt32LE(cursor), 0x02014b50, "central directory header");
+    const method = buffer.readUInt16LE(cursor + 10);
+    const size = buffer.readUInt32LE(cursor + 24);
+    const nameLength = buffer.readUInt16LE(cursor + 28);
+    const extraLength = buffer.readUInt16LE(cursor + 30);
+    const commentLength = buffer.readUInt16LE(cursor + 32);
+    const localOffset = buffer.readUInt32LE(cursor + 42);
+    const name = buffer.toString("utf8", cursor + 46, cursor + 46 + nameLength);
+    assert.equal(method, 0, "files are stored without compression");
+    assert.equal(buffer.readUInt32LE(localOffset), 0x04034b50, "local file header");
+    const localNameLength = buffer.readUInt16LE(localOffset + 26);
+    const localExtraLength = buffer.readUInt16LE(localOffset + 28);
+    const dataOffset = localOffset + 30 + localNameLength + localExtraLength;
+    const data = buffer.subarray(dataOffset, dataOffset + size);
+    assert.equal(crc32(data), buffer.readUInt32LE(cursor + 16), "CRC32 for " + name);
+    files.set(name, data.toString("utf8"));
+    cursor += 46 + nameLength + extraLength + commentLength;
+  }
+  return files;
+}
+
+function crc32(bytes) {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+const names = [
+  "xmlEscape", "crc32", "createStoredZip", "exportBaseName",
+  "wordParagraph", "exportManuscriptDocx", "exportManuscriptEpub"
+];
+const code = names.map(extractFunction).join("\n");
+const values = {
+  title: { value: "ห้องสมุดแห่งความทรงจำ" },
+  chapterTitle: { value: "บทที่ 1 — ประตูแรก" },
+  manuscriptBody: { value: "บรรทัดแรก\nบททดสอบ & <tag>" }
+};
+const $ = id => values[id];
+const downloads = [];
+const downloadBlob = (filename, blob) => downloads.push({ filename, blob });
+const mockCrypto = { randomUUID: () => "11111111-1111-4111-8111-111111111111" };
+const exportsApi = new Function("$", "downloadBlob", "crypto", code +
+  "\nreturn { exportManuscriptDocx, exportManuscriptEpub };")($, downloadBlob, mockCrypto);
+
+exportsApi.exportManuscriptDocx();
+const docx = downloads.pop();
+assert.ok(docx.filename.endsWith(".docx"));
+const docxFiles = readStoredZip(Buffer.from(await docx.blob.arrayBuffer()));
+assert.ok(docxFiles.has("[Content_Types].xml"));
+assert.ok(docxFiles.has("word/document.xml"));
+assert.ok(docxFiles.has("word/styles.xml"));
+assert.ok(docxFiles.get("word/document.xml").includes("ห้องสมุดแห่งความทรงจำ"));
+assert.ok(docxFiles.get("word/document.xml").includes("&amp; &lt;tag&gt;"));
+
+exportsApi.exportManuscriptEpub();
+const epub = downloads.pop();
+assert.ok(epub.filename.endsWith(".epub"));
+const epubBuffer = Buffer.from(await epub.blob.arrayBuffer());
+const firstNameLength = epubBuffer.readUInt16LE(26);
+const firstName = epubBuffer.toString("utf8", 30, 30 + firstNameLength);
+assert.equal(firstName, "mimetype", "EPUB mimetype must be first");
+const epubFiles = readStoredZip(epubBuffer);
+assert.equal(epubFiles.get("mimetype"), "application/epub+zip");
+assert.ok(epubFiles.has("META-INF/container.xml"));
+assert.ok(epubFiles.has("OEBPS/content.opf"));
+assert.ok(epubFiles.get("OEBPS/chapter.xhtml").includes("บททดสอบ &amp; &lt;tag&gt;"));
+
+console.log("Export smoke tests passed: DOCX package and EPUB package are valid stored ZIP archives.");
