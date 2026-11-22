@@ -2,6 +2,7 @@
 const $ = id => document.getElementById(id);
 
 let mode = "writer";
+let creatingProject = false;
 let backupBusy = false;
 let nextAutoBackupAt = null;
 let autoBackupTimer = null;
@@ -672,8 +673,8 @@ function setupEvents() {
     let projects = safeJSON(localStorage.getItem("sf_projects") || "[]", []);
     if (!Array.isArray(projects)) projects = [];
     const activeLocalId = localStorage.getItem("sf_active_project_id");
-    const existing = projects.find(x => x.id === activeLocalId) ||
-      projects.find(x => x.title === ($("title").value || "โครงการไม่มีชื่อ"));
+    const existing = creatingProject ? null : (projects.find(x => x.id === activeLocalId) ||
+      projects.find(x => x.title === ($("title").value || "โครงการไม่มีชื่อ")));
     const item = {
       id: existing?.id || crypto.randomUUID(),
       title: $("title").value || "โครงการไม่มีชื่อ",
@@ -684,6 +685,7 @@ function setupEvents() {
     projects.unshift(item);
     localStorage.setItem("sf_active_project_id", item.id);
     localStorage.setItem("sf_projects", JSON.stringify(projects));
+    creatingProject = false;
 
     if (cloud.authenticated) {
       try {
@@ -715,6 +717,24 @@ function setupEvents() {
       alert("บันทึกข้อมูลนิยายไว้ในอุปกรณ์นี้แล้วครับ");
     }
   };
+
+  $("newProject")?.addEventListener("click", () => {
+    creatingProject = true;
+    cloud.activeProjectId = "";
+    cloud.activeChapterId = "";
+    cloud.revision = 0;
+    localStorage.removeItem("sf_active_project_id");
+    $("title").value = "";
+    $("genre").selectedIndex = 0;
+    $("context").value = "";
+    $("chapterTitle").value = "";
+    $("manuscript").value = "";
+    if ($("chapterSelect")) $("chapterSelect").innerHTML = '<option value="">ยังไม่มีบท</option>';
+    if ($("chapterSaveHint")) $("chapterSaveHint").textContent = "บันทึกโครงการใหม่ก่อน แล้วจึงเพิ่มบทได้";
+    renderProjects();
+    showTab("projects");
+    $("title").focus();
+  });
 
   // Save memory
   $("saveMemory").onclick = async () => {
@@ -1016,7 +1036,7 @@ async function importLocalNovelData() {
   const button = $("importLocalData");
   button.disabled = true;
   const map = safeJSON(localStorage.getItem(migrationMapKey()) || "{}", {});
-  const activeLocalId = localStorage.getItem("sf_active_project_id") || localProjects[0].id || "";
+  const activeLocalProject = localProjects.find(item => item.id === localStorage.getItem("sf_active_project_id")) || localProjects[0];
   try {
     for (const localProject of localProjects) {
       const localId = UUID_RE.test(localProject.id || "") ? localProject.id : crypto.randomUUID();
@@ -1034,7 +1054,7 @@ async function importLocalNovelData() {
         })
       });
       map[localId].projectId = projectResult.project.id;
-      if (localId === activeLocalId && ($("chapterTitle").value || $("manuscript").value)) {
+      if (localProject === activeLocalProject && ($("chapterTitle").value || $("manuscript").value)) {
         await cloudApi("/api/projects/" + encodeURIComponent(projectResult.project.id) + "/chapters", {
           method: "POST",
           body: JSON.stringify({
@@ -1049,7 +1069,7 @@ async function importLocalNovelData() {
       $("migrationStatus").textContent = "นำเข้าแล้ว: " + (localProject.title || "นิยายที่นำเข้า");
     }
     localStorage.setItem(localMigrationKey(), new Date().toISOString());
-    cloud.activeProjectId = map[activeLocalId]?.projectId || "";
+    cloud.activeProjectId = map[activeLocalProject.id]?.projectId || "";
     await loadCloudProjects();
     if ($("migrationStatus")) $("migrationStatus").textContent = "นำเข้าข้อมูลแล้ว · ข้อมูลต้นฉบับในอุปกรณ์ยังไม่ถูกลบ";
     renderProjects();
