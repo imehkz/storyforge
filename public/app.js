@@ -1210,17 +1210,27 @@ async function selectCloudChapter(chapterId) {
       return;
     }
   }
-  cloud.activeChapterId = item.id;
-  localStorage.setItem("sf_cloud_active_chapter_" + cloud.activeProjectId, item.id);
-  cloud.revision = item.revision || 1;
-  $("chapterTitle").value = item.title || "";
-  $("manuscriptBody").value = item.body || "";
+  let fullChapter;
+  try {
+    const loaded = await cloudApi("/api/chapters/" + encodeURIComponent(item.id));
+    fullChapter = loaded.chapter;
+  } catch (error) {
+    alert("โหลดต้นฉบับบทนี้ไม่สำเร็จ: " + error.message);
+    renderChapterSelect();
+    return;
+  }
+  cloud.activeChapterId = fullChapter.id;
+  localStorage.setItem("sf_cloud_active_chapter_" + cloud.activeProjectId, fullChapter.id);
+  cloud.revision = fullChapter.revision || 1;
+  cloud.chapters = cloud.chapters.map(chapter => chapter.id === fullChapter.id ? fullChapter : chapter);
+  $("chapterTitle").value = fullChapter.title || "";
+  $("manuscriptBody").value = fullChapter.body || "";
   const localDraft = safeJSON(localStorage.getItem(localChapterDraftKey(item.id)) || "null", null);
   const hasRecoverableDraft = Boolean(localDraft &&
-    (localDraft.title !== (item.title || "") || localDraft.body !== (item.body || "")));
+    (localDraft.title !== (fullChapter.title || "") || localDraft.body !== (fullChapter.body || "")));
   if ($("recoverLocalDraft")) {
     $("recoverLocalDraft").hidden = !hasRecoverableDraft;
-    $("recoverLocalDraft").dataset.chapterId = item.id;
+    $("recoverLocalDraft").dataset.chapterId = fullChapter.id;
   }
   renderChapterSelect();
   if ($("chapterSaveHint")) $("chapterSaveHint").textContent =
