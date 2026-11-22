@@ -549,12 +549,33 @@ function load() {
   renderDashboard();
 }
 
+function countWords(text) {
+  const value = String(text || "");
+  if (!value.trim()) return 0;
+  if (typeof Intl !== "undefined" && typeof Intl.Segmenter === "function") {
+    return Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment(value))
+      .filter(part => part.isWordLike).length;
+  }
+  return value.trim().split(/\\s+/).filter(Boolean).length;
+}
+
+function updateWordGoal() {
+  const goal = Math.max(1, Math.min(100000, Number.parseInt($("wordGoal")?.value || "1000", 10) || 1000));
+  if ($("wordGoal")) $("wordGoal").value = String(goal);
+  localStorage.setItem("sf_chapter_word_goal", String(goal));
+  const words = countWords($("manuscriptBody")?.value || "");
+  if ($("wordGoalStatus")) $("wordGoalStatus").textContent =
+    words.toLocaleString("th-TH") + " / " + goal.toLocaleString("th-TH") + " คำ";
+  if ($("wordGoalProgress")) $("wordGoalProgress").style.width = Math.min(100, (words / goal) * 100) + "%";
+}
+
 function save(changedKey = "") {
   keys.forEach(key => localStorage.setItem(storageKeyFor(key), $(key).value));
   $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกฉบับกู้คืนในอุปกรณ์นี้แล้ว';
   renderDashboard();
-  const count = $("manuscriptBody").value.length;
-  if ($("manuscriptCount")) $("manuscriptCount").textContent = count.toLocaleString("th-TH") + " อักขระ";
+  const count = countWords($("manuscriptBody").value);
+  if ($("manuscriptCount")) $("manuscriptCount").textContent = count.toLocaleString("th-TH") + " คำ";
+  updateWordGoal();
   if (cloud.authenticated && cloud.ready && cloud.activeProjectId && cloud.activeChapterId &&
       ["chapterTitle", "manuscriptBody"].includes(changedKey)) {
     storeLocalChapterDraft(cloud.activeChapterId, {
@@ -578,18 +599,27 @@ function renderDashboard() {
   const title = active && active.title ? active.title : $("title").value;
   const chapter = $("chapterTitle").value;
   const manuscript = $("manuscriptBody").value;
-  const count = manuscript.length;
+  const chapterWords = countWords(manuscript);
+  const savedNovelWords = cloud.authenticated
+    ? cloud.chapters.reduce((total, item) => total + (Number(item.word_count) || 0), 0)
+    : chapterWords;
+  const activeSavedWords = cloud.chapters.find(item => item.id === cloud.activeChapterId)?.word_count || 0;
+  const count = cloud.authenticated && cloud.activeChapterId
+    ? Math.max(0, savedNovelWords - activeSavedWords + chapterWords)
+    : chapterWords;
+  const novelGoal = Math.max(1, Number.parseInt(localStorage.getItem("sf_novel_word_goal") || "60000", 10) || 60000);
   if ($("sidebarProjectName")) $("sidebarProjectName").textContent = title || "ยังไม่ได้เลือกนิยาย";
   if ($("sidebarProjectMeta")) $("sidebarProjectMeta").textContent = active ? (active.genre || "นิยายของฉัน") + (cloud.authenticated ? " · Private Beta Cloud" : " · บันทึกในอุปกรณ์นี้") : "เริ่มต้นสร้างเรื่องราวของคุณ";
   if ($("dashboardProjectTitle")) $("dashboardProjectTitle").textContent = title || "ยังไม่มีนิยายในห้องสมุด";
   if ($("dashboardChapterLine")) $("dashboardChapterLine").textContent = chapter ? "บทล่าสุด · " + chapter : (title ? "เพิ่มชื่อบทและเริ่มเขียนต้นฉบับของคุณ" : "เริ่มต้นสร้างโลกและตัวละครของคุณได้เลย");
   if ($("dashboardLastEdited")) $("dashboardLastEdited").textContent = active ? (cloud.authenticated ? "โครงการนี้เชื่อมต่อกับบัญชี Private Beta" : "โครงการนี้บันทึกไว้ในเบราว์เซอร์เครื่องนี้") : "พื้นที่เขียนนิยายส่วนตัว · บันทึกในอุปกรณ์นี้";
   if ($("dashboardWordCount")) $("dashboardWordCount").textContent = count.toLocaleString("th-TH");
-  if ($("dashboardWordGoal")) $("dashboardWordGoal").textContent = "อักขระในต้นฉบับ";
-  if ($("dashboardProgress")) $("dashboardProgress").style.width = "0%";
+  if ($("dashboardWordGoal")) $("dashboardWordGoal").textContent = "/ " + novelGoal.toLocaleString("th-TH") + " คำ";
+  if ($("dashboardProgress")) $("dashboardProgress").style.width = Math.min(100, (count / novelGoal) * 100) + "%";
   if ($("recentChapterTitle")) $("recentChapterTitle").textContent = chapter || "ยังไม่มีบทที่บันทึก";
-  if ($("recentWordCount")) $("recentWordCount").textContent = count.toLocaleString("th-TH") + " อักขระ";
-  if ($("manuscriptCount")) $("manuscriptCount").textContent = count.toLocaleString("th-TH") + " อักขระ";
+  if ($("recentWordCount")) $("recentWordCount").textContent = chapterWords.toLocaleString("th-TH") + " คำ";
+  if ($("manuscriptCount")) $("manuscriptCount").textContent = chapterWords.toLocaleString("th-TH") + " คำ";
+  updateWordGoal();
 }
 
 function renderProjects() {
@@ -1188,12 +1218,32 @@ function setupModuleEvents() {
 
 function renderChapterSelect() {
   const select = $("chapterSelect");
-  if (!select) return;
-  select.innerHTML = cloud.chapters.length
-    ? cloud.chapters.map((item, index) =>
-        `<option value="${escapeHtml(item.id)}" ${item.id === cloud.activeChapterId ? "selected" : ""}>${index + 1}. ${escapeHtml(item.title || "บทไม่มีชื่อ")}</option>`
-      ).join("")
-    : '<option value="">ยังไม่มีบท</option>';
+  if (select) {
+    select.innerHTML = cloud.chapters.length
+      ? cloud.chapters.map((item, index) =>
+          `<option value="${escapeHtml(item.id)}" ${item.id === cloud.activeChapterId ? "selected" : ""}>${index + 1}. ${escapeHtml(item.title || "บทไม่มีชื่อ")}</option>`
+        ).join("")
+      : '<option value="">ยังไม่มีบท</option>';
+  }
+  const list = $("chapterList");
+  if (list) {
+    if (!cloud.authenticated) {
+      const localTitle = $("chapterTitle")?.value || "บทปัจจุบัน";
+      list.innerHTML = `<div class="chapter-list-item active"><span>01</span><div><b>${escapeHtml(localTitle)}</b><small>ฉบับในอุปกรณ์นี้</small></div></div>`;
+    } else if (!cloud.activeProjectId) {
+      list.innerHTML = '<p class="muted-note">เลือกโครงการเพื่อดูรายการบท</p>';
+    } else if (!cloud.chapters.length) {
+      list.innerHTML = '<p class="muted-note">ยังไม่มีบท · กด “เพิ่มบทใหม่” เพื่อเริ่มเขียน</p>';
+    } else {
+      list.innerHTML = cloud.chapters.map((item, index) =>
+        `<button type="button" class="chapter-list-item ${item.id === cloud.activeChapterId ? "active" : ""}" data-chapter-item="${escapeHtml(item.id)}"><span>${String(index + 1).padStart(2, "0")}</span><div><b>${escapeHtml(item.title || "บทไม่มีชื่อ")}</b><small>Revision ${Number(item.revision) || 1} · ${(Number(item.word_count) || 0).toLocaleString("th-TH")} คำ</small></div></button>`
+      ).join("");
+      list.querySelectorAll("[data-chapter-item]").forEach(button =>
+        button.addEventListener("click", () => selectCloudChapter(button.dataset.chapterItem))
+      );
+    }
+  }
+  if ($("chapterTotal")) $("chapterTotal").textContent = cloud.chapters.length.toLocaleString("th-TH") + " บท";
 }
 
 async function selectCloudChapter(chapterId) {
@@ -1606,6 +1656,18 @@ function setupCloudEvents() {
   $("deleteChapter")?.addEventListener("click", deleteActiveChapter);
   $("chapterSelect")?.addEventListener("change", event => selectCloudChapter(event.target.value));
   $("chapterHistoryButton")?.addEventListener("click", showChapterHistory);
+  $("chapterHistoryInline")?.addEventListener("click", showChapterHistory);
+  $("replaceAll")?.addEventListener("click", () => {
+    const search = $("findText").value;
+    if (!search) return alert("กรุณาระบุคำที่ต้องการค้นหา");
+    const body = $("manuscriptBody").value;
+    const count = body.split(search).length - 1;
+    if (!count) { $("replaceStatus").textContent = "ไม่พบข้อความที่ค้นหา"; return; }
+    $("manuscriptBody").value = body.split(search).join($("replaceText").value);
+    save("manuscriptBody");
+    $("replaceStatus").textContent = "แทนที่แล้ว " + count.toLocaleString("th-TH") + " จุด";
+  });
+  $("wordGoal")?.addEventListener("input", updateWordGoal);
   $("recoverLocalDraft")?.addEventListener("click", recoverLocalChapterDraft);
   $("reloadChapter")?.addEventListener("click", async () => {
     if (!cloud.activeChapterId || !confirm("โหลดฉบับล่าสุดจาก Cloud และแทนที่ข้อความที่กำลังแสดงหรือไม่? ฉบับในเครื่องยังอยู่ใน local backup")) return;
@@ -1858,6 +1920,7 @@ function init() {
   setupBackupEvents();
 
   setupAuthEvents();
+  if ($("wordGoal")) $("wordGoal").value = localStorage.getItem("sf_chapter_word_goal") || "1000";
   setupCloudEvents();
   setupModuleEvents();
   refreshAuthStatus();
