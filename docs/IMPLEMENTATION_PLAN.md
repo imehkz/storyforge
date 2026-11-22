@@ -180,3 +180,33 @@ No deployment, remote D1 creation, OAuth app, secret, paid plan, or production r
 7. Obtain explicit approval before any preview or production deployment.
 
 No hosting resources or secrets have been provisioned, and no production deployment has occurred.
+
+
+## Frontend integration progress — 22 November 2026
+
+### Added after the initial Worker API work
+
+- Connected the browser editor to authenticated project APIs for listing, creating, renaming, archiving, deleting, and switching novels.
+- Connected chapter creation, editing, debounced autosave, ordering (move up/down), deletion, snapshot history, restore, and optimistic revision conflict detection.
+- Added per-Chapter-ID local recovery drafts. A user can explicitly recover a device draft after a conflict; the latest Cloud copy is not silently overwritten.
+- Added an explicit local-to-Cloud import panel. It keeps the original device data, imports the active local manuscript and project memory, and uses stable UUIDv4 client IDs plus insert-if-absent APIs so retries do not duplicate the imported records.
+- Connected project-scoped CRUD interfaces for characters, character relationships, plot threads, world lore, timeline events, and story notes.
+- Connected the Dashboard character/plot/world counts to the current project's records.
+- Fixed a duplicate HTML ID between the Manuscript panel and its textarea while preserving the historical `sf_manuscript` backup key.
+- Added a source-level HTML ID uniqueness check and expanded Worker contract tests.
+
+### Verification status
+
+- A source inspection confirms that the static HTML now has unique IDs and the editor references the renamed manuscript textarea consistently.
+- GitHub Actions is configured to check Worker/app JavaScript syntax, both Python test suites, and the D1 schema on branch pushes.
+- The checks have not yet been confirmed as passing in GitHub Actions. No local browser test or Worker/D1 integration test has been run.
+- Figma MCP calls are currently blocked by the Starter plan call limit, and the connected Figma seat is View-only. No Figma source file was modified.
+
+### Remaining before private beta
+
+1. Owner provisions D1 and GitHub OAuth configuration, then applies migrations.
+2. Verify CI and run the Worker locally with D1; test owner denial, CSRF/origin rejection, cross-project isolation, import retry, autosave, conflict, move/delete, restore, and backups.
+3. Run browser tests on desktop/tablet and review accessibility/contrast against the approved Figma frames.
+4. Implement and verify DOCX, PDF, and EPUB export. Current manuscript export remains TXT.
+5. Design and approve a compatible per-user Copilot runtime; AI remains disabled.
+6. Only after the above, request explicit approval for a private preview deployment. No production deployment or merge to `main` is authorized.
