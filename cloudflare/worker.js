@@ -428,7 +428,7 @@ async function api(request, env, url) {
     if (method === "POST") {
       const input = await readJson(request, 1024 * 1024);
       const clientId = input.clientId;
-      if (clientId !== undefined && (typeof clientId !== "string" || !/^[a-f0-9-]{36}$/i.test(clientId))) {
+      if (clientId !== undefined && (typeof clientId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientId))) {
         throw new Error("INVALID_CLIENTID");
       }
       const id = clientId || crypto.randomUUID();
