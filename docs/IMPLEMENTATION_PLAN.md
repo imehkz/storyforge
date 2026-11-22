@@ -81,7 +81,7 @@ Create a novel → add a chapter → write text → save → sign out/in → res
 
 - Cloudflare runtime configuration, D1 binding/database, GitHub OAuth App, owner allowlist secret, and Worker secrets are not provisioned.
 - Cloudflare resources and credentials are not provisioned, so the new API-backed editor cannot be exercised against a live service yet.
-- No verified end-to-end Worker/D1 run has been completed. CI has been configured, but no successful GitHub Actions result is confirmed yet.
+- No verified end-to-end Worker/D1 run has been completed. GitHub Actions passed on draft PR #1 for commit a4818cb7240ae773e1d72f1a14554764c698abd4; live Cloudflare integration remains untested.
 - Independent encrypted D1 backup and full restore verification remain outstanding.
 - Copilot SDK requires a separately approved compatible runtime and each user's own Copilot entitlement; it remains disabled.
 
@@ -175,7 +175,7 @@ No deployment, remote D1 creation, OAuth app, secret, paid plan, or production r
 1. Owner creates GitHub OAuth App and configures exact callback URL.
 2. Owner creates Cloudflare D1 and configures Worker bindings/secrets.
 3. Apply migrations locally, then remote after owner review.
-4. Run CI and fix any failures; then exercise the Worker against local D1.
+4. CI has passed for the current draft PR head; next exercise the Worker against local D1 and keep this gate open until the live integration checks pass.
 5. Run end-to-end tests for owner denial, CSRF, isolation, autosave, restore, local import retry, and backup against a configured Worker/D1 environment.
 6. Obtain explicit approval before any preview or production deployment.
 
