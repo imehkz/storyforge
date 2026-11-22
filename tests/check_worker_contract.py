@@ -91,6 +91,24 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("storageKeyFor", APP)
         self.assertIn("sf_manuscript", APP)
 
+    def test_user_content_is_escaped_before_html_rendering(self):
+        self.assertIn("function escapeHtml(value)", APP)
+        for fragment in (
+            "escapeHtml(item.title)",
+            "escapeHtml(item.summary ||",
+            "escapeHtml(item.description ||",
+            "escapeHtml(item.name.slice",
+            "escapeHtml(item.id)",
+        ):
+            self.assertIn(fragment, APP)
+
+    def test_manuscript_html_is_sanitized_with_a_small_allowlist(self):
+        self.assertIn("function sanitizeManuscriptHtml(value)", APP)
+        self.assertIn('new Set(["P","DIV","BR","STRONG","B","EM","I","U","H1","H2","H3","BLOCKQUOTE","UL","OL","LI","SPAN"])', APP)
+        self.assertIn('if (attr.name !== "style") node.removeAttribute(attr.name);', APP)
+        self.assertIn('["text-align","font-family","font-size","line-height"].includes(key)', APP)
+        self.assertIn('/^[\\w\\s,\'"().-]+$/', APP)
+
     def test_html_ids_are_unique(self):
         parser = IdCollector()
         parser.feed(HTML)
