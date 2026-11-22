@@ -1193,7 +1193,9 @@ async function saveCharacter() {
     name,
     role: $("characterRole").value,
     profile_json: characterProfileFromForm(),
-    sort_order: cloud.modules.characters.length
+    sort_order: cloud.editingCharacterId
+      ? (cloud.modules.characters.find(item => item.id === cloud.editingCharacterId)?.sort_order || 0)
+      : cloud.modules.characters.length
   };
   if (cloud.editingCharacterId) {
     try {
