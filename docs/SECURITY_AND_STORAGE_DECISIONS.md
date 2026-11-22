@@ -6,7 +6,7 @@ Status: Decision recorded; implementation intentionally blocked pending owner co
 
 ## 1. Current application boundary
 
-At the initial architecture audit, the application was a static-file Node HTTP server and browser localStorage prototype. The Cloudflare Worker implementation now provides owner-only GitHub OAuth, server-side sessions, project-scoped APIs, and D1 schema. These APIs are not yet connected to the manuscript editor, which continues to save locally. No live D1 database or deployed auth environment has been configured.
+At the initial architecture audit, the application was a static-file Node HTTP server and browser localStorage prototype. The Cloudflare Worker now provides owner-only GitHub OAuth, server-side sessions, project/chapter APIs, chapter snapshots, and project-scoped studio APIs. The browser app source is connected to these APIs and retains local recovery drafts. No live D1 database, OAuth app, secrets, or deployed auth environment has been configured.
 
 A Project ID stored in the browser is not an authorization boundary. No project-scoped API may be exposed until the server derives the user identity from a verified session and checks ownership on every request.
 
