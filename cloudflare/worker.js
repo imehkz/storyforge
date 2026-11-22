@@ -292,6 +292,44 @@ async function api(request, env, url) {
     }
   }
 
+  const chapterSnapshotsMatch = path.match(/^\/api\/chapters\/([a-f0-9-]+)\/snapshots$/i);
+  if (chapterSnapshotsMatch && method === "GET") {
+    const chapterId = chapterSnapshotsMatch[1];
+    const rows = await env.DB.prepare(
+      "SELECT s.id, s.resource_id, s.content_json, s.created_at FROM snapshots s JOIN projects p ON p.id = s.project_id JOIN chapters c ON c.id = s.resource_id AND c.project_id = p.id WHERE s.resource_type = 'chapter' AND s.resource_id = ? AND p.owner_id = ? ORDER BY s.created_at DESC LIMIT 100"
+    ).bind(chapterId, ownerId).all();
+    return json({ snapshots: rows.results || [] });
+  }
+
+  const chapterRestoreMatch = path.match(/^\/api\/chapters\/([a-f0-9-]+)\/restore$/i);
+  if (chapterRestoreMatch && method === "POST") {
+    const chapterId = chapterRestoreMatch[1];
+    const input = await readJson(request);
+    const snapshotId = requiredString(input.snapshotId, 80, "snapshotId");
+    const current = await env.DB.prepare(
+      "SELECT c.id, c.project_id, c.title, c.body, c.revision FROM chapters c JOIN projects p ON p.id = c.project_id WHERE c.id = ? AND p.owner_id = ?"
+    ).bind(chapterId, ownerId).first();
+    if (!current) throw new Error("NOT_FOUND");
+    const snapshot = await env.DB.prepare(
+      "SELECT s.content_json FROM snapshots s JOIN projects p ON p.id = s.project_id WHERE s.id = ? AND s.resource_id = ? AND s.resource_type = 'chapter' AND p.owner_id = ?"
+    ).bind(snapshotId, chapterId, ownerId).first();
+    if (!snapshot) throw new Error("NOT_FOUND");
+    let restored;
+    try { restored = JSON.parse(snapshot.content_json); } catch { throw new Error("INVALID_SNAPSHOT"); }
+    const title = optionalString(restored.title, 240, "title");
+    const body = optionalString(restored.body, 500000, "body");
+    await env.DB.prepare(
+      "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) VALUES (?, ?, 'chapter', ?, ?)"
+    ).bind(crypto.randomUUID(), current.project_id, chapterId, JSON.stringify({
+      title: current.title, body: current.body, revision: current.revision
+    })).run();
+    const updated = await env.DB.prepare(
+      "UPDATE chapters SET title = ?, body = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, sort_order, revision, updated_at"
+    ).bind(title, body, nowIso(), chapterId, current.revision, ownerId).first();
+    if (!updated) throw new Error("CONFLICT");
+    return json({ chapter: updated, restoredFrom: snapshotId });
+  }
+
   const chapterMatch = path.match(/^\/api\/chapters\/([a-f0-9-]+)$/i);
   if (chapterMatch) {
     const chapterId = chapterMatch[1];
