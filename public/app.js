@@ -1217,6 +1217,8 @@ function setupModuleEvents() {
 }
 
 function renderChapterSelect() {
+  const cloudTools = ["chapterSelect", "chapterSelectLabel", "newChapter", "moveChapterUp", "moveChapterDown", "deleteChapter", "chapterHistoryButton", "chapterHistoryInline"];
+  cloudTools.forEach(id => { if ($(id)) $(id).hidden = !cloud.ready; });
   const select = $("chapterSelect");
   if (select) {
     select.innerHTML = cloud.chapters.length
@@ -1243,7 +1245,9 @@ function renderChapterSelect() {
       );
     }
   }
-  if ($("chapterTotal")) $("chapterTotal").textContent = cloud.chapters.length.toLocaleString("th-TH") + " บท";
+  if ($("chapterTotal")) $("chapterTotal").textContent = cloud.ready
+    ? cloud.chapters.length.toLocaleString("th-TH") + " บท"
+    : "ฉบับในเครื่อง";
 }
 
 async function selectCloudChapter(chapterId) {
@@ -1581,6 +1585,7 @@ async function refreshAuthStatus() {
       });
       renderProjects();
       renderModuleLists();
+      renderChapterSelect();
       if ($("chapterHistory")) $("chapterHistory").hidden = true;
       if ($("reloadChapter")) $("reloadChapter").hidden = true;
       if ($("recoverLocalDraft")) $("recoverLocalDraft").hidden = true;
@@ -1603,6 +1608,7 @@ async function refreshAuthStatus() {
       try {
         await loadCloudProjects();
         cloud.ready = true;
+        renderChapterSelect();
       } catch (error) {
         cloud.ready = false;
         state.textContent = "เข้าสู่ระบบแล้ว แต่โหลดโครงการไม่สำเร็จ · " + error.message;
