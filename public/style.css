@@ -785,3 +785,5 @@ input::placeholder,textarea::placeholder{color:rgba(154,169,190,.66)}
  .genre-level { grid-template-columns:minmax(100px,1fr) minmax(80px,1.2fr) 42px; }
  .relationship-graph-tools { align-items:flex-start; flex-direction:column; }
 }
+
+#manuscript hr, #manuscript .manuscript-editor-surface hr { display:none!important; border:0!important; height:0!important; margin:0!important; }
