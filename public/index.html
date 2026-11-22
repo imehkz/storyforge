@@ -1,15 +1,160 @@
 <!doctype html>
-<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>STORYFORGE — AI NOVEL STUDIO</title><link rel="stylesheet" href="style.css"></head>
-<body><div class="app">
-<header><div class="brand"><span class="mark">✦</span><div><b>STORYFORGE</b><small>AI NOVEL STUDIO</small></div></div><span class="save" id="saveState">รุ่นทดสอบส่วนตัว · ข้อมูลอยู่ในอุปกรณ์นี้</span></header>
-<main><aside><button class="nav active" data-tab="studio">✍️ สตูดิโอเขียนนิยาย</button><button class="nav" data-tab="memory">🧠 ความจำโครงการ</button><button class="nav" data-tab="projects">📚 โครงการของฉัน</button><div class="side-note">เขียนเรื่องราวของคุณ<br>ให้กลายเป็นโลกที่มีชีวิต</div></aside>
-<section class="content">
-<div id="studio" class="panel"><div class="hero"><p class="eyebrow">YOUR CREATIVE SPACE</p><h1>ทุกเรื่องราวเริ่มต้นที่นี่</h1><p>พื้นที่เขียนนิยายส่วนตัว • รุ่นทดสอบ</p></div>
-<div class="grid"><div class="card"><label>ชื่อโครงการ</label><input id="title" placeholder="เช่น เงาจันทร์ในฤดูฝน"><label>แนวนิยาย</label><select id="genre"><option>แฟนตาซี</option><option>โรแมนซ์</option><option>สืบสวน / ระทึกขวัญ</option><option>วาย / BL</option><option>ไซไฟ</option><option>ดราม่า</option><option>Historical</option><option>อื่น ๆ</option></select><label>บริบทและข้อมูลสำคัญของเรื่อง</label><textarea id="context" rows="5" placeholder="ตัวละคร โลกของเรื่อง พล็อต และสิ่งที่ต้องจำ..."></textarea><button id="saveProject" class="secondary">บันทึกโครงการ</button></div>
-<div class="card"><div class="modebar"><button class="mode active" data-mode="writer">นักเขียน</button><button class="mode" data-mode="brainstorm">ระดมไอเดีย</button><button class="mode" data-mode="editor">บรรณาธิการ</button><button class="mode" data-mode="publisher">สำนักพิมพ์</button></div><label>คำสั่งสำหรับ AI</label><textarea id="prompt" rows="7" placeholder="เช่น เขียนบทที่ 1 เปิดเรื่องด้วยฉากที่ชวนติดตาม..."></textarea><button id="run" class="primary" disabled>✦ Copilot Assistant — ปิดไว้ระหว่างตั้งค่าความปลอดภัย</button><p class="hint">ระบบ AI จะเปิดเมื่อเชื่อม Copilot ของเจ้าของบัญชีและตรวจสอบสิทธิ์เรียบร้อย</p></div></div>
-<div class="card result"><div class="result-head"><b>ผลงานจาก AI</b><div><button id="copy" class="tiny">คัดลอก</button><button id="download" class="tiny">ดาวน์โหลด .txt</button></div></div><pre id="output">คำตอบจาก AI จะแสดงที่นี่…</pre></div>
-<div class="card"><label>ต้นฉบับ / เนื้อหาบท</label><input id="chapterTitle" placeholder="ชื่อบท เช่น บทที่ 1 — จุดเริ่มต้น"><textarea id="manuscript" rows="10" placeholder="เริ่มเขียนต้นฉบับของคุณที่นี่..."></textarea><button id="export" class="secondary">ส่งออกต้นฉบับเป็น .txt</button></div></div>
-<div id="memory" class="panel hidden"><div class="hero"><h1>ความจำโครงการ</h1><p>เก็บรายละเอียดที่ AI ควรยึดถือระหว่างเขียนเรื่องนี้</p></div><div class="card"><label>Project Memory</label><textarea id="projectMemory" rows="10" placeholder="กฎของโลก ตัวละคร ความสัมพันธ์ ไทม์ไลน์ และข้อห้าม..."></textarea><label>Global Memory (ใช้ร่วมกันทุกโครงการบนอุปกรณ์นี้)</label><textarea id="globalMemory" rows="6" placeholder="สไตล์การเขียนที่ชอบ โทนภาษา และความต้องการประจำ..."></textarea><button class="primary" id="saveMemory">บันทึกความจำ</button></div></div>
-<div id="projects" class="panel hidden"><div class="hero"><h1>โครงการของฉัน</h1><p>รายการโครงการที่บันทึกไว้ในเบราว์เซอร์นี้</p></div><div class="card" id="projectList">ยังไม่มีโครงการที่บันทึกไว้</div></div>
-</section></main><footer>STORYFORGE • เขียนจินตนาการให้เป็นจริง</footer></div><script src="app.js"></script></body></html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101827">
+  <meta name="description" content="STORYFORGE — พื้นที่สร้างสรรค์และเขียนนิยาย">
+  <title>STORYFORGE — AI Novel Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="brand" href="#" data-home>
+      <span class="brand-mark">✦</span>
+      <span><strong>STORYFORGE</strong><small>AI NOVEL STUDIO</small></span>
+    </a>
+    <div class="sidebar-rule"></div>
+    <div class="project-switcher">
+      <span class="micro-label">นิยายที่เลือก</span>
+      <strong id="sidebarProjectName">ยังไม่ได้เลือกนิยาย</strong>
+      <span class="project-meta" id="sidebarProjectMeta">เริ่มต้นสร้างเรื่องราวของคุณ</span>
+    </div>
+    <div class="nav-heading">พื้นที่ทำงานเขียน</div>
+    <nav class="primary-nav" aria-label="เมนูหลัก">
+      <button class="nav active" data-tab="dashboard"><span class="nav-index">01</span><span>หน้าภาพรวม</span></button>
+      <button class="nav" data-tab="projects"><span class="nav-index">02</span><span>คลังนิยาย</span></button>
+      <button class="nav" data-tab="characters"><span class="nav-index">03</span><span>ห้องจัดการตัวละคร</span></button>
+      <button class="nav" data-tab="plot"><span class="nav-index">04</span><span>ห้องวางพล็อต</span></button>
+      <button class="nav" data-tab="world"><span class="nav-index">05</span><span>สร้างโลกนิยาย</span></button>
+      <button class="nav" data-tab="timeline"><span class="nav-index">06</span><span>ลำดับเหตุการณ์</span></button>
+      <button class="nav" data-tab="notes"><span class="nav-index">07</span><span>บันทึกเนื้อเรื่อง</span></button>
+      <button class="nav" data-tab="manuscript"><span class="nav-index">08</span><span>ห้องเขียนต้นฉบับ</span></button>
+      <button class="nav" data-tab="assistant"><span class="nav-index">09</span><span>ผู้ช่วยเขียนนิยาย AI</span></button>
+    </nav>
+    <div class="sidebar-note">
+      <span class="gold-text">✧ นิยายหนึ่งเรื่อง ทุกส่วนเชื่อมถึงกัน</span>
+      <p>ตัวละคร พล็อต และโลกของเรื่อง จะเติบโตไปพร้อมกับต้นฉบับ</p>
+    </div>
+    <div class="sidebar-footer">พื้นที่ทำงานส่วนตัว</div>
+  </aside>
+
+  <main class="main-area">
+    <header class="topbar">
+      <div class="breadcrumbs"><span>พื้นที่ทำงาน</span><i>/</i><strong id="breadcrumbTitle">หน้าภาพรวม</strong></div>
+      <div class="topbar-right">
+        <span class="save-indicator" id="saveState"><span class="status-dot"></span>รุ่นทดสอบ · ข้อมูลอยู่ในอุปกรณ์นี้</span>
+      </div>
+    </header>
+
+    <div class="content-wrap">
+      <section id="dashboard" class="panel">
+        <div class="page-intro">
+          <div><span class="eyebrow">โต๊ะทำงานนักเขียน</span><h1>ทุกเรื่องราว รอให้คุณเขียนต่อ</h1><p>กลับสู่โลกของคุณ ทุกความคิดยังอยู่ในที่เดิม</p></div>
+          <button class="outline-button" data-open-tab="manuscript">เปิดห้องเขียนต้นฉบับ <span>→</span></button>
+        </div>
+
+        <article class="featured-project card-frame" id="dashboardProject">
+          <div class="featured-copy">
+            <span class="micro-label">นิยายที่กำลังเขียน / บทล่าสุด</span>
+            <h2 id="dashboardProjectTitle">ยังไม่มีนิยายในห้องสมุด</h2>
+            <p class="chapter-line" id="dashboardChapterLine">เริ่มต้นสร้างโลกและตัวละครของคุณได้เลย</p>
+            <p class="last-edited" id="dashboardLastEdited">พื้นที่เขียนนิยายส่วนตัว · บันทึกในอุปกรณ์นี้</p>
+            <button class="gold-button" data-open-tab="projects">สร้างหรือเลือกนิยาย <span>→</span></button>
+          </div>
+          <div class="featured-emblem" aria-hidden="true">
+            <svg viewBox="0 0 180 180" role="img">
+              <circle cx="90" cy="90" r="76"></circle><circle cx="90" cy="90" r="66"></circle>
+              <path d="M90 27c-16 16-14 40 3 52 8 6 18 7 27 3-6 16-23 26-41 22-23-5-36-30-26-52 7-15 21-24 37-25z"></path>
+              <path d="M55 105c14-8 27-8 35 0 8-8 21-8 35 0v30c-14-8-27-8-35 0-8-8-21-8-35 0zM90 105v30"></path>
+              <path d="M90 10v12M90 158v12M10 90h12M158 90h12M34 34l9 9M137 137l9 9M146 34l-9 9M43 137l-9 9"></path>
+              <path d="M55 58l3 7 7 3-7 3-3 7-3-7-7-3 7-3zM128 66l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"></path>
+            </svg>
+          </div>
+          <div class="featured-progress">
+            <strong id="dashboardWordCount">0</strong><span id="dashboardWordGoal">คำในต้นฉบับ</span>
+            <div class="progress-track"><span id="dashboardProgress"></span></div>
+          </div>
+        </article>
+
+        <div class="summary-grid">
+          <button class="summary-card" data-open-tab="characters"><span class="summary-number" id="characterCount">—</span><span><small>ตัวละคร</small><strong>คลังตัวละครในเรื่อง</strong></span><b>→</b></button>
+          <button class="summary-card" data-open-tab="plot"><span class="summary-number">—</span><span><small>เส้นเรื่อง</small><strong>เส้นเรื่องที่วางไว้</strong></span><b>→</b></button>
+          <button class="summary-card" data-open-tab="world"><span class="summary-number">—</span><span><small>ข้อมูลโลกนิยาย</small><strong>สถานที่และกฎของโลก</strong></span><b>→</b></button>
+        </div>
+
+        <div class="dashboard-lower">
+          <section class="card-frame recent-card">
+            <div class="section-heading"><div><h3>หน้าต่อไปของเรื่องราว</h3><p>ต้นฉบับล่าสุด</p></div><button class="text-link" data-open-tab="manuscript">ไปยังต้นฉบับ →</button></div>
+            <div class="recent-row"><span class="chapter-number">01</span><span class="recent-title" id="recentChapterTitle">ยังไม่มีบทที่บันทึก</span><span class="recent-detail" id="recentWordCount">0 คำ</span><span class="recent-arrow">→</span></div>
+            <p class="muted-note">รายการบทและประวัติเวอร์ชันจะแสดงเมื่อระบบจัดการบทพร้อมใช้งาน</p>
+          </section>
+          <section class="card-frame assistant-card">
+            <span class="micro-label">✦ ผู้ช่วยเขียนนิยาย AI</span>
+            <h3>คู่คิดที่รู้จักโลกของคุณ</h3>
+            <p>ช่วยต่อยอดฉาก โดยอ้างอิงตัวละคร พล็อต และกฎของโลกในนิยายเรื่องนี้</p>
+            <button class="outline-button full-width" data-open-tab="assistant">ดูสถานะผู้ช่วย AI <span>→</span></button>
+            <small>คุณเป็นผู้เลือกสิ่งที่จะเพิ่มลงในเรื่องเสมอ</small>
+          </section>
+        </div>
+        <div class="local-disclosure">ต้นแบบพื้นที่ทำงานส่วนตัว · ข้อมูลในรุ่นนี้เก็บไว้ในเบราว์เซอร์เครื่องนี้ ยังไม่ซิงก์ขึ้นเซิร์ฟเวอร์</div>
+      </section>
+
+      <section id="projects" class="panel hidden">
+        <div class="page-intro"><div><span class="eyebrow">ห้องสมุดของนักเขียน</span><h1>คลังนิยาย</h1><p>สร้างและจัดเก็บแนวคิดของเรื่องราวแต่ละเรื่อง</p></div></div>
+        <div class="two-column">
+          <div class="card-frame form-card">
+            <h2>ข้อมูลนิยาย</h2>
+            <label for="title">ชื่อโครงการ</label><input id="title" placeholder="เช่น ห้องสมุดแห่งความทรงจำ">
+            <label for="genre">แนวนิยาย</label><select id="genre"><option>แฟนตาซี</option><option>โรแมนซ์</option><option>สืบสวน / ระทึกขวัญ</option><option>วาย / BL</option><option>ไซไฟ</option><option>ดราม่า</option><option>Historical</option><option>อื่น ๆ</option></select>
+            <label for="context">เรื่องย่อและข้อมูลสำคัญ</label><textarea id="context" rows="6" placeholder="โลกของเรื่อง ตัวละครหลัก แนวคิด และสิ่งที่ต้องจำ..."></textarea>
+            <button id="saveProject" class="gold-button">บันทึกข้อมูลนิยาย <span>→</span></button>
+            <p class="form-hint">บันทึกลงในอุปกรณ์นี้เท่านั้น · ยังไม่มีระบบซิงก์หรือแยกข้อมูลหลายบัญชี</p>
+          </div>
+          <div class="card-frame collection-card"><div class="section-heading"><div><h2>นิยายของฉัน</h2><p>รายการที่บันทึกไว้ในเบราว์เซอร์นี้</p></div></div><div id="projectList" class="project-list">ยังไม่มีโครงการที่บันทึกไว้</div></div>
+        </div>
+      </section>
+
+      <section id="characters" class="panel hidden placeholder-panel">
+        <div class="page-intro"><div><span class="eyebrow">CHARACTER STUDIO</span><h1>ห้องจัดการตัวละคร</h1><p>สร้างตัวละครและเก็บรายละเอียดให้เป็น Canon ของนิยายแต่ละเรื่อง</p></div></div>
+        <div class="card-frame feature-placeholder"><span class="placeholder-symbol">♙</span><h2>Character Vault ยังอยู่ระหว่างพัฒนา</h2><p>หน้าจอนี้ยังไม่บันทึกโปรไฟล์ รูปลักษณ์ ภาพอ้างอิง หรือความสัมพันธ์ของตัวละคร</p><span class="status-label">ยังไม่เปิดใช้งาน</span></div>
+      </section>
+      <section id="plot" class="panel hidden placeholder-panel">
+        <div class="page-intro"><div><span class="eyebrow">PLOT ROOM</span><h1>ห้องวางพล็อต</h1><p>จัดโครงเรื่อง เส้นเรื่องย่อย ฉาก และจุดเปลี่ยนสำคัญ</p></div></div>
+        <div class="card-frame feature-placeholder"><span class="placeholder-symbol">✧</span><h2>Plot Studio ยังอยู่ระหว่างพัฒนา</h2><p>ยังไม่มีระบบจัดเก็บโครงเรื่องหรือเชื่อมโยงฉากกับต้นฉบับ</p><span class="status-label">ยังไม่เปิดใช้งาน</span></div>
+      </section>
+      <section id="world" class="panel hidden placeholder-panel">
+        <div class="page-intro"><div><span class="eyebrow">WORLD BUILDING</span><h1>สร้างโลกนิยาย</h1><p>รวบรวมสถานที่ ประวัติศาสตร์ กฎ และรายละเอียดของโลก</p></div></div>
+        <div class="card-frame feature-placeholder"><span class="placeholder-symbol">⌘</span><h2>World Building ยังอยู่ระหว่างพัฒนา</h2><p>ข้อมูลโลกในช่องบริบทนิยายยังเป็นข้อความทั่วไป ไม่ใช่ฐานข้อมูลที่เชื่อมโยงกัน</p><span class="status-label">ยังไม่เปิดใช้งาน</span></div>
+      </section>
+      <section id="timeline" class="panel hidden placeholder-panel">
+        <div class="page-intro"><div><span class="eyebrow">STORY TIMELINE</span><h1>ลำดับเหตุการณ์</h1><p>จัดเรียงเหตุการณ์และตรวจสอบความต่อเนื่องของเรื่อง</p></div></div>
+        <div class="card-frame feature-placeholder"><span class="placeholder-symbol">◷</span><h2>Timeline ยังอยู่ระหว่างพัฒนา</h2><p>ยังไม่มีระบบวันที่ เหตุการณ์ หรือการตรวจสอบความขัดแย้งของไทม์ไลน์</p><span class="status-label">ยังไม่เปิดใช้งาน</span></div>
+      </section>
+      <section id="notes" class="panel hidden">
+        <div class="page-intro"><div><span class="eyebrow">STORY NOTES</span><h1>บันทึกเนื้อเรื่อง</h1><p>พื้นที่จดจำไอเดียและแนวทางการเขียนของคุณ</p></div></div>
+        <div class="card-frame form-card"><label for="projectMemory">ความจำโครงการ (Project Memory)</label><textarea id="projectMemory" rows="9" placeholder="กฎของโลก ตัวละคร ความสัมพันธ์ ไทม์ไลน์ และข้อห้าม..."></textarea><label for="globalMemory">ความจำส่วนตัว (Global Memory)</label><textarea id="globalMemory" rows="6" placeholder="สไตล์การเขียนที่ชอบ โทนภาษา และความต้องการประจำ..."></textarea><button class="gold-button" id="saveMemory">บันทึกโน้ต <span>→</span></button><p class="form-hint">จัดเก็บในเบราว์เซอร์นี้ และยังไม่แยกตาม Project ID</p></div>
+      </section>
+      <section id="manuscript" class="panel hidden">
+        <div class="page-intro"><div><span class="eyebrow">MANUSCRIPT STUDIO</span><h1>ห้องเขียนต้นฉบับ</h1><p>พื้นที่เขียนและส่งออกข้อความฉบับร่าง</p></div></div>
+        <div class="card-frame manuscript-card"><label for="chapterTitle">ชื่อบท</label><input id="chapterTitle" placeholder="เช่น บทที่ 1 — จุดเริ่มต้น"><label for="manuscript">ต้นฉบับ</label><textarea id="manuscript" rows="22" placeholder="เริ่มเขียนต้นฉบับของคุณที่นี่..."></textarea><div class="editor-footer"><span id="manuscriptCount">0 คำ</span><button id="export" class="gold-button">ส่งออกข้อความ .txt <span>↓</span></button></div><p class="form-hint">การบันทึกอัตโนมัติในรุ่นนี้ทำงานภายในเบราว์เซอร์เครื่องนี้เท่านั้น ยังไม่มี Chapter ID หรือประวัติเวอร์ชันบนเซิร์ฟเวอร์</p></div>
+      </section>
+      <section id="assistant" class="panel hidden">
+        <div class="page-intro"><div><span class="eyebrow">AI STORY ASSISTANT</span><h1>ผู้ช่วยเขียนนิยาย AI</h1><p>ผู้ช่วยที่ควรเข้าใจบริบทของนิยายที่คุณกำลังเขียน</p></div></div>
+        <div class="card-frame assistant-workspace"><div class="modebar"><button class="mode active" data-mode="writer">นักเขียน</button><button class="mode" data-mode="brainstorm">ระดมไอเดีย</button><button class="mode" data-mode="editor">บรรณาธิการ</button><button class="mode" data-mode="publisher">สำนักพิมพ์</button></div><label for="prompt">คำสั่งสำหรับ AI</label><textarea id="prompt" rows="6" placeholder="เช่น ช่วยวางฉากเปิดเรื่องโดยยึดตามข้อมูลตัวละครและโลกนิยาย..."></textarea><button id="run" class="gold-button" disabled>✦ Copilot Assistant — ยังไม่เปิดใช้งาน</button><div class="ai-notice">GitHub Copilot ยังไม่ได้เชื่อมต่อ ระบบจะไม่เรียก OpenAI API หรือบริการ AI แบบคิดเงินแทนโดยอัตโนมัติ</div><div class="result-head"><h3>ผลงานจาก AI</h3><div><button id="copy" class="outline-button compact">คัดลอก</button><button id="download" class="outline-button compact">ดาวน์โหลด .txt</button></div></div><pre id="output">คำตอบจาก AI จะแสดงที่นี่เมื่อเชื่อมต่อระบบเรียบร้อย</pre></div>
+      </section>
+      <section id="backup" class="panel hidden">
+        <div class="page-intro"><div><span class="eyebrow">BACKUP & RECOVERY</span><h1>สำรองและกู้คืนข้อมูล</h1><p>จัดเก็บไฟล์สำรองของข้อมูลที่อยู่ในเบราว์เซอร์นี้</p></div></div>
+        <div id="backupContent" class="card-frame"></div>
+      </section>
+    </div>
+    <footer class="workspace-footer"><span>STORYFORGE · พื้นที่สร้างสรรค์ของนักเขียน</span><span>ต้นแบบ UI/UX · ข้อมูลตัวอย่างไม่ใช่ข้อมูลบนเซิร์ฟเวอร์</span></footer>
+  </main>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
