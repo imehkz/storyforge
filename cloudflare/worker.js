@@ -9,8 +9,17 @@ const STATE_COOKIE = "__Secure-storyforge_oauth_state";
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 const STATE_TTL_SECONDS = 10 * 60;
 
-const json = (body, status = 200, headers = {}) =>
-  new Response(JSON.stringify(body), { status, headers: { ...JSON_HEADERS, ...headers } });
+const json = (body, status = 200, extraHeaders = {}) => {
+  const headers = new Headers(JSON_HEADERS);
+  for (const [key, value] of Object.entries(extraHeaders)) {
+    if (key.toLowerCase() === "set-cookie" && Array.isArray(value)) {
+      for (const item of value) headers.append("Set-Cookie", item);
+    } else {
+      headers.set(key, value);
+    }
+  }
+  return new Response(JSON.stringify(body), { status, headers });
+};
 const redirect = (url, extraHeaders = {}) => {
   const headers = new Headers({ Location: url, "Cache-Control": "no-store" });
   for (const [key, value] of Object.entries(extraHeaders)) {
