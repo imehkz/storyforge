@@ -115,7 +115,10 @@
             <label for="title">ชื่อโครงการ</label><input id="title" placeholder="เช่น ห้องสมุดแห่งความทรงจำ">
             <label for="genre">แนวนิยาย</label><select id="genre"><option>แฟนตาซี</option><option>โรแมนซ์</option><option>สืบสวน / ระทึกขวัญ</option><option>วาย / BL</option><option>ไซไฟ</option><option>ดราม่า</option><option>Historical</option><option>อื่น ๆ</option></select>
             <label for="context">เรื่องย่อและข้อมูลสำคัญ</label><textarea id="context" rows="6" placeholder="โลกของเรื่อง ตัวละครหลัก แนวคิด และสิ่งที่ต้องจำ..."></textarea>
-            <button id="saveProject" class="gold-button">บันทึกข้อมูลนิยาย <span>→</span></button>
+            <div class="project-form-actions">
+              <button id="saveProject" class="gold-button">บันทึกข้อมูลนิยาย <span>→</span></button>
+              <button id="newProject" class="outline-button" type="button">+ สร้างโครงการใหม่</button>
+            </div>
             <p class="form-hint" id="projectSaveHint">บันทึกลงในอุปกรณ์นี้เท่านั้น · ยังไม่เชื่อมต่อ Cloud</p>
             <div id="cloudMigrationPanel" class="cloud-migration-panel" hidden>
               <strong>พบข้อมูลนิยายในอุปกรณ์นี้</strong>
