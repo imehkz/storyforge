@@ -1053,6 +1053,10 @@ function renderRelationshipGraph() {
   if (!target) return;
   const characters = cloud.modules.characters.slice(0, 12);
   const relationships = cloud.modules.relationships || [];
+  if (!cloud.ready) {
+    target.textContent = "เข้าสู่ระบบและเลือกโครงการเพื่อดูแผนผังความสัมพันธ์";
+    return;
+  }
   if (!characters.length || !relationships.length) {
     target.textContent = "เพิ่มตัวละครและกำหนดความสัมพันธ์เพื่อสร้างแผนผัง";
     return;
