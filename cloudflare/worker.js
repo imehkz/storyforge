@@ -33,13 +33,13 @@ const redirect = (url, extraHeaders = {}) => {
   return new Response(null, { status: 302, headers });
 };
 const countWords = (value) => {
-  const text = typeof value === "string" ? value : "";
-  if (!text.trim()) return 0;
-  if (typeof Intl.Segmenter === "function") {
-    return Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment(text))
-      .filter(segment => segment.isWordLike).length;
-  }
-  return text.trim().split(/\\s+/).filter(Boolean).length;
+  const text = typeof value === "string" ? value.trim() : "";
+  return text ? text.split(/\\s+/).filter(Boolean).length : 0;
+};
+const validateWordCount = (value, fallback) => {
+  if (value === undefined) return fallback;
+  if (!Number.isInteger(value) || value < 0 || value > 10000000) throw new Error("INVALID_WORDCOUNT");
+  return value;
 };
 const nowIso = () => new Date().toISOString();
 const addSeconds = (seconds) => new Date(Date.now() + seconds * 1000).toISOString();
@@ -464,9 +464,10 @@ async function api(request, env, url) {
       const body = optionalString(input.body, 500000, "body");
       const sortOrder = input.sortOrder === undefined ? 0 :
         (Number.isInteger(input.sortOrder) && input.sortOrder >= 0 && input.sortOrder <= 1000000 ? input.sortOrder : (() => { throw new Error("INVALID_SORTORDER"); })());
+      const wordCount = validateWordCount(input.wordCount, countWords(body));
       const inserted = await env.DB.prepare(
         "INSERT OR IGNORE INTO chapters (id, project_id, title, body, sort_order, word_count) VALUES (?, ?, ?, ?, ?, ?)"
-      ).bind(id, projectId, title, body, sortOrder, countWords(body)).run();
+      ).bind(id, projectId, title, body, sortOrder, wordCount).run();
       const chapter = await env.DB.prepare(
         "SELECT id, project_id, title, body, sort_order, word_count, revision, created_at, updated_at FROM chapters WHERE id = ?"
       ).bind(id).first();
@@ -526,7 +527,7 @@ async function api(request, env, url) {
     const title = optionalString(restored.title, 240, "title");
     const body = optionalString(restored.body, 500000, "body");
     const sortOrder = Number.isInteger(restored.sort_order) ? Math.max(0, Math.min(restored.sort_order, 1000000)) : current.sort_order;
-    const wordCount = countWords(body);
+    const wordCount = validateWordCount(restored.word_count, countWords(body));
     const results = await env.DB.batch([
       env.DB.prepare(
         "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'sort_order', sort_order, 'word_count', word_count, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
@@ -562,7 +563,7 @@ async function api(request, env, url) {
       const body = input.body === undefined ? current.body : optionalString(input.body, 500000, "body");
       const sortOrder = input.sortOrder === undefined ? current.sort_order :
         (Number.isInteger(input.sortOrder) && input.sortOrder >= 0 && input.sortOrder <= 1000000 ? input.sortOrder : (() => { throw new Error("INVALID_SORTORDER"); })());
-      const wordCount = countWords(body);
+      const wordCount = validateWordCount(input.wordCount, countWords(body));
       const results = await env.DB.batch([
         env.DB.prepare(
           "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'sort_order', sort_order, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
