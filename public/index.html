@@ -113,7 +113,8 @@
           <div class="card-frame form-card">
             <h2>ข้อมูลนิยาย</h2>
             <label for="title">ชื่อโครงการ</label><input id="title" placeholder="เช่น ห้องสมุดแห่งความทรงจำ">
-            <label for="genre">แนวนิยาย</label><select id="genre"><option>แฟนตาซี</option><option>โรแมนซ์</option><option>สืบสวน / ระทึกขวัญ</option><option>วาย / BL</option><option>ไซไฟ</option><option>ดราม่า</option><option>Historical</option><option>อื่น ๆ</option></select>
+            <label for="genre">แนวนิยาย</label><select id="genre"><option>แฟนตาซี</option><option>โรแมนซ์</option><option>สืบสวน / ระทึกขวัญ</option><option>วาย / BL</option><option>ไซไฟ</option><option>ดราม่า</option><option>Historical</option><option value="__custom__">อื่น ๆ (ระบุเอง)</option></select>
+            <div id="customGenreField" hidden><label for="customGenre">พิมพ์แนวนิยายที่ต้องการ</label><input id="customGenre" type="text" maxlength="80" placeholder="เช่น พีเรียดแฟนตาซี, Cozy Mystery, โรแมนติกคอมเมดี้"></div>
             <label for="context">เรื่องย่อและข้อมูลสำคัญ</label><textarea id="context" rows="6" placeholder="โลกของเรื่อง ตัวละครหลัก แนวคิด และสิ่งที่ต้องจำ..."></textarea>
             <div class="project-form-actions">
               <button id="saveProject" class="gold-button">บันทึกข้อมูลนิยาย <span>→</span></button>
