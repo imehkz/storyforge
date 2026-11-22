@@ -1737,6 +1737,7 @@ async function importLocalNovelData() {
 }
 
 async function refreshAuthStatus() {
+  cloud.ready = false;
   const state = $("authState");
   const login = $("loginButton");
   const logout = $("logoutButton");
@@ -1844,9 +1845,24 @@ async function refreshAuthStatus() {
         ? "เข้าสู่ระบบแล้ว แต่บริการ Cloud ยังไม่พร้อม · ฉบับกู้คืนยังอยู่ในอุปกรณ์นี้"
         : "ต้นแบบพื้นที่ทำงานส่วนตัว · ข้อมูลในรุ่นนี้เก็บไว้ในเบราว์เซอร์เครื่องนี้ ยังไม่ซิงก์ขึ้นเซิร์ฟเวอร์";
   } catch (error) {
+    cloud.authenticated = false;
+    cloud.ready = false;
+    cloud.csrfToken = "";
+    cloud.userId = "";
+    cloud.projects = [];
+    cloud.activeProjectId = "";
+    cloud.chapters = [];
+    cloud.activeChapterId = "";
+    cloud.noteId = "";
+    cloud.modules = { characters: [], relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: [] };
+    resetCharacterForm();
     state.textContent = "ตรวจสอบสถานะบัญชีไม่ได้ · " + error.message;
-    login.hidden = true;
+    login.hidden = false;
     logout.hidden = true;
+    renderProjects();
+    renderModuleLists();
+    renderChapterSelect();
+    renderDashboard();
   }
 }
 
