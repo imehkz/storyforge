@@ -67,3 +67,5 @@ The browser still keeps a local recovery copy and Global Memory on the device. C
 7. Confirm the frontend continues to label manuscript saves as local until API integration is complete.
 
 No Cloudflare resource, OAuth app, secret, billing setting, or deployment is created by this repository change.
+
+The chapters collection returns metadata including the persisted Thai-aware `word_count`; the full body is fetched only for the selected chapter. This keeps project-wide dashboard progress efficient even when a novel has many long chapters.
