@@ -1605,7 +1605,7 @@ async function moveActiveChapter(direction) {
 }
 
 async function deleteActiveChapter() {
-  if (!cloud.authenticated || !cloud.activeChapterId) return;
+  if (!cloud.ready || !cloud.activeChapterId) return;
   if (!confirm("ต้องการลบบทนี้ออกจากโครงการหรือไม่? ฉบับกู้คืนในอุปกรณ์จะยังอยู่ แต่การลบ Cloud ไม่สามารถย้อนกลับได้")) return;
   if (cloud.saveTimer) { clearTimeout(cloud.saveTimer); cloud.saveTimer = null; }
   const deletedId = cloud.activeChapterId;
@@ -1801,7 +1801,10 @@ async function refreshAuthStatus() {
       try {
         await loadCloudProjects();
         cloud.ready = true;
+        renderProjects();
+        renderModuleLists();
         renderChapterSelect();
+        renderDashboard();
       } catch (error) {
         cloud.ready = false;
         state.textContent = "เข้าสู่ระบบแล้ว แต่โหลดโครงการไม่สำเร็จ · " + error.message;
