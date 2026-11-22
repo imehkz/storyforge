@@ -251,13 +251,22 @@ async function api(request, env, url) {
   }
   if (path === "/api/projects" && method === "POST") {
     const input = await readJson(request);
-    const id = crypto.randomUUID();
+    const clientId = input.clientId;
+    if (clientId !== undefined && (typeof clientId !== "string" || !/^[a-f0-9-]{36}$/i.test(clientId))) {
+      throw new Error("INVALID_CLIENTID");
+    }
+    const id = clientId || crypto.randomUUID();
     const title = requiredString(input.title, 160, "title");
     const genre = optionalString(input.genre, 100, "genre");
     const synopsis = optionalString(input.synopsis, 10000, "synopsis");
-    await env.DB.prepare("INSERT INTO projects (id, owner_id, title, genre, synopsis) VALUES (?, ?, ?, ?, ?)")
-      .bind(id, ownerId, title, genre, synopsis).run();
-    return json({ project: { id, title, genre, synopsis, status: "active" } }, 201);
+    const inserted = await env.DB.prepare(
+      "INSERT OR IGNORE INTO projects (id, owner_id, title, genre, synopsis) VALUES (?, ?, ?, ?, ?)"
+    ).bind(id, ownerId, title, genre, synopsis).run();
+    const project = await env.DB.prepare(
+      "SELECT id, owner_id, title, genre, synopsis, status, created_at, updated_at FROM projects WHERE id = ?"
+    ).bind(id).first();
+    if (!project || project.owner_id !== ownerId) throw new Error("CONFLICT");
+    return json({ project, created: Boolean(inserted.meta?.changes) }, inserted.meta?.changes ? 201 : 200);
   }
 
   const projectMatch = path.match(/^\/api\/projects\/([a-f0-9-]+)$/i);
@@ -410,13 +419,22 @@ async function api(request, env, url) {
     }
     if (method === "POST") {
       const input = await readJson(request, 1024 * 1024);
-      const id = crypto.randomUUID();
+      const clientId = input.clientId;
+      if (clientId !== undefined && (typeof clientId !== "string" || !/^[a-f0-9-]{36}$/i.test(clientId))) {
+        throw new Error("INVALID_CLIENTID");
+      }
+      const id = clientId || crypto.randomUUID();
       const title = optionalString(input.title, 240, "title");
       const body = optionalString(input.body, 500000, "body");
       const sortOrder = Number.isInteger(input.sortOrder) ? Math.max(0, Math.min(input.sortOrder, 1000000)) : 0;
-      await env.DB.prepare("INSERT INTO chapters (id, project_id, title, body, sort_order) VALUES (?, ?, ?, ?, ?)")
-        .bind(id, projectId, title, body, sortOrder).run();
-      return json({ chapter: { id, projectId, title, body, sort_order: sortOrder, revision: 1 } }, 201);
+      const inserted = await env.DB.prepare(
+        "INSERT OR IGNORE INTO chapters (id, project_id, title, body, sort_order) VALUES (?, ?, ?, ?, ?)"
+      ).bind(id, projectId, title, body, sortOrder).run();
+      const chapter = await env.DB.prepare(
+        "SELECT id, project_id, title, body, sort_order, revision, created_at, updated_at FROM chapters WHERE id = ?"
+      ).bind(id).first();
+      if (!chapter || chapter.project_id !== projectId) throw new Error("CONFLICT");
+      return json({ chapter, created: Boolean(inserted.meta?.changes) }, inserted.meta?.changes ? 201 : 200);
     }
   }
 
