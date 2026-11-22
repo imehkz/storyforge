@@ -959,6 +959,7 @@ async function deleteCloudProject(projectId) {
         $("projectMemory").value = "";
         cloud.chapters = [];
         cloud.modules = { characters: [], relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: [] };
+        localStorage.removeItem("sf_cloud_active_project_id");
         renderChapterSelect();
         renderModuleLists();
       }
