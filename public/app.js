@@ -1076,8 +1076,12 @@ function renderRelationshipGraph() {
     const from = positions.get(rel.source_character_id);
     const to = positions.get(rel.target_character_id);
     if (!from || !to) return "";
-    const x1 = from.x + nodeWidth / 2, y1 = from.y + nodeHeight / 2;
-    const x2 = to.x + nodeWidth / 2, y2 = to.y + nodeHeight / 2;
+    const cx1 = from.x + nodeWidth / 2, cy1 = from.y + nodeHeight / 2;
+    const cx2 = to.x + nodeWidth / 2, cy2 = to.y + nodeHeight / 2;
+    const dx = cx2 - cx1, dy = cy2 - cy1;
+    const scale = Math.min((nodeWidth / 2) / Math.max(1, Math.abs(dx)), (nodeHeight / 2) / Math.max(1, Math.abs(dy)));
+    const x1 = cx1 + dx * scale, y1 = cy1 + dy * scale;
+    const x2 = cx2 - dx * scale, y2 = cy2 - dy * scale;
     const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - 8;
     return `<g><path d="M ${x1} ${y1} L ${x2} ${y2}" stroke="#8b744e" stroke-width="1.6" fill="none" marker-end="url(#relationArrow)"/><text x="${mx}" y="${my}" fill="#d9c79f" font-size="10" text-anchor="middle">${escapeHtml(rel.relationship_type || "เกี่ยวข้อง")}</text></g>`;
   }).join("");
