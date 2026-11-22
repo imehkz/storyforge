@@ -612,7 +612,7 @@ function updateWordGoal(knownWordCount) {
 }
 
 function save(changedKey = "") {
-  keys.forEach(key => localStorage.setItem(storageKeyFor(key), $(key).value));
+  keys.forEach(key => localStorage.setItem(storageKeyFor(key), key === "genre" ? getProjectGenre() : $(key).value));
   $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกฉบับกู้คืนในอุปกรณ์นี้แล้ว';
   renderDashboard();
   if (cloud.authenticated && cloud.ready && cloud.activeProjectId && cloud.activeChapterId &&
