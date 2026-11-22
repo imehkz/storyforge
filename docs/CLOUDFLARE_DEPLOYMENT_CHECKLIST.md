@@ -26,7 +26,7 @@ Do not commit cloudflare/wrangler.toml; it contains account-specific resource id
 
 Do not put secrets in source files, Wrangler vars, frontend code, or chat. Configure secrets with Wrangler's secret mechanism only after the OAuth flow is implemented and reviewed. Future values include the GitHub OAuth client secret, owner GitHub numeric ID, and strong encryption/session secrets.
 
-The Worker now implements owner-only GitHub OAuth and project/chapter/module APIs. The browser editor is still localStorage-backed, so sign-in does not mean manuscript cloud sync. Do not deploy it as a finished writing app until the frontend data migration and end-to-end tests are complete.
+The Worker now implements owner-only GitHub OAuth and project/chapter/module APIs. The browser editor source is connected to those APIs for cloud projects, chapters, autosave, snapshots, and studio modules, while retaining local recovery drafts. These paths cannot be exercised until Worker/D1/OAuth are configured. Do not deploy as a finished writing app before end-to-end tests.
 
 ## Release gates
 
@@ -42,7 +42,7 @@ The Worker now implements owner-only GitHub OAuth and project/chapter/module API
 
 ## Current state
 
-The Worker now serves static assets and owner-authenticated APIs, but the browser editor still stores manuscript data locally. Copilot is not hosted on Workers. This checklist does not authorize paid runtime or shared Copilot credentials.
+The Worker now serves static assets and owner-authenticated APIs. The browser editor has API integration but also retains device-local recovery copies; live cloud operation requires configuration and deployment. Copilot is not hosted on Workers. This checklist does not authorize paid runtime or shared Copilot credentials.
 
 
 ## Updated runtime setup
