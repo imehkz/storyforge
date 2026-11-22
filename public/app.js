@@ -1932,6 +1932,7 @@ function init() {
 
   setupAuthEvents();
   if ($("wordGoal")) $("wordGoal").value = localStorage.getItem("sf_chapter_word_goal") || "1000";
+  updateWordGoal();
   setupCloudEvents();
   setupModuleEvents();
   refreshAuthStatus();
