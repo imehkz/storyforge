@@ -93,8 +93,8 @@ This test validates SQLite-compatible migration behavior only. It does not prove
 ## Repository safety and automated checks
 
 - Added a root .gitignore for Wrangler account config, local vars, environment files, local databases, and backup artifacts.
-- Added .github/workflows/d1-schema.yml to run the Python schema test on pushes and pull requests. GitHub-hosted CI has not yet reported a result for this commit.
-- The workflow validates SQLite-compatible schema constraints only. It does not test Cloudflare runtime behavior or authentication.
+- Expanded .github/workflows/d1-schema.yml to run Worker/app JavaScript syntax checks, DOCX/EPUB ZIP smoke tests, Python schema/security-contract tests, and the D1 schema check on pushes and pull requests.
+- GitHub-hosted CI passing status has not yet been confirmed. These tests do not replace live Cloudflare Worker/D1 integration or browser testing.
 
 
 
