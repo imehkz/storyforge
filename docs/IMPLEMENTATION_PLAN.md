@@ -194,13 +194,14 @@ No hosting resources or secrets have been provisioned, and no production deploym
 - Connected the Dashboard character/plot/world counts to the current project's records.
 - Fixed a duplicate HTML ID between the Manuscript panel and its textarea while preserving the historical `sf_manuscript` backup key.
 - Added a source-level HTML ID uniqueness check and expanded Worker contract tests.
+- Added offline DOCX and EPUB export generators using stored ZIP packages, plus an A4 browser print-to-PDF flow. Added Node-based ZIP structure/CRC smoke tests to CI.
 
 ### Verification status
 
 - In-session JavaScript syntax parsing passed for both `public/app.js` and the Worker module source (with the ESM export normalized for the parser).
 - In-session static contract checks passed for owner allowlisting, CSRF/origin checks, atomic snapshot batches, stable import IDs, module CRUD wiring, local recovery, unique HTML IDs, and DOM ID references.
 - SQLite smoke tests passed for both D1 migrations, expected table creation, cross-project relationship rejection, cascade deletion, chapter snapshot/update SQL, stale revision rejection, ordering, and snapshot cleanup. These are local SQLite checks, not a live D1 runtime test.
-- GitHub Actions is configured to check Worker/app JavaScript syntax, both Python test suites, and the D1 schema on branch pushes. No passing Actions run is confirmed yet.
+- GitHub Actions is configured to check Worker/app JavaScript syntax, DOCX/EPUB ZIP integrity, both Python test suites, and the D1 schema on branch pushes. No passing Actions run is confirmed yet.
 - No browser test or live Cloudflare Worker/D1 integration test has been run.
 - Figma MCP calls are currently blocked by the Starter plan call limit, and the connected Figma seat is View-only. No Figma source file was modified.
 
@@ -209,6 +210,6 @@ No hosting resources or secrets have been provisioned, and no production deploym
 1. Owner provisions D1 and GitHub OAuth configuration, then applies migrations.
 2. Verify CI and run the Worker locally with D1; test owner denial, CSRF/origin rejection, cross-project isolation, import retry, autosave, conflict, move/delete, restore, and backups.
 3. Run browser tests on desktop/tablet and review accessibility/contrast against the approved Figma frames.
-4. Implement and verify DOCX, PDF, and EPUB export. Current manuscript export remains TXT.
+4. Validate the new DOCX and EPUB ZIP packages in Microsoft Word/LibreOffice and an EPUB reader; validate the A4 browser print-to-PDF flow on desktop and Android. TXT, DOCX, EPUB, and print-to-PDF source implementations are now present.
 5. Design and approve a compatible per-user Copilot runtime; AI remains disabled.
 6. Only after the above, request explicit approval for a private preview deployment. No production deployment or merge to `main` is authorized.
