@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const source = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
+const stylesheet = await readFile(new URL("../public/style.css", import.meta.url), "utf8");
 
 function extractFunction(name) {
   const expression = new RegExp("function " + name + "\\([\\s\\S]*?\\n\\}");
@@ -87,4 +88,9 @@ assert.ok(epubFiles.has("META-INF/container.xml"));
 assert.ok(epubFiles.has("OEBPS/content.opf"));
 assert.ok(epubFiles.get("OEBPS/chapter.xhtml").includes("บททดสอบ &amp; &lt;tag&gt;"));
 
-console.log("Export smoke tests passed: DOCX package and EPUB package are valid stored ZIP archives.");
+assert.ok(source.includes("function exportManuscriptPdf"));
+assert.ok(source.includes("window.print()"));
+assert.ok(stylesheet.includes("@page { size: A4"));
+assert.ok(stylesheet.includes("#printManuscriptText"));
+
+console.log("Export smoke tests passed: DOCX and EPUB ZIP packages are valid; A4 print-to-PDF flow is wired.");
