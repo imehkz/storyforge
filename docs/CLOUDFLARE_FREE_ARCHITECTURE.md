@@ -73,3 +73,15 @@ Official references:
 ## Copilot decision
 
 Cloudflare Workers is the free hosting target for the web UI and D1-backed application API. It is not the Copilot SDK host. Keep Copilot disabled until a separate compatible Node.js runtime can be operated without sharing the owner's Copilot credentials or quota. Do not silently add a paid Node host.
+
+
+## Additional implementation progress — 22 November 2026
+
+- Added migration 0002 for project-scoped characters, character relationships, plot threads, world lore, timeline events, story notes, and asset metadata.
+- Character relationships use composite foreign keys that require both characters to belong to the same project. This is a database integrity guard, not a substitute for authenticated owner checks.
+- Added a dependency-free SQLite schema test at tests/check_d1_schema.py. It checks required tables, rejects orphan child rows, rejects cross-project character relationships, and checks project-delete cascades.
+- Added docs/CLOUDFLARE_DEPLOYMENT_CHECKLIST.md with owner-operated setup steps and explicit no-billing/no-secret-commit gates.
+
+Run the local schema check with: python3 tests/check_d1_schema.py
+
+This test validates SQLite-compatible migration behavior only. It does not prove Cloudflare deployment compatibility, OAuth security, API authorization, or live D1 behavior.
