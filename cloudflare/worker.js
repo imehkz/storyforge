@@ -465,7 +465,7 @@ async function api(request, env, url) {
       const sortOrder = input.sortOrder === undefined ? 0 :
         (Number.isInteger(input.sortOrder) && input.sortOrder >= 0 && input.sortOrder <= 1000000 ? input.sortOrder : (() => { throw new Error("INVALID_SORTORDER"); })());
       const inserted = await env.DB.prepare(
-        "INSERT OR IGNORE INTO chapters (id, project_id, title, body, sort_order) VALUES (?, ?, ?, ?, ?)"
+        "INSERT OR IGNORE INTO chapters (id, project_id, title, body, sort_order, word_count) VALUES (?, ?, ?, ?, ?, ?)"
       ).bind(id, projectId, title, body, sortOrder, countWords(body)).run();
       const chapter = await env.DB.prepare(
         "SELECT id, project_id, title, body, sort_order, word_count, revision, created_at, updated_at FROM chapters WHERE id = ?"
