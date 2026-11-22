@@ -79,7 +79,7 @@ function localProjectsForImport() {
   const localTitle = localStorage.getItem("sf_title") || "";
   const localManuscript = localStorage.getItem("sf_manuscript") || "";
   const localChapterTitle = localStorage.getItem("sf_chapterTitle") || "";
-  if (!projects.length && (localTitle || localManuscript || localChapterTitle)) {
+  if (!projects.length && (localTitle || localManuscript || localChapterTitle || localStorage.getItem("sf_projectMemory"))) {
     projects = [{
       id: crypto.randomUUID(),
       title: localTitle || "นิยายที่นำเข้าจากอุปกรณ์",
