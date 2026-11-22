@@ -560,11 +560,11 @@ function countWords(text) {
   return value.trim().split(/\s+/).filter(Boolean).length;
 }
 
-function updateWordGoal() {
+function updateWordGoal(knownWordCount) {
   const goal = Math.max(1, Math.min(100000, Number.parseInt($("wordGoal")?.value || "1000", 10) || 1000));
   if ($("wordGoal")) $("wordGoal").value = String(goal);
   localStorage.setItem("sf_chapter_word_goal", String(goal));
-  const words = countWords($("manuscriptBody")?.value || "");
+  const words = Number.isInteger(knownWordCount) ? knownWordCount : countWords($("manuscriptBody")?.value || "");
   if ($("wordGoalStatus")) $("wordGoalStatus").textContent =
     words.toLocaleString("th-TH") + " / " + goal.toLocaleString("th-TH") + " คำ";
   if ($("wordGoalProgress")) $("wordGoalProgress").style.width = Math.min(100, (words / goal) * 100) + "%";
@@ -574,9 +574,6 @@ function save(changedKey = "") {
   keys.forEach(key => localStorage.setItem(storageKeyFor(key), $(key).value));
   $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกฉบับกู้คืนในอุปกรณ์นี้แล้ว';
   renderDashboard();
-  const count = countWords($("manuscriptBody").value);
-  if ($("manuscriptCount")) $("manuscriptCount").textContent = count.toLocaleString("th-TH") + " คำ";
-  updateWordGoal();
   if (cloud.authenticated && cloud.ready && cloud.activeProjectId && cloud.activeChapterId &&
       ["chapterTitle", "manuscriptBody"].includes(changedKey)) {
     storeLocalChapterDraft(cloud.activeChapterId, {
@@ -620,7 +617,7 @@ function renderDashboard() {
   if ($("recentChapterTitle")) $("recentChapterTitle").textContent = chapter || "ยังไม่มีบทที่บันทึก";
   if ($("recentWordCount")) $("recentWordCount").textContent = chapterWords.toLocaleString("th-TH") + " คำ";
   if ($("manuscriptCount")) $("manuscriptCount").textContent = chapterWords.toLocaleString("th-TH") + " คำ";
-  updateWordGoal();
+  updateWordGoal(chapterWords);
 }
 
 function renderProjects() {
