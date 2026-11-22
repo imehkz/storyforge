@@ -1353,7 +1353,10 @@ async function moveActiveChapter(direction) {
       method: "POST", body: JSON.stringify({ direction })
     });
     const result = await cloudApi("/api/projects/" + encodeURIComponent(cloud.activeProjectId) + "/chapters");
-    cloud.chapters = result.chapters || [];
+    const activeBody = cloud.chapters.find(item => item.id === cloud.activeChapterId);
+    cloud.chapters = (result.chapters || []).map(item =>
+      item.id === cloud.activeChapterId ? { ...item, body: activeBody?.body ?? $("manuscriptBody").value } : item
+    );
     renderChapterSelect();
     $("saveState").innerHTML = '<span class="status-dot"></span>ปรับลำดับบทแล้ว';
   } catch (error) { alert("ปรับลำดับบทไม่สำเร็จ: " + error.message); }
