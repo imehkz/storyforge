@@ -971,11 +971,13 @@ async function loadCloudProject(projectId) {
   ]);
   await loadProjectModules(projectId);
   cloud.chapters = chapterResult.chapters || [];
+  const rememberedChapter = localStorage.getItem("sf_cloud_active_chapter_" + projectId) || "";
   const memoryNote = (noteResult.items || []).find(note => note.note_type === "project_memory");
   cloud.noteId = memoryNote?.id || "";
   if ($("projectMemory")) $("projectMemory").value = memoryNote?.content || "";
   renderChapterSelect();
-  const preferred = cloud.chapters.find(item => item.id === cloud.activeChapterId) || cloud.chapters[0];
+  const preferred = cloud.chapters.find(item => item.id === cloud.activeChapterId) ||
+    cloud.chapters.find(item => item.id === rememberedChapter) || cloud.chapters[0];
   if (preferred) await selectCloudChapter(preferred.id);
   else {
     cloud.activeChapterId = "";
@@ -1203,6 +1205,7 @@ async function selectCloudChapter(chapterId) {
     }
   }
   cloud.activeChapterId = item.id;
+  localStorage.setItem("sf_cloud_active_chapter_" + cloud.activeProjectId, item.id);
   cloud.revision = item.revision || 1;
   $("chapterTitle").value = item.title || "";
   $("manuscriptBody").value = item.body || "";
