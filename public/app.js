@@ -485,6 +485,11 @@ async function restoreCloudBackup(backupProjects) {
       method: "POST",
       body: JSON.stringify({ clientId: project.id, title: project.title || "นิยายที่กู้คืน", genre: project.genre || "", synopsis: project.synopsis || "" })
     });
+    if (project.status === "archived") {
+      await cloudApi("/api/projects/" + encodeURIComponent(project.id), {
+        method: "PATCH", body: JSON.stringify({ status: "archived" })
+      });
+    }
     for (const chapter of entry.chapters) {
       await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/chapters", {
         method: "POST",
@@ -504,7 +509,9 @@ async function restoreCloudBackup(backupProjects) {
           timeline: ["title", "description", "story_time", "sort_order"],
           notes: ["title", "content", "note_type", "pinned"]
         }[collection];
-        for (const field of allowed) if (item[field] !== undefined) payload[field] = item[field];
+        for (const field of allowed) {
+          if (item[field] !== undefined) payload[field] = field === "pinned" ? Boolean(item[field]) : item[field];
+        }
         await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/" + collection, {
           method: "POST", body: JSON.stringify(payload)
         });
