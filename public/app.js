@@ -19,6 +19,7 @@ const keys = [
 
 const cloud = {
   authenticated: false,
+  ready: false,
   csrfToken: "",
   userId: "",
   projects: [],
@@ -554,7 +555,7 @@ function save(changedKey = "") {
   renderDashboard();
   const count = $("manuscriptBody").value.length;
   if ($("manuscriptCount")) $("manuscriptCount").textContent = count.toLocaleString("th-TH") + " อักขระ";
-  if (cloud.authenticated && cloud.activeProjectId && cloud.activeChapterId &&
+  if (cloud.authenticated && cloud.ready && cloud.activeProjectId && cloud.activeChapterId &&
       ["chapterTitle", "manuscriptBody"].includes(changedKey)) {
     storeLocalChapterDraft(cloud.activeChapterId, {
       title: $("chapterTitle").value, body: $("manuscriptBody").value
@@ -1501,6 +1502,7 @@ async function refreshAuthStatus() {
     }
     if (response.status === 401) {
       cloud.authenticated = false;
+      cloud.ready = false;
       cloud.csrfToken = "";
       cloud.userId = "";
       cloud.projects = [];
@@ -1530,6 +1532,7 @@ async function refreshAuthStatus() {
     const result = await response.json();
     if (result.authenticated) {
       cloud.authenticated = true;
+      cloud.ready = false;
       cloud.csrfToken = result.csrfToken;
       cloud.userId = result.userId || result.user.githubLogin;
       state.textContent = "GitHub: " + result.user.githubLogin + " · Private Beta";
@@ -1538,12 +1541,15 @@ async function refreshAuthStatus() {
       logout.dataset.csrf = result.csrfToken;
       try {
         await loadCloudProjects();
+        cloud.ready = true;
       } catch (error) {
+        cloud.ready = false;
         state.textContent = "เข้าสู่ระบบแล้ว แต่โหลดโครงการไม่สำเร็จ · " + error.message;
         console.error("Cloud project loading failed:", error);
       }
     } else {
       cloud.authenticated = false;
+      cloud.ready = false;
       cloud.csrfToken = "";
       cloud.userId = "";
       cloud.projects = [];
@@ -1569,9 +1575,11 @@ async function refreshAuthStatus() {
     }
     if (callbackState) history.replaceState(null, "", location.pathname);
     const disclosure = document.querySelector(".local-disclosure");
-    if (disclosure) disclosure.textContent = cloud.authenticated
+    if (disclosure) disclosure.textContent = cloud.ready
       ? "เชื่อมต่อบัญชี Private Beta แล้ว · ต้นฉบับและโครงการที่เลือกจะบันทึกขึ้น Cloud พร้อมเก็บฉบับกู้คืนไว้ในอุปกรณ์นี้"
-      : "ต้นแบบพื้นที่ทำงานส่วนตัว · ข้อมูลในรุ่นนี้เก็บไว้ในเบราว์เซอร์เครื่องนี้ ยังไม่ซิงก์ขึ้นเซิร์ฟเวอร์";
+      : cloud.authenticated
+        ? "เข้าสู่ระบบแล้ว แต่บริการ Cloud ยังไม่พร้อม · ฉบับกู้คืนยังอยู่ในอุปกรณ์นี้"
+        : "ต้นแบบพื้นที่ทำงานส่วนตัว · ข้อมูลในรุ่นนี้เก็บไว้ในเบราว์เซอร์เครื่องนี้ ยังไม่ซิงก์ขึ้นเซิร์ฟเวอร์";
   } catch (error) {
     state.textContent = "ตรวจสอบสถานะบัญชีไม่ได้ · " + error.message;
     login.hidden = true;
