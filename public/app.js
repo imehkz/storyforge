@@ -12,7 +12,7 @@ const keys = [
   "genre",
   "context",
   "chapterTitle",
-  "manuscript",
+  "manuscriptBody",
   "projectMemory",
   "globalMemory"
 ];
@@ -34,6 +34,7 @@ const cloud = {
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const storageKeyFor = key => key === "manuscriptBody" ? "sf_manuscript" : "sf_" + key;
 const localMigrationKey = () => "sf_cloud_migrated_" + (cloud.userId || "owner");
 const migrationMapKey = () => "sf_cloud_migration_map_" + (cloud.userId || "owner");
 
@@ -61,7 +62,7 @@ async function cloudApi(path, options = {}) {
 function hasLocalNovelData() {
   const projects = safeJSON(localStorage.getItem("sf_projects") || "[]", []);
   return (Array.isArray(projects) && projects.length > 0) ||
-    keys.some(key => Boolean(localStorage.getItem("sf_" + key)));
+    keys.some(key => Boolean(localStorage.getItem(storageKeyFor(key))));
 }
 
 function localProjectsForImport() {
@@ -527,7 +528,7 @@ function load() {
 
   keys.forEach(key => {
 
-    const value = localStorage.getItem("sf_" + key);
+    const value = localStorage.getItem(storageKeyFor(key));
 
     if (value !== null && $(key)) {
       $(key).value = value;
@@ -539,10 +540,10 @@ function load() {
 }
 
 function save() {
-  keys.forEach(key => localStorage.setItem("sf_" + key, $(key).value));
+  keys.forEach(key => localStorage.setItem(storageKeyFor(key), $(key).value));
   $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกฉบับกู้คืนในอุปกรณ์นี้แล้ว';
   renderDashboard();
-  const count = $("manuscript").value.length;
+  const count = $("manuscriptBody").value.length;
   if ($("manuscriptCount")) $("manuscriptCount").textContent = count.toLocaleString("th-TH") + " อักขระ";
   if (cloud.authenticated && cloud.activeProjectId && cloud.activeChapterId) scheduleCloudSave();
 }
@@ -560,7 +561,7 @@ function renderDashboard() {
     : list.find(item => item.id && item.id === activeId) || list[0] || null;
   const title = active && active.title ? active.title : $("title").value;
   const chapter = $("chapterTitle").value;
-  const manuscript = $("manuscript").value;
+  const manuscript = $("manuscriptBody").value;
   const count = manuscript.length;
   if ($("sidebarProjectName")) $("sidebarProjectName").textContent = title || "ยังไม่ได้เลือกนิยาย";
   if ($("sidebarProjectMeta")) $("sidebarProjectMeta").textContent = active ? (active.genre || "นิยายของฉัน") + (cloud.authenticated ? " · Private Beta Cloud" : " · บันทึกในอุปกรณ์นี้") : "เริ่มต้นสร้างเรื่องราวของคุณ";
@@ -746,7 +747,7 @@ function setupEvents() {
     $("projectMemory").value = "";
     cloud.noteId = "";
     $("chapterTitle").value = "";
-    $("manuscript").value = "";
+    $("manuscriptBody").value = "";
     if ($("chapterSelect")) $("chapterSelect").innerHTML = '<option value="">ยังไม่มีบท</option>';
     if ($("chapterSaveHint")) $("chapterSaveHint").textContent = "บันทึกโครงการใหม่ก่อน แล้วจึงเพิ่มบทได้";
     renderProjects();
@@ -817,7 +818,7 @@ function setupEvents() {
 
     download(
       ($("chapterTitle").value || "manuscript") + ".txt",
-      $("manuscript").value
+      $("manuscriptBody").value
     );
   };
 }
@@ -914,7 +915,7 @@ async function loadCloudProject(projectId) {
     cloud.activeChapterId = "";
     cloud.revision = 0;
     $("chapterTitle").value = "";
-    $("manuscript").value = "";
+    $("manuscriptBody").value = "";
     if ($("chapterSaveHint")) $("chapterSaveHint").textContent = "โครงการนี้ยังไม่มีบท · กด “เพิ่มบท” เพื่อเริ่มเขียน";
     renderDashboard();
   }
@@ -1134,7 +1135,7 @@ async function selectCloudChapter(chapterId) {
   cloud.activeChapterId = item.id;
   cloud.revision = item.revision || 1;
   $("chapterTitle").value = item.title || "";
-  $("manuscript").value = item.body || "";
+  $("manuscriptBody").value = item.body || "";
   renderChapterSelect();
   if ($("chapterSaveHint")) $("chapterSaveHint").textContent =
     "บันทึกบทบน Cloud · Revision " + cloud.revision + " · มีฉบับกู้คืนในอุปกรณ์นี้";
@@ -1156,7 +1157,7 @@ async function saveCloudChapter() {
   cloud.saving = true;
   const chapterId = cloud.activeChapterId;
   const expectedRevision = cloud.revision;
-  const draft = { title: $("chapterTitle").value, body: $("manuscript").value };
+  const draft = { title: $("chapterTitle").value, body: $("manuscriptBody").value };
   cloud.savePromise = (async () => {
     try {
       const result = await cloudApi("/api/chapters/" + encodeURIComponent(chapterId), {
@@ -1186,7 +1187,7 @@ async function saveCloudChapter() {
       cloud.saving = false;
       cloud.savePromise = null;
       if (cloud.activeChapterId === chapterId &&
-          ($("chapterTitle").value !== draft.title || $("manuscript").value !== draft.body)) {
+          ($("chapterTitle").value !== draft.title || $("manuscriptBody").value !== draft.body)) {
         scheduleCloudSave();
       }
     }
@@ -1372,7 +1373,7 @@ async function refreshAuthStatus() {
       login.hidden = false;
       logout.hidden = true;
       keys.forEach(key => {
-        const value = localStorage.getItem("sf_" + key);
+        const value = localStorage.getItem(storageKeyFor(key));
         if (value !== null && $(key)) $(key).value = value;
       });
       renderProjects();
