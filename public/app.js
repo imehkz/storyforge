@@ -713,7 +713,7 @@ async function refreshAuthStatus() {
   if (!state || !login || !logout) return;
 
   const callbackState = new URLSearchParams(location.search).get("auth");
-  if (callbackState === "not-allowed") state.textContent = "此 GitHub 帳戶沒有私人測試權์";
+  if (callbackState === "not-allowed") state.textContent = "บัญชี GitHub นี้ไม่ได้รับอนุญาตให้เข้า Private Beta";
   else if (callbackState === "failed") state.textContent = "เข้าสู่ระบบไม่สำเร็จ";
   else if (callbackState === "success") state.textContent = "เข้าสู่ระบบสำเร็จ กำลังตรวจสอบ…";
 
