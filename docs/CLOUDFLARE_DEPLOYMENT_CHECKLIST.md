@@ -26,7 +26,7 @@ Do not commit cloudflare/wrangler.toml; it contains account-specific resource id
 
 Do not put secrets in source files, Wrangler vars, frontend code, or chat. Configure secrets with Wrangler's secret mechanism only after the OAuth flow is implemented and reviewed. Future values include the GitHub OAuth client secret, owner GitHub numeric ID, and strong encryption/session secrets.
 
-The current Worker intentionally does not implement login or project APIs. Do not deploy it as a finished multi-user app.
+The Worker now implements owner-only GitHub OAuth and project/chapter/module APIs. The browser editor is still localStorage-backed, so sign-in does not mean manuscript cloud sync. Do not deploy it as a finished writing app until the frontend data migration and end-to-end tests are complete.
 
 ## Release gates
 
@@ -42,7 +42,7 @@ The current Worker intentionally does not implement login or project APIs. Do no
 
 ## Current state
 
-The Worker scaffold only serves static assets and a health endpoint; other API routes return 503. The browser app still stores manuscript data locally. Copilot is not hosted on Workers. This checklist does not authorize paid runtime or shared Copilot credentials.
+The Worker now serves static assets and owner-authenticated APIs, but the browser editor still stores manuscript data locally. Copilot is not hosted on Workers. This checklist does not authorize paid runtime or shared Copilot credentials.
 
 
 ## Updated runtime setup
