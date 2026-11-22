@@ -164,7 +164,12 @@ async function oauthCallback(request, env) {
   const tokenResponse = await fetch("https://github.com/login/oauth/access_token", {
     method: "POST",
     headers: { "Accept": "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify({ client_id: env.GITHUB_CLIENT_ID, client_secret: env.GITHUB_CLIENT_SECRET, code })
+    body: JSON.stringify({
+      client_id: env.GITHUB_CLIENT_ID,
+      client_secret: env.GITHUB_CLIENT_SECRET,
+      code,
+      redirect_uri: new URL("/auth/callback", request.url).toString()
+    })
   });
   if (!tokenResponse.ok) return redirect("/?auth=failed", { "Set-Cookie": clearState });
   const tokenData = await tokenResponse.json();
