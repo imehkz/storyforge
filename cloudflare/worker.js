@@ -32,6 +32,15 @@ const redirect = (url, extraHeaders = {}) => {
   }
   return new Response(null, { status: 302, headers });
 };
+const countWords = (value) => {
+  const text = typeof value === "string" ? value : "";
+  if (!text.trim()) return 0;
+  if (typeof Intl.Segmenter === "function") {
+    return Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment(text))
+      .filter(segment => segment.isWordLike).length;
+  }
+  return text.trim().split(/\\s+/).filter(Boolean).length;
+};
 const nowIso = () => new Date().toISOString();
 const addSeconds = (seconds) => new Date(Date.now() + seconds * 1000).toISOString();
 const randomToken = (bytes = 32) => {
@@ -440,7 +449,7 @@ async function api(request, env, url) {
     if (!owned) throw new Error("NOT_FOUND");
     if (method === "GET") {
       const rows = await env.DB.prepare(
-        "SELECT id, project_id, title, sort_order, revision, created_at, updated_at FROM chapters WHERE project_id = ? ORDER BY sort_order, created_at LIMIT 500"
+        "SELECT id, project_id, title, sort_order, word_count, revision, created_at, updated_at FROM chapters WHERE project_id = ? ORDER BY sort_order, created_at LIMIT 500"
       ).bind(projectId).all();
       return json({ chapters: rows.results || [] });
     }
@@ -457,9 +466,9 @@ async function api(request, env, url) {
         (Number.isInteger(input.sortOrder) && input.sortOrder >= 0 && input.sortOrder <= 1000000 ? input.sortOrder : (() => { throw new Error("INVALID_SORTORDER"); })());
       const inserted = await env.DB.prepare(
         "INSERT OR IGNORE INTO chapters (id, project_id, title, body, sort_order) VALUES (?, ?, ?, ?, ?)"
-      ).bind(id, projectId, title, body, sortOrder).run();
+      ).bind(id, projectId, title, body, sortOrder, countWords(body)).run();
       const chapter = await env.DB.prepare(
-        "SELECT id, project_id, title, body, sort_order, revision, created_at, updated_at FROM chapters WHERE id = ?"
+        "SELECT id, project_id, title, body, sort_order, word_count, revision, created_at, updated_at FROM chapters WHERE id = ?"
       ).bind(id).first();
       if (!chapter || chapter.project_id !== projectId) throw new Error("CONFLICT");
       return json({ chapter, created: Boolean(inserted.meta?.changes) }, inserted.meta?.changes ? 201 : 200);
@@ -505,7 +514,7 @@ async function api(request, env, url) {
     const input = await readJson(request);
     const snapshotId = requiredString(input.snapshotId, 80, "snapshotId");
     const current = await env.DB.prepare(
-      "SELECT c.id, c.project_id, c.title, c.body, c.sort_order, c.revision FROM chapters c JOIN projects p ON p.id = c.project_id WHERE c.id = ? AND p.owner_id = ?"
+      "SELECT c.id, c.project_id, c.title, c.body, c.sort_order, c.word_count, c.revision FROM chapters c JOIN projects p ON p.id = c.project_id WHERE c.id = ? AND p.owner_id = ?"
     ).bind(chapterId, ownerId).first();
     if (!current) throw new Error("NOT_FOUND");
     const snapshot = await env.DB.prepare(
@@ -517,13 +526,14 @@ async function api(request, env, url) {
     const title = optionalString(restored.title, 240, "title");
     const body = optionalString(restored.body, 500000, "body");
     const sortOrder = Number.isInteger(restored.sort_order) ? Math.max(0, Math.min(restored.sort_order, 1000000)) : current.sort_order;
+    const wordCount = countWords(body);
     const results = await env.DB.batch([
       env.DB.prepare(
-        "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'sort_order', sort_order, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
+        "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'sort_order', sort_order, 'word_count', word_count, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
       ).bind(crypto.randomUUID(), chapterId, current.revision, ownerId),
       env.DB.prepare(
-        "UPDATE chapters SET title = ?, body = ?, sort_order = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, sort_order, revision, updated_at"
-      ).bind(title, body, sortOrder, nowIso(), chapterId, current.revision, ownerId)
+        "UPDATE chapters SET title = ?, body = ?, sort_order = ?, word_count = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, sort_order, word_count, revision, updated_at"
+      ).bind(title, body, sortOrder, wordCount, nowIso(), chapterId, current.revision, ownerId)
     ]);
     const updated = results[1]?.results?.[0];
     if (!updated || !results[0]?.meta?.changes) throw new Error("CONFLICT");
@@ -552,13 +562,14 @@ async function api(request, env, url) {
       const body = input.body === undefined ? current.body : optionalString(input.body, 500000, "body");
       const sortOrder = input.sortOrder === undefined ? current.sort_order :
         (Number.isInteger(input.sortOrder) && input.sortOrder >= 0 && input.sortOrder <= 1000000 ? input.sortOrder : (() => { throw new Error("INVALID_SORTORDER"); })());
+      const wordCount = countWords(body);
       const results = await env.DB.batch([
         env.DB.prepare(
           "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'sort_order', sort_order, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
         ).bind(crypto.randomUUID(), chapterId, input.expectedRevision, ownerId),
         env.DB.prepare(
-          "UPDATE chapters SET title = ?, body = ?, sort_order = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, sort_order, revision, updated_at"
-        ).bind(title, body, sortOrder, nowIso(), chapterId, input.expectedRevision, ownerId)
+          "UPDATE chapters SET title = ?, body = ?, sort_order = ?, word_count = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, sort_order, word_count, revision, updated_at"
+        ).bind(title, body, sortOrder, wordCount, nowIso(), chapterId, input.expectedRevision, ownerId)
       ]);
       const updated = results[1]?.results?.[0];
       if (!updated || !results[0]?.meta?.changes) throw new Error("CONFLICT");
