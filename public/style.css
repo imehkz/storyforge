@@ -141,6 +141,10 @@
     padding: 0 !important;
     background: #fff !important;
   }
+  body.print-manuscript #manuscript .page-intro,
+  body.print-manuscript #manuscript .chapter-sidebar,
+  body.print-manuscript #manuscript .manuscript-tools-grid,
+  body.print-manuscript #manuscript .manuscript-topbar,
   body.print-manuscript #manuscript .chapter-toolbar,
   body.print-manuscript #manuscript .chapter-history,
   body.print-manuscript #manuscript label,
