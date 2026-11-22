@@ -675,6 +675,11 @@ function setupEvents() {
   // Save project
   $("saveProject").onclick = async () => {
     save();
+    if (cloud.authenticated && cloud.activeChapterId) {
+      if (cloud.saveTimer) { clearTimeout(cloud.saveTimer); cloud.saveTimer = null; }
+      const savedDraft = await saveCloudChapter();
+      if (!savedDraft && !confirm("บทปัจจุบันยังบันทึก Cloud ไม่สำเร็จ ต้องการบันทึกเฉพาะข้อมูลโครงการต่อหรือไม่? ฉบับในเครื่องยังคงอยู่")) return;
+    }
     let projects = safeJSON(localStorage.getItem("sf_projects") || "[]", []);
     if (!Array.isArray(projects)) projects = [];
     const activeLocalId = localStorage.getItem("sf_active_project_id");
@@ -1193,6 +1198,11 @@ async function createCloudChapter() {
   if (!cloud.authenticated || !cloud.activeProjectId) {
     alert("กรุณาเข้าสู่ระบบและเลือกโครงการก่อนครับ");
     return;
+  }
+  if (cloud.activeChapterId) {
+    if (cloud.saveTimer) { clearTimeout(cloud.saveTimer); cloud.saveTimer = null; }
+    const saved = await saveCloudChapter();
+    if (!saved && !confirm("บทปัจจุบันยังบันทึก Cloud ไม่สำเร็จ ต้องการสร้างบทใหม่หรือไม่? ฉบับในเครื่องยังคงอยู่")) return;
   }
   try {
     const result = await cloudApi("/api/projects/" + encodeURIComponent(cloud.activeProjectId) + "/chapters", {
