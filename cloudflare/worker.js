@@ -466,10 +466,10 @@ async function api(request, env, url) {
     ).bind(current.project_id, current.sort_order).first();
     if (!neighbor) return json({ ok: true, moved: false });
     await env.DB.batch([
-      env.DB.prepare("UPDATE chapters SET sort_order = ?, updated_at = ? WHERE id = ?")
-        .bind(neighbor.sort_order, nowIso(), current.id),
-      env.DB.prepare("UPDATE chapters SET sort_order = ?, updated_at = ? WHERE id = ?")
-        .bind(current.sort_order, nowIso(), neighbor.id)
+      env.DB.prepare("UPDATE chapters SET sort_order = ?, updated_at = ? WHERE id = ? AND project_id = ?")
+        .bind(neighbor.sort_order, nowIso(), current.id, current.project_id),
+      env.DB.prepare("UPDATE chapters SET sort_order = ?, updated_at = ? WHERE id = ? AND project_id = ?")
+        .bind(current.sort_order, nowIso(), neighbor.id, current.project_id)
     ]);
     return json({ ok: true, moved: true });
   }
