@@ -254,3 +254,5 @@
   .manuscript-tools-grid { grid-template-columns: 1fr; }
   .manuscript-card textarea { min-height: 360px; }
 }
+
+[hidden] { display: none !important; }
