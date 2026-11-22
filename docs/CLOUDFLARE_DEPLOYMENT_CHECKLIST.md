@@ -19,7 +19,7 @@ From the repository root, after installing Node.js and Wrangler locally:
 4. Apply migrations locally first: npx wrangler d1 migrations apply storyforge --local
 5. Run the schema/security checks from the repository root: python3 tests/check_d1_schema.py and python3 tests/check_worker_contract.py.
 6. Run JavaScript/export checks: node --input-type=module --check < cloudflare/worker.js, node --check public/app.js, and node tests/check_exports.mjs
-6. Only after reviewing the local result, apply migrations to remote D1: npx wrangler d1 migrations apply storyforge --remote
+7. Only after reviewing the local result, apply migrations to remote D1: npx wrangler d1 migrations apply storyforge --remote
 
 Do not commit cloudflare/wrangler.toml; it contains account-specific resource identifiers. The example file is safe to commit.
 
