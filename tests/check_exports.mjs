@@ -106,3 +106,5 @@ assert.ok(source.includes("snapshotHistory: false"), "Backup explicitly disclose
 assert.ok(source.includes("async function restoreCloudBackup(backupProjects)"), "Cloud backup restore is implemented");
 assert.ok(source.includes("clientId: chapter.id"), "Cloud restore preserves stable chapter IDs");
 assert.ok(source.includes("version: 2"), "New backup format is versioned");
+assert.ok(source.includes('field === "pinned" ? Boolean(item[field]) : item[field]'), "Cloud restore normalizes SQLite booleans");
+assert.ok(source.includes('if (project.status === "archived")'), "Cloud restore preserves archived project state");
