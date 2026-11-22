@@ -1266,6 +1266,45 @@ async function recoverLocalChapterDraft() {
   }
 }
 
+async function moveActiveChapter(direction) {
+  if (!cloud.authenticated || !cloud.activeChapterId) return;
+  if (cloud.saveTimer) { clearTimeout(cloud.saveTimer); cloud.saveTimer = null; }
+  const saved = await saveCloudChapter();
+  if (!saved) {
+    if (!confirm("บทปัจจุบันยังบันทึก Cloud ไม่สำเร็จ ต้องการเปลี่ยนลำดับต่อหรือไม่? ฉบับในเครื่องยังคงอยู่")) return;
+  }
+  try {
+    await cloudApi("/api/chapters/" + encodeURIComponent(cloud.activeChapterId) + "/move", {
+      method: "POST", body: JSON.stringify({ direction })
+    });
+    const result = await cloudApi("/api/projects/" + encodeURIComponent(cloud.activeProjectId) + "/chapters");
+    cloud.chapters = result.chapters || [];
+    renderChapterSelect();
+    $("saveState").innerHTML = '<span class="status-dot"></span>ปรับลำดับบทแล้ว';
+  } catch (error) { alert("ปรับลำดับบทไม่สำเร็จ: " + error.message); }
+}
+
+async function deleteActiveChapter() {
+  if (!cloud.authenticated || !cloud.activeChapterId) return;
+  if (!confirm("ต้องการลบบทนี้ออกจากโครงการหรือไม่? ฉบับกู้คืนในอุปกรณ์จะยังอยู่ แต่การลบ Cloud ไม่สามารถย้อนกลับได้")) return;
+  if (cloud.saveTimer) { clearTimeout(cloud.saveTimer); cloud.saveTimer = null; }
+  const deletedId = cloud.activeChapterId;
+  try {
+    await cloudApi("/api/chapters/" + encodeURIComponent(deletedId), { method: "DELETE" });
+    cloud.chapters = cloud.chapters.filter(item => item.id !== deletedId);
+    cloud.activeChapterId = "";
+    if (cloud.chapters.length) {
+      await selectCloudChapter(cloud.chapters[0].id);
+    } else {
+      cloud.revision = 0;
+      $("chapterTitle").value = "";
+      $("manuscriptBody").value = "";
+      renderChapterSelect();
+      $("saveState").textContent = "ลบบทแล้ว · โครงการยังไม่มีบท";
+    }
+  } catch (error) { alert("ลบบทไม่สำเร็จ: " + error.message); }
+}
+
 async function showChapterHistory() {
   const panel = $("chapterHistory");
   if (!cloud.authenticated || !cloud.activeChapterId) {
@@ -1453,6 +1492,9 @@ async function refreshAuthStatus() {
 function setupCloudEvents() {
   $("importLocalData")?.addEventListener("click", importLocalNovelData);
   $("newChapter")?.addEventListener("click", createCloudChapter);
+  $("moveChapterUp")?.addEventListener("click", () => moveActiveChapter("up"));
+  $("moveChapterDown")?.addEventListener("click", () => moveActiveChapter("down"));
+  $("deleteChapter")?.addEventListener("click", deleteActiveChapter);
   $("chapterSelect")?.addEventListener("change", event => selectCloudChapter(event.target.value));
   $("chapterHistoryButton")?.addEventListener("click", showChapterHistory);
   $("recoverLocalDraft")?.addEventListener("click", recoverLocalChapterDraft);
