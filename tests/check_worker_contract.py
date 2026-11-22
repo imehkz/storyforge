@@ -44,6 +44,7 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("X-CSRF-Token", WORKER)
         self.assertIn('request.headers.get("Origin")', WORKER)
         self.assertIn("storyforge_csrf", WORKER)
+        self.assertIn('headers.append("Set-Cookie", item)', WORKER)
         self.assertIn("revoked_at", WORKER)
 
     def test_project_queries_are_owner_scoped(self):
@@ -62,6 +63,7 @@ class WorkerContractTests(unittest.TestCase):
         self.assertGreaterEqual(WORKER.count("env.DB.batch(["), 2)
         self.assertIn("expectedRevision", WORKER)
         self.assertIn("resource_type = 'chapter'", WORKER)
+        self.assertIn("DELETE FROM snapshots WHERE resource_type = 'chapter'", WORKER)
         self.assertIn("/move", WORKER)
         self.assertIn("sort_order", WORKER)
 
