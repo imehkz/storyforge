@@ -17,14 +17,15 @@ From the repository root, after installing Node.js and Wrangler locally:
 2. From cloudflare/, run: npx wrangler d1 create storyforge
 3. Copy the returned database ID into cloudflare/wrangler.toml.
 4. Apply migrations locally first: npx wrangler d1 migrations apply storyforge --local
-5. Run the schema check from the repository root: python3 tests/check_d1_schema.py
+5. Run the schema/security checks from the repository root: python3 tests/check_d1_schema.py and python3 tests/check_worker_contract.py.
+6. Run JavaScript/export checks: node --input-type=module --check < cloudflare/worker.js, node --check public/app.js, and node tests/check_exports.mjs
 6. Only after reviewing the local result, apply migrations to remote D1: npx wrangler d1 migrations apply storyforge --remote
 
 Do not commit cloudflare/wrangler.toml; it contains account-specific resource identifiers. The example file is safe to commit.
 
 ## Configure Worker secrets
 
-Do not put secrets in source files, Wrangler vars, frontend code, or chat. Configure secrets with Wrangler's secret mechanism only after the OAuth flow is implemented and reviewed. Future values include the GitHub OAuth client secret, owner GitHub numeric ID, and strong encryption/session secrets.
+Do not put secrets in source files, Wrangler vars, frontend code, or chat. Configure sensitive values with Wrangler's secret mechanism. Required values are the GitHub OAuth client secret and owner GitHub numeric ID; optional Telegram backup requires its own secret, bot token, and chat ID. The current identity OAuth flow discards the GitHub access token, so no token-encryption key is required by this implementation.
 
 The Worker now implements owner-only GitHub OAuth and project/chapter/module APIs. The browser editor source is connected to those APIs for cloud projects, chapters, autosave, snapshots, and studio modules, while retaining local recovery drafts. These paths cannot be exercised until Worker/D1/OAuth are configured. Do not deploy as a finished writing app before end-to-end tests.
 
