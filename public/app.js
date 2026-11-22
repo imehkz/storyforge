@@ -1353,6 +1353,16 @@ async function refreshAuthStatus() {
       logout.hidden = true;
       return;
     }
+    if (response.status === 401) {
+      cloud.authenticated = false;
+      cloud.csrfToken = "";
+      const result = { authenticated: false };
+      state.textContent = "เซสชันหมดอายุหรือโทเคนตรวจสอบไม่ตรงกัน · กรุณาเข้าสู่ระบบใหม่";
+      login.hidden = false;
+      logout.hidden = true;
+      renderProjects();
+      return;
+    }
     if (!response.ok) throw new Error("ตรวจสอบบัญชีไม่สำเร็จ");
     const result = await response.json();
     if (result.authenticated) {
@@ -1363,7 +1373,12 @@ async function refreshAuthStatus() {
       login.hidden = true;
       logout.hidden = false;
       logout.dataset.csrf = result.csrfToken;
-      await loadCloudProjects();
+      try {
+        await loadCloudProjects();
+      } catch (error) {
+        state.textContent = "เข้าสู่ระบบแล้ว แต่โหลดโครงการไม่สำเร็จ · " + error.message;
+        console.error("Cloud project loading failed:", error);
+      }
     } else {
       cloud.authenticated = false;
       cloud.csrfToken = "";
