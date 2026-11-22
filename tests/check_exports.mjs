@@ -113,8 +113,8 @@ assert.ok(source.includes("ถึงขีดจำกัดที่ API ส่
 assert.ok(source.includes("validateCloudBackupData(cloudProjects)"), "Cloud restore is preflight-validated before confirmation and writes");
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const validateCloudBackupData = new Function("UUID_RE", extractFunction("validateCloudBackupData") +
-  "\nreturn validateCloudBackupData;")(UUID_RE);
+const validateCloudBackupData = new Function("UUID_RE", "countWords", extractFunction("validateCloudBackupData") +
+  "\nreturn validateCloudBackupData;")(UUID_RE, countWords);
 const projectId = "11111111-1111-4111-8111-111111111111";
 const characterId = "22222222-2222-4222-8222-222222222222";
 const chapterId = "33333333-3333-4333-8333-333333333333";
