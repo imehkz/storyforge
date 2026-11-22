@@ -1,0 +1,18 @@
+# Copy this file to cloudflare/wrangler.toml after creating a D1 database.
+# This template does not provision resources or enable billing.
+
+name = "storyforge"
+main = "worker.js"
+compatibility_date = "2026-11-22"
+workers_dev = true
+
+[assets]
+directory = "../public"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "storyforge"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+migrations_dir = "migrations"
