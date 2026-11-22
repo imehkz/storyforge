@@ -85,3 +85,11 @@ Cloudflare Workers is the free hosting target for the web UI and D1-backed appli
 Run the local schema check with: python3 tests/check_d1_schema.py
 
 This test validates SQLite-compatible migration behavior only. It does not prove Cloudflare deployment compatibility, OAuth security, API authorization, or live D1 behavior.
+
+
+## Repository safety and automated checks
+
+- Added a root .gitignore for Wrangler account config, local vars, environment files, local databases, and backup artifacts.
+- Added .github/workflows/d1-schema.yml to run the Python schema test on pushes and pull requests. GitHub-hosted CI has not yet reported a result for this commit.
+- The workflow validates SQLite-compatible schema constraints only. It does not test Cloudflare runtime behavior or authentication.
+
