@@ -159,3 +159,27 @@ See [SECURITY_AND_STORAGE_DECISIONS.md](./SECURITY_AND_STORAGE_DECISIONS.md) for
 7. Reassess Copilot separately; Workers is not the Node.js SDK runtime.
 
 No deployment, remote D1 creation, OAuth app, secret, paid plan, or production release has been performed.
+
+
+## Implementation progress — 22 November 2026
+
+- Implemented the Worker-side owner-only GitHub OAuth flow and session lifecycle.
+- Added CSRF protection for all mutating endpoints.
+- Added project and chapter CRUD, optimistic chapter revisions, snapshots, snapshot listing and restore.
+- Added project-scoped CRUD endpoints for character studio, relationships, plot threads, world lore, timeline, and notes.
+- Added optional secret-protected Telegram backup endpoint for the Cloudflare Worker.
+- Added browser sign-in/status/logout controls. The editor remains localStorage-backed; this UI does not claim cloud sync.
+- Added security headers and a restrictive CSP to static assets.
+- Expanded CI to run Node syntax checks and Python schema/security-contract checks.
+
+### Remaining before real private-beta use
+
+1. Owner creates GitHub OAuth App and configures exact callback URL.
+2. Owner creates Cloudflare D1 and configures Worker bindings/secrets.
+3. Apply migrations locally, then remote after owner review.
+4. Run CI and fix any failures; then exercise the Worker against local D1.
+5. Implement frontend API integration and explicit local-data import/migration with rollback.
+6. Add end-to-end tests for owner denial, CSRF, isolation, autosave, restore, and backup.
+7. Obtain explicit approval before any preview or production deployment.
+
+No hosting resources or secrets have been provisioned, and no production deployment has occurred.
