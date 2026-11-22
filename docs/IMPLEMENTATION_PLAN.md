@@ -111,6 +111,8 @@ Create a novel → add a chapter → write text → save → sign out/in → res
 
 ### Next safe implementation steps
 
+See [SECURITY_AND_STORAGE_DECISIONS.md](./SECURITY_AND_STORAGE_DECISIONS.md) for the reviewed OAuth, Copilot isolation, and hosting/storage constraints. In particular, Render Free Postgres is not suitable for durable manuscripts because it expires after 30 days; no paid storage or hosting has been approved.
+
 1. Run a local Node 22 syntax/runtime smoke test and verify all dashboard navigation and form controls.
 2. Add a local data migration and project-scoped storage contract before exposing project switching; do not pretend a project ID alone provides isolation.
 3. Design and implement fail-closed GitHub OAuth/session ownership before adding server-side project APIs.
