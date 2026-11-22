@@ -177,7 +177,7 @@ No deployment, remote D1 creation, OAuth app, secret, paid plan, or production r
 3. Apply migrations locally, then remote after owner review.
 4. Run CI and fix any failures; then exercise the Worker against local D1.
 5. Run end-to-end tests for owner denial, CSRF, isolation, autosave, restore, local import retry, and backup against a configured Worker/D1 environment.
-7. Obtain explicit approval before any preview or production deployment.
+6. Obtain explicit approval before any preview or production deployment.
 
 No hosting resources or secrets have been provisioned, and no production deployment has occurred.
 
