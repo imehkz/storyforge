@@ -592,7 +592,7 @@ function load() {
 }
 
 function countWords(text) {
-  const value = String(text || "");
+  const value = String(text || "").replace(/<[^>]*>/g, " ").replace(/&nbsp;/gi, " ");
   if (!value.trim()) return 0;
   if (typeof Intl !== "undefined" && typeof Intl.Segmenter === "function") {
     return Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment(value))
@@ -911,7 +911,7 @@ function setupEvents() {
   // Export manuscript
   $("export").onclick = () => {
     download(exportBaseName() + ".txt", [
-      $("title").value, $("chapterTitle").value, "", $("manuscriptBody").value
+      $("title").value, $("chapterTitle").value, "", getManuscriptText()
     ].join("\n"));
   };
   $("exportDocx").onclick = exportManuscriptDocx;
@@ -1940,7 +1940,7 @@ function setupCloudEvents() {
   $("replaceAll")?.addEventListener("click", () => {
     const search = $("findText").value;
     if (!search) return alert("กรุณาระบุคำที่ต้องการค้นหา");
-    const body = $("manuscriptBody").value;
+    const body = getManuscriptText();
     const count = body.split(search).length - 1;
     if (!count) { $("replaceStatus").textContent = "ไม่พบข้อความที่ค้นหา"; return; }
     $("manuscriptBody").value = body.split(search).join($("replaceText").value);
@@ -2095,7 +2095,7 @@ function wordParagraph(text, style = "") {
 function exportManuscriptDocx() {
   const title = $("title").value || "StoryForge Manuscript";
   const chapter = $("chapterTitle").value || "ต้นฉบับ";
-  const paragraphs = $("manuscriptBody").value.split(/\r?\n/).map(line => wordParagraph(line)).join("");
+  const paragraphs = getManuscriptText().split(/\r?\n/).map(line => wordParagraph(line)).join("");
   const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
 <w:body>${wordParagraph(title, "Title")}${wordParagraph(chapter, "Heading1")}${paragraphs}
@@ -2143,7 +2143,7 @@ function exportManuscriptEpub() {
   const title = $("title").value || "StoryForge Manuscript";
   const chapter = $("chapterTitle").value || "ต้นฉบับ";
   const identifier = "urn:uuid:" + crypto.randomUUID();
-  const paragraphs = $("manuscriptBody").value.split(/\r?\n/).map(line =>
+  const paragraphs = getManuscriptText().split(/\r?\n/).map(line =>
     line ? `<p>${xmlEscape(line)}</p>` : '<p class="blank">&#160;</p>'
   ).join("");
   const files = [
@@ -2170,7 +2170,7 @@ function exportManuscriptPdf() {
     $("title").value,
     $("chapterTitle").value,
     "",
-    $("manuscriptBody").value
+    getManuscriptText()
   ].filter((value, index) => value !== "" || index === 2).join("\n");
   document.body.classList.add("print-manuscript");
   const cleanup = () => {
@@ -2187,7 +2187,100 @@ function exportManuscriptPdf() {
 // START STORYFORGE
 // ==========================================
 
+function getManuscriptText() {
+  const editor = $("manuscriptEditor");
+  return editor ? (editor.innerText || "").replace(/\u00a0/g, " ").trimEnd() : String($("manuscriptBody")?.value || "");
+}
+
+function sanitizeManuscriptHtml(value) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(String(value || ""), "text/html");
+  const allowed = new Set(["P","DIV","BR","STRONG","B","EM","I","U","H1","H2","H3","BLOCKQUOTE","UL","OL","LI","SPAN"]);
+  doc.body.querySelectorAll("*").forEach(node => {
+    if (!allowed.has(node.tagName)) {
+      node.replaceWith(doc.createTextNode(node.textContent || ""));
+      return;
+    }
+    [...node.attributes].forEach(attr => {
+      if (attr.name !== "style") node.removeAttribute(attr.name);
+    });
+    if (node.hasAttribute("style")) {
+      const safe = [];
+      const style = node.getAttribute("style");
+      for (const declaration of style.split(";")) {
+        const [name, ...rest] = declaration.split(":");
+        const key = (name || "").trim().toLowerCase();
+        const val = rest.join(":").trim();
+        if (["text-align","font-family","font-size","line-height"].includes(key) &&
+            /^[\w\s,'"().-]+$/.test(val)) safe.push(key + ":" + val);
+      }
+      if (safe.length) node.setAttribute("style", safe.join(";"));
+      else node.removeAttribute("style");
+    }
+  });
+  return doc.body.innerHTML;
+}
+
+function setupManuscriptEditor() {
+  const field = $("manuscriptBody");
+  const editor = $("manuscriptEditor");
+  if (!field || !editor) return;
+  const descriptor = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value");
+  Object.defineProperty(field, "value", {
+    configurable: true,
+    get() { return descriptor.get.call(field); },
+    set(value) {
+      descriptor.set.call(field, value ?? "");
+      const stored = String(value || "");
+      const looksLikeMarkup = /<(p|div|br|strong|b|em|i|u|h[1-3]|blockquote|ul|ol|li|span)\b/i.test(stored);
+      if (looksLikeMarkup) editor.innerHTML = sanitizeManuscriptHtml(stored);
+      else editor.innerHTML = stored
+        ? stored.split(/\r?\n/).map(line => "<p>" + escapeHtml(line) + "</p>").join("")
+        : "";
+    }
+  });
+  editor.addEventListener("input", () => {
+    descriptor.set.call(field, editor.innerHTML);
+    save("manuscriptBody");
+  });
+  document.querySelectorAll("[data-editor-command]").forEach(button => {
+    button.addEventListener("mousedown", event => event.preventDefault());
+    button.addEventListener("click", () => {
+      editor.focus();
+      document.execCommand(button.dataset.editorCommand, false, null);
+      descriptor.set.call(field, editor.innerHTML);
+      save("manuscriptBody");
+    });
+  });
+  $("editorFont")?.addEventListener("change", event => {
+    editor.style.fontFamily = event.target.value;
+    editor.focus();
+  });
+  $("editorSize")?.addEventListener("change", event => {
+    editor.style.fontSize = event.target.value;
+    editor.focus();
+  });
+  $("editorLineHeight")?.addEventListener("change", event => {
+    editor.style.lineHeight = event.target.value;
+  });
+  $("editorPageMargin")?.addEventListener("change", event => {
+    editor.style.padding = event.target.value;
+  });
+  $("autoFormatManuscript")?.addEventListener("click", () => {
+    const paragraphs = getManuscriptText().split(/\n+/).map(line => line.trim()).filter(Boolean);
+    editor.innerHTML = paragraphs.map(line => "<p>" + escapeHtml(line) + "</p>").join("");
+    descriptor.set.call(field, editor.innerHTML);
+    save("manuscriptBody");
+    $("saveState").textContent = "จัดย่อหน้าเรียบร้อยแล้ว · ต้นฉบับเดิมยังคงอยู่";
+  });
+  $("aiFormatManuscript")?.addEventListener("click", () => {
+    alert("ปุ่ม AI ช่วยจัดหน้าถูกเตรียมไว้แล้ว แต่ระบบ AI ยังไม่เปิดใช้งานใน Private Beta รุ่นนี้ จึงยังไม่ส่งเนื้อหาออกไปประมวลผล และจะไม่แก้ไขต้นฉบับของคุณครับ");
+  });
+}
+
 function init() {
+
+  setupManuscriptEditor();
 
   addBackupPanel();
 
