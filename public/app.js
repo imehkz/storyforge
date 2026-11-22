@@ -37,6 +37,47 @@ const cloud = {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const storageKeyFor = key => key === "manuscriptBody" ? "sf_manuscript" : "sf_" + key;
+
+function getProjectGenre() {
+  const select = $("genre");
+  if (!select) return "";
+  return select.value === "__custom__"
+    ? ($("customGenre")?.value || "").trim()
+    : select.value;
+}
+
+function setProjectGenre(value = "") {
+  const select = $("genre");
+  if (!select) return;
+  const knownOption = Array.from(select.options).find(option =>
+    option.value !== "__custom__" && option.textContent.trim() === String(value).trim()
+  );
+  if (knownOption) {
+    select.value = knownOption.value;
+    if ($("customGenre")) $("customGenre").value = "";
+  } else if (String(value).trim()) {
+    select.value = "__custom__";
+    if ($("customGenre")) $("customGenre").value = String(value);
+  } else {
+    select.selectedIndex = 0;
+    if ($("customGenre")) $("customGenre").value = "";
+  }
+  if ($("customGenreField")) $("customGenreField").hidden = select.value !== "__custom__";
+}
+
+function setupCustomGenre() {
+  const select = $("genre");
+  if (!select) return;
+  select.addEventListener("change", () => {
+    const custom = select.value === "__custom__";
+    if ($("customGenreField")) $("customGenreField").hidden = !custom;
+    if (custom) $("customGenre")?.focus();
+    save("genre");
+  });
+  $("customGenre")?.addEventListener("input", () => {
+    if ($("genre")?.value === "__custom__") save("genre");
+  });
+}
 const localMigrationKey = () => "sf_cloud_migrated_" + (cloud.userId || "owner");
 const migrationMapKey = () => "sf_cloud_migration_map_" + (cloud.userId || "owner");
 const localChapterDraftKey = chapterId => "sf_cloud_draft_" + chapterId;
@@ -739,7 +780,7 @@ function setupEvents() {
     const item = {
       id: existing?.id || crypto.randomUUID(),
       title: $("title").value || "โครงการไม่มีชื่อ",
-      genre: $("genre").value,
+      genre: getProjectGenre(),
       context: $("context").value
     };
     projects = projects.filter(x => x.id !== item.id);
@@ -792,7 +833,7 @@ function setupEvents() {
     localStorage.removeItem("sf_active_project_id");
     localStorage.removeItem("sf_cloud_active_project_id");
     $("title").value = "";
-    $("genre").selectedIndex = 0;
+    setProjectGenre("");
     $("context").value = "";
     $("projectMemory").value = "";
     cloud.noteId = "";
@@ -995,7 +1036,7 @@ async function loadCloudProject(projectId) {
   cloud.activeProjectId = project.id;
   localStorage.setItem("sf_cloud_active_project_id", project.id);
   $("title").value = project.title || "";
-  $("genre").value = project.genre || $("genre").options[0]?.value || "";
+  setProjectGenre(project.genre || "");
   $("context").value = project.synopsis || "";
   const migrationMap = safeJSON(localStorage.getItem(migrationMapKey()) || "{}", {});
   const localProjectMatch = Object.entries(migrationMap).find(([, value]) => value.projectId === project.id);
@@ -2152,6 +2193,8 @@ function init() {
 
   load();
 
+  setupCustomGenre();
+  setProjectGenre(localStorage.getItem("sf_genre") || $("genre")?.value || "");
   setupEvents();
 
   setupBackupEvents();
