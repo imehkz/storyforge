@@ -66,7 +66,8 @@ function setProjectGenre(value = "") {
 }
 
 
-function writingSettingsKey(projectId) { return "sf_writing_settings_" + (projectId || localStorage.getItem("sf_active_project_id") || "draft"); }
+let writingSettingsProjectId = "";
+function writingSettingsKey(projectId) { return "sf_writing_settings_" + (projectId || writingSettingsProjectId || localStorage.getItem("sf_active_project_id") || "draft"); }
 function readWritingSettings() {
   const genres = {};
   document.querySelectorAll("[data-genre-level]").forEach(input => { genres[input.dataset.genreLevel] = Number(input.value) || 1; });
@@ -81,6 +82,7 @@ function readWritingSettings() {
   };
 }
 function loadWritingSettings(projectId) {
+  writingSettingsProjectId = projectId || localStorage.getItem("sf_active_project_id") || "draft";
   let data={};
   try { data=JSON.parse(localStorage.getItem(writingSettingsKey(projectId))||"{}"); } catch {}
   if ($("plannedChapterCount")) $("plannedChapterCount").value=data.chapterCount||20;
@@ -953,6 +955,7 @@ function setupEvents() {
         cloud.activeProjectId = project.id;
         cloud.projects = [project, ...cloud.projects.filter(x => x.id !== project.id)];
         await loadCloudProject(project.id);
+        loadWritingSettings(project.id);
         $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกโครงการบน Cloud แล้ว';
         alert("บันทึกโครงการไปยังบัญชี Private Beta แล้วครับ");
       } catch (error) {
@@ -960,6 +963,7 @@ function setupEvents() {
         alert("บันทึกขึ้น Cloud ไม่สำเร็จ: " + error.message + "\nข้อมูลฉบับในเครื่องยังคงอยู่ครับ");
       }
     } else {
+      loadWritingSettings(item.id);
       renderProjects();
       renderDashboard();
       alert("บันทึกข้อมูลนิยายไว้ในอุปกรณ์นี้แล้วครับ");
