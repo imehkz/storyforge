@@ -1163,7 +1163,7 @@ function renderModuleLists() {
   const worlds = cloud.modules["world-lore"] || [];
   const timeline = cloud.modules.timeline || [];
   const notes = cloud.modules.notes || [];
-  const empty = cloud.authenticated ? "ยังไม่มีรายการในโครงการนี้" : "เข้าสู่ระบบและเลือกโครงการเพื่อดูข้อมูล";
+  const empty = cloud.ready ? "ยังไม่มีรายการในโครงการนี้" : "เข้าสู่ระบบและเลือกโครงการเพื่อดูข้อมูล";
   const render = (id, items, collection, titleOf, detailOf) => {
     const target = $(id);
     if (!target) return;
