@@ -1092,6 +1092,64 @@ function renderRelationshipGraph() {
   target.innerHTML = `<svg viewBox="0 0 ${width} ${height}" width="100%" role="img" aria-label="แผนผังตัวละครและความสัมพันธ์"><defs><marker id="relationArrow" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="#8b744e"/></marker></defs>${edges}${nodes}</svg>`;
 }
 
+function renderPlotBoard(items) {
+  const target = $("plotBoard");
+  if (!target) return;
+  const columns = [
+    { key: "planned", title: "วางแผน" },
+    { key: "in_progress", title: "กำลังดำเนิน" },
+    { key: "completed", title: "เสร็จแล้ว" },
+    { key: "paused", title: "พักไว้" }
+  ];
+  target.innerHTML = columns.map(column => {
+    const cards = items.filter(item => item.status === column.key).map(item =>
+      `<article class="plot-board-card">
+        <b>${escapeHtml(item.title)}</b>
+        <p>${escapeHtml(item.summary || "ยังไม่มีคำอธิบาย")}</p>
+        <select data-plot-status="${escapeHtml(item.id)}" aria-label="เปลี่ยนสถานะเส้นเรื่อง">
+          ${columns.map(option => `<option value="${option.key}" ${option.key === item.status ? "selected" : ""}>${option.title}</option>`).join("")}
+        </select>
+        <div class="module-actions"><button type="button" class="outline-button compact" data-module-edit="plot-threads" data-module-id="${escapeHtml(item.id)}">แก้ไข</button><button type="button" class="outline-button compact" data-module-delete="plot-threads" data-module-id="${escapeHtml(item.id)}">ลบ</button></div>
+      </article>`
+    ).join("");
+    return `<section class="plot-board-column"><header><b>${column.title}</b><span>${items.filter(item => item.status === column.key).length}</span></header>${cards || '<p class="muted-note">ยังไม่มีเส้นเรื่อง</p>'}</section>`;
+  }).join("");
+  target.querySelectorAll("[data-plot-status]").forEach(select => {
+    select.addEventListener("change", async () => {
+      try {
+        await cloudApi("/api/projects/" + encodeURIComponent(cloud.activeProjectId) + "/plot-threads/" + encodeURIComponent(select.dataset.plotStatus), {
+          method: "PATCH", body: JSON.stringify({ status: select.value })
+        });
+        await loadProjectModules(cloud.activeProjectId);
+      } catch (error) { alert("เปลี่ยนสถานะเส้นเรื่องไม่สำเร็จ: " + error.message); }
+    });
+  });
+  target.querySelectorAll("[data-module-delete]").forEach(button =>
+    button.addEventListener("click", () => deleteModuleItem("plot-threads", button.dataset.moduleId))
+  );
+  target.querySelectorAll("[data-module-edit]").forEach(button =>
+    button.addEventListener("click", () => editModuleItem("plot-threads", button.dataset.moduleId))
+  );
+}
+
+function renderTimelineView(items) {
+  const target = $("timelineView");
+  if (!target) return;
+  if (!items.length) {
+    target.innerHTML = '<p class="muted-note">เพิ่มเหตุการณ์เพื่อสร้างเส้นเวลาของนิยาย</p>';
+    return;
+  }
+  target.innerHTML = `<div class="timeline-track">${items.map((item, index) =>
+    `<article class="timeline-event"><span class="timeline-index">${String(index + 1).padStart(2, "0")}</span><div class="timeline-event-content"><time>${escapeHtml(item.story_time || "ไม่ระบุเวลา")}</time><b>${escapeHtml(item.title)}</b><p>${escapeHtml(item.description || "")}</p><div class="module-actions"><button type="button" class="outline-button compact" data-module-edit="timeline" data-module-id="${escapeHtml(item.id)}">แก้ไข</button><button type="button" class="outline-button compact" data-module-delete="timeline" data-module-id="${escapeHtml(item.id)}">ลบ</button></div></div></article>`
+  ).join("")}</div>`;
+  target.querySelectorAll("[data-module-delete]").forEach(button =>
+    button.addEventListener("click", () => deleteModuleItem("timeline", button.dataset.moduleId))
+  );
+  target.querySelectorAll("[data-module-edit]").forEach(button =>
+    button.addEventListener("click", () => editModuleItem("timeline", button.dataset.moduleId))
+  );
+}
+
 function renderModuleLists() {
   const characters = cloud.modules.characters || [];
   const relationships = cloud.modules.relationships || [];
@@ -1123,6 +1181,8 @@ function renderModuleLists() {
   });
   render("worldList", worlds, "world-lore", item => item.title, item => [item.category, item.content].filter(Boolean).join(" · "));
   render("timelineList", timeline, "timeline", item => item.title, item => [item.story_time, item.description].filter(Boolean).join(" · "));
+  renderPlotBoard(plots);
+  renderTimelineView(timeline);
   render("storyNoteList", notes.filter(item => item.note_type !== "project_memory"), "notes", item => item.title || "บันทึกไม่มีชื่อ", item => item.content);
   renderRelationshipOptions();
   renderRelationshipGraph();
