@@ -1,0 +1,19 @@
+# Dependencies and local build output
+node_modules/
+.wrangler/
+dist/
+coverage/
+
+# Cloudflare account-specific configuration and secrets
+cloudflare/wrangler.toml
+cloudflare/.dev.vars
+.dev.vars
+.env
+.env.*
+!.env.example
+
+# Local databases and backups
+*.sqlite
+*.sqlite3
+*.db
+storyforge-backup-*.json
