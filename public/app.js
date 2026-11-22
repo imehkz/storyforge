@@ -1224,12 +1224,12 @@ function scheduleCloudSave() {
 async function saveCloudChapter() {
   if (!cloud.activeChapterId) return false;
   if (cloud.saving) return cloud.savePromise || false;
-  cloud.saving = true;
   const chapterId = cloud.activeChapterId;
   const expectedRevision = cloud.revision;
   const draft = { title: $("chapterTitle").value, body: $("manuscriptBody").value };
   const lastSaved = cloud.chapters.find(item => item.id === chapterId);
   if (lastSaved && lastSaved.title === draft.title && lastSaved.body === draft.body) return true;
+  cloud.saving = true;
   cloud.savePromise = (async () => {
     try {
       const result = await cloudApi("/api/chapters/" + encodeURIComponent(chapterId), {
