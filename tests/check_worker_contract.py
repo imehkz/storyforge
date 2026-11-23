@@ -83,7 +83,7 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("function storeLocalChapterDraft(chapterId, draft, revision = 0)", APP)
         self.assertIn("Local chapter recovery draft could not be stored", APP)
         self.assertIn("return false;", APP[APP.index("function storeLocalChapterDraft"):APP.index("async function cloudApi")])
-        save_function = APP[APP.index("function save(changedKey = \\\"\\\")"):APP.index("// ==========================================\\n// PROJECT NAVIGATION")]
+        save_function = APP[APP.index("function save(changedKey ="):APP.index("// ==========================================\\n// PROJECT NAVIGATION")]
         self.assertIn("localStorageReady = false", save_function)
         self.assertIn("scheduleCloudSave();", save_function)
 
