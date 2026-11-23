@@ -87,7 +87,7 @@ class D1SchemaTests(unittest.TestCase):
         self.db.execute("INSERT INTO world_lore(id, project_id, title, character_ids_json) VALUES ('world-1','p1','Kingdom', ?)", ('["char-1"]',))
         self.db.execute("INSERT INTO timeline_events(id, project_id, title, character_ids_json) VALUES ('event-1','p1','Battle', ?)", ('["char-1"]',))
         self.db.execute("INSERT INTO story_notes(id, project_id, title, character_ids_json) VALUES ('note-1','p1','Secret', ?)", ('["char-1"]',))
-        for table in ("plot_threads", "world_lore", "timeline_events"):
+        for table in ("plot_threads", "world_lore", "timeline_events", "story_notes"):
             self.db.execute(
                 "UPDATE " + table + " SET character_ids_json = COALESCE((SELECT json_group_array(value) FROM json_each(" + table + ".character_ids_json) WHERE value <> ?), '[]') WHERE project_id = ? AND EXISTS (SELECT 1 FROM json_each(" + table + ".character_ids_json) WHERE value = ?)",
                 ("char-1", "p1", "char-1"),
