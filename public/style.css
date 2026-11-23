@@ -862,3 +862,16 @@ input::placeholder,textarea::placeholder{color:rgba(154,169,190,.66)}
 #illustrationPrompt{font:13px/1.7 ui-monospace,monospace;min-height:190px}
 @media(max-width:850px){.illustration-studio-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.illustration-studio-grid .form-card{padding:16px}}
+
+/* Character Reference Vault */
+.character-vault-panel{margin-top:22px;padding:18px;border:1px solid var(--line);border-radius:8px;background:rgba(9,17,29,.5)}
+.character-vault-panel .section-heading{margin-bottom:12px}
+.character-vault-panel .section-heading p{font-size:12px;color:var(--muted)}
+.character-reference-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-top:14px}
+.character-reference-card{min-width:0;padding:10px;border:1px solid var(--line);border-radius:7px;background:#101a29}
+.character-reference-card img{width:100%;height:170px;object-fit:contain;background:#0a111c;border-radius:5px}
+.character-reference-meta{display:grid;gap:4px;padding:8px 0}
+.character-reference-meta b{color:var(--parchment);font-size:13px}
+.character-reference-meta small{color:var(--muted);font-size:11px;overflow-wrap:anywhere}
+.canonical-mark{display:inline-flex;padding:5px 8px;border-radius:4px;border:1px solid var(--gold);color:var(--gold);font-size:11px}
+@media(max-width:760px){.character-vault-panel{padding:12px}.character-reference-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}.character-reference-card img{height:135px}}
