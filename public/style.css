@@ -317,6 +317,9 @@
   font-size: 13px;
 }
 .relationship-graph svg { min-width: 540px; height: auto; display: block; }
+.relationship-node:focus-visible rect { stroke:#f0d69f; stroke-width:3; filter:drop-shadow(0 0 5px rgba(197,161,91,.55)); outline:none; }
+.relationship-edge:focus-visible path { stroke-width:4; opacity:1; }
+.relationship-edge:focus-visible text { font-weight:700; }
 
 /* Accessibility floor for the newly added manuscript and character controls. */
 .chapter-list-item b,
