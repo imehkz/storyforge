@@ -34,6 +34,7 @@
       <button class="nav" data-tab="timeline"><span class="nav-index">06</span><span>ลำดับเหตุการณ์</span></button>
       <button class="nav" data-tab="notes"><span class="nav-index">07</span><span>บันทึกเนื้อเรื่อง</span></button>
       <button class="nav" data-tab="manuscript"><span class="nav-index">08</span><span>ห้องเขียนต้นฉบับ</span></button>
+      <button class="nav" data-tab="cover"><span class="nav-index">10</span><span>ห้องออกแบบปก</span></button>
       <button class="nav" data-tab="assistant"><span class="nav-index">09</span><span>ผู้ช่วยเขียนนิยาย AI</span></button>
     </nav>
     <div class="sidebar-note">
@@ -351,6 +352,37 @@
                 <div class="progress-track"><span id="wordGoalProgress"></span></div>
               </section>
             </div>
+          </div>
+        </div>
+      </section>
+      <section id="cover" class="panel hidden">
+        <div class="page-intro"><div><span class="eyebrow">BOOK COVER STUDIO</span><h1>ห้องออกแบบปกนิยาย</h1><p>กำหนดหน้าปกให้ตรงกับโลกและตัวละครของนิยายแต่ละเรื่อง</p></div></div>
+        <div class="cover-studio-grid">
+          <div class="card-frame form-card">
+            <h2>รายละเอียดหน้าปก</h2>
+            <label for="coverTitle">ชื่อที่แสดงบนปก</label><input id="coverTitle" maxlength="180" placeholder="ชื่อเรื่องบนหน้าปก">
+            <label for="coverPenName">นามปากกา</label><input id="coverPenName" maxlength="120" placeholder="นามปากกาของผู้เขียน">
+            <label for="coverStyle">แนวภาพประกอบ</label>
+            <select id="coverStyle">
+              <option value="Classic Storybook">Classic Storybook</option><option value="Historical Illustration">Historical Illustration</option><option value="Dark Fantasy">Dark Fantasy</option><option value="Anime">Anime</option><option value="Modern">Modern</option><option value="Romance">Romance</option><option value="Pencil Sketch">Pencil Sketch</option><option value="Watercolor">Watercolor</option><option value="Custom">กำหนดเอง</option>
+            </select>
+            <label for="coverCharacters">ตัวละครบนปก (เลือกได้หลายคน)</label><select id="coverCharacters" multiple size="5" aria-describedby="coverCharacterHint"></select>
+            <p id="coverCharacterHint" class="form-hint">รายชื่อตัวละครจะดึงจากนิยายที่กำลังเลือกเท่านั้น</p>
+            <label for="coverBlurb">คำโปรยหลังปก</label><textarea id="coverBlurb" rows="4" maxlength="3000" placeholder="คำโปรยที่อยากให้ผู้อ่านเห็น"></textarea>
+            <label for="coverDirection">แนวทางภาพ / องค์ประกอบที่ต้องการ</label><textarea id="coverDirection" rows="5" maxlength="4000" placeholder="เช่น ปราสาทกลางหมอก แสงจันทร์สีเงิน องค์ประกอบสมมาตร โทนกรมท่าและทองโบราณ"></textarea>
+            <div class="row-actions"><button id="saveCoverBrief" class="gold-button" type="button">บันทึกแนวทางปก</button><button id="resetCoverBrief" class="outline-button" type="button">โหลดข้อมูลที่บันทึก</button></div>
+            <p id="coverSaveStatus" class="form-hint" role="status" aria-live="polite">ข้อมูลหน้าปกจะแยกเก็บตาม Project ID ในอุปกรณ์นี้</p>
+          </div>
+          <div class="card-frame cover-preview-card">
+            <span class="micro-label">COVER PROMPT PREVIEW</span>
+            <div class="cover-preview" aria-label="ตัวอย่างแนวทางหน้าปก">
+              <span class="cover-preview-mark">✦</span><strong id="coverPreviewTitle">ชื่อเรื่องของคุณ</strong><span class="cover-preview-rule"></span><small id="coverPreviewAuthor">นามปากกา</small>
+              <span class="cover-preview-style" id="coverPreviewStyle">CLASSIC STORYBOOK</span>
+            </div>
+            <h2>Prompt สำหรับส่งต่อไปยังเครื่องมือสร้างภาพ</h2>
+            <textarea id="coverPrompt" rows="13" aria-label="Prompt หน้าปกที่แก้ไขได้" placeholder="สร้าง Prompt จากรายละเอียดด้านซ้าย หรือพิมพ์แก้ไขเองได้"></textarea>
+            <div class="row-actions"><button id="buildCoverPrompt" class="outline-button" type="button">สร้าง Prompt จากข้อมูล</button><button id="copyCoverPrompt" class="gold-button" type="button">คัดลอก Prompt</button></div>
+            <div class="ai-notice">ขณะนี้ยังไม่มีระบบสร้างภาพปกเชื่อมต่ออยู่ ปุ่มนี้จึงเตรียมและคัดลอก Prompt เท่านั้น ยังไม่มีการสร้างภาพหรือเรียกบริการแบบคิดเงิน</div>
           </div>
         </div>
       </section>
