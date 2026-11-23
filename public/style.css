@@ -924,6 +924,7 @@ body.writing-focus-mode #manuscript .chapter-sidebar,
 body.writing-focus-mode #manuscript .manuscript-tools-grid {
   display: none !important;
 }
+body.writing-focus-mode .app-shell { display: grid; grid-template-columns: minmax(0, 1fr); }
 body.writing-focus-mode .main-area { width: 100%; min-width: 0; }
 body.writing-focus-mode .content-wrap { width: 100%; max-width: none; padding: 12px clamp(10px, 3vw, 42px) 36px; }
 body.writing-focus-mode #manuscript { width: 100%; max-width: 1180px; margin: 0 auto; }
