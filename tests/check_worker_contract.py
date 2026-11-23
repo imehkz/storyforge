@@ -250,6 +250,7 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('id="worldChapters"', HTML)
         self.assertIn('id="timelineChapters"', HTML)
         self.assertIn("createdCanonChapterLinks", APP)
+        self.assertIn("await validateChapterReferences(values.chapter_ids_json)", module_route)
 
     def test_plot_chapter_references_are_project_scoped_and_cleaned_on_delete(self):
         module_route = WORKER[WORKER.index("const moduleMatch"):WORKER.index("const chaptersMatch")]
