@@ -80,7 +80,7 @@ class WorkerContractTests(unittest.TestCase):
         )
 
     def test_cloud_restore_rolls_back_only_records_created_by_failed_restore(self):
-        restore = APP[APP.index("async function restoreCloudBackup"):APP.index("function restoreFromFile")]
+        restore = APP[APP.index("function validateCloudBackupData"):APP.index("function restoreFromFile")]
         self.assertIn("const createdProjects = new Set()", restore)
         self.assertIn("const createdItems = []", restore)
         self.assertIn("if (result.created)", restore)
