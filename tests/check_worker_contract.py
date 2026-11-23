@@ -174,6 +174,7 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("writingSettings.genres", APP)
         self.assertIn("writingWordGoalKey(active.id)", APP)
         self.assertIn("context.length > 40000", APP)
+        self.assertIn("projectGuardrail", APP)
 
     def test_character_profile_size_is_checked_before_cloud_save(self):
         self.assertIn("JSON.stringify(profile).length > 19000", APP)
