@@ -102,6 +102,47 @@ assert.ok(source.includes("function exportManuscriptDocx(chapters = null, projec
 assert.ok(source.includes("tocParagraphs"), "whole-novel DOCX includes a contents list");
 assert.ok(source.includes("<w:pageBreakBefore/>"), "whole-novel DOCX starts each chapter on a new page");
 assert.ok(source.includes("async function exportEntireNovelPdf()"), "whole-novel print-to-PDF flow is implemented");
+const txtDownloads = [];
+const txtCloud = {
+  authenticated: true, ready: true, activeProjectId: "project-1", activeChapterId: "chapter-1",
+  saveTimer: null, projects: [{ id: "project-1", title: "ตำนานแห่งแสงจันทร์", genre: "แฟนตาซี" }]
+};
+const txtElements = { exportBookTxt: { disabled: false, textContent: "TXT" }, chapterSaveHint: { textContent: "" } };
+const txtCloudApi = async path => {
+  if (path.endsWith("/chapters")) return { chapters: [
+    { id: "chapter-2", sort_order: 2, created_at: "2026-01-02" },
+    { id: "chapter-1", sort_order: 1, created_at: "2026-01-01" }
+  ] };
+  if (path.endsWith("/chapter-1")) return { chapter: { id: "chapter-1", project_id: "project-1", title: "คืนแรก", body: "บทภาษาไทยที่หนึ่ง", sort_order: 1 } };
+  if (path.endsWith("/chapter-2")) return { chapter: { id: "chapter-2", project_id: "project-1", title: "แสงรุ่งอรุณ", body: "บทภาษาไทยที่สอง", sort_order: 2 } };
+  throw new Error("Unexpected TXT export request: " + path);
+};
+const exportTxt = new Function("cloud", "$", "cloudApi", "saveCloudChapter", "download", "exportBaseName", "chapterHtmlToPlainText", "alert",
+  extractFunction("exportEntireNovelTxt") + "\nreturn exportEntireNovelTxt;")(
+  txtCloud, id => txtElements[id], txtCloudApi, async () => true,
+  (name, text) => txtDownloads.push({ name, text }), () => "storyforge-test",
+  value => value, message => { throw new Error(message); }
+);
+await exportTxt();
+assert.equal(txtDownloads.length, 1);
+assert.ok(txtDownloads[0].name.endsWith("-ทั้งเล่ม.txt"));
+assert.ok(txtDownloads[0].text.includes("ตำนานแห่งแสงจันทร์"));
+assert.ok(txtDownloads[0].text.indexOf("คืนแรก") < txtDownloads[0].text.indexOf("แสงรุ่งอรุณ"), "TXT chapters are exported in manuscript order");
+assert.ok(txtDownloads[0].text.includes("บทภาษาไทยที่หนึ่ง") && txtDownloads[0].text.includes("บทภาษาไทยที่สอง"), "TXT preserves complete Thai chapter text");
+assert.match(txtElements.chapterSaveHint.textContent, /2 บท/);
+
+const wrongProjectApi = async path => path.endsWith("/chapters")
+  ? { chapters: [{ id: "chapter-1", sort_order: 1 }] }
+  : { chapter: { id: "chapter-1", project_id: "another-project", title: "หลุดโครงการ", body: "ห้ามส่งออก" } };
+const protectedTxt = new Function("cloud", "$", "cloudApi", "saveCloudChapter", "download", "exportBaseName", "chapterHtmlToPlainText", "alert",
+  extractFunction("exportEntireNovelTxt") + "\nreturn exportEntireNovelTxt;")(
+  txtCloud, id => txtElements[id], wrongProjectApi, async () => true,
+  (name, text) => txtDownloads.push({ name, text }), () => "storyforge-test",
+  value => value, () => {}
+);
+await protectedTxt();
+assert.equal(txtDownloads.length, 1, "TXT export refuses chapters from another project");
+
 assert.ok(source.includes("totalSize > 12 * 1024 * 1024"), "whole-novel PDF export has a memory safety cap");
 assert.ok(source.includes("print-book-toc"), "whole-novel PDF includes a table of contents");
 assert.ok(stylesheet.includes("break-before: page"), "whole-novel PDF starts chapters on new pages");
