@@ -111,7 +111,7 @@ class WorkerContractTests(unittest.TestCase):
 
     def test_manuscript_html_is_sanitized_with_a_small_allowlist(self):
         self.assertIn("function sanitizeManuscriptHtml(value)", APP)
-        self.assertIn('new Set(["P","DIV","BR","STRONG","B","EM","I","U","H1","H2","H3","BLOCKQUOTE","UL","OL","LI","SPAN"])', APP)
+        self.assertIn('new Set(["P","DIV","BR","STRONG","B","EM","I","U","H1","H2","H3","BLOCKQUOTE","UL","OL","LI","SPAN","FIGURE","FIGCAPTION","IMG"])', APP)
         self.assertIn('if (attr.name !== "style") node.removeAttribute(attr.name);', APP)
         self.assertIn('["text-align","font-family","font-size","line-height"].includes(key)', APP)
         self.assertIn(".test(val)) safe.push", APP)
