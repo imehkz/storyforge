@@ -241,11 +241,13 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('"plot-threads": ["title", "summary", "status", "sort_order", "character_ids_json"]', restore)
         self.assertIn('"world-lore": ["category", "title", "content", "sort_order", "character_ids_json"]', restore)
         self.assertIn('timeline: ["title", "description", "story_time", "sort_order", "character_ids_json"]', restore)
+        self.assertIn('notes: ["title", "content", "note_type", "pinned", "character_ids_json"]', restore)
+        self.assertIn('for (const collection of ["plot-threads", "world-lore", "timeline", "notes"])', validation)
         self.assertIn('characterIds.has(id)', validation)
 
     def test_ai_context_includes_canonical_character_links(self):
         context = APP[APP.index("function buildStoryAssistantContext"):APP.index("async function copyStoryText")]
-        self.assertGreaterEqual(context.count('JSON.parse(item.character_ids_json || "[]")'), 3)
+        self.assertGreaterEqual(context.count('JSON.parse(item.character_ids_json || "[]")'), 4)
         self.assertIn("ตัวละครที่เกี่ยวข้อง:", context)
 
     def test_character_delete_cleans_project_canonical_references(self):
