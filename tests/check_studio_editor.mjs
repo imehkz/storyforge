@@ -61,6 +61,19 @@ assert.ok(recoveryHandler.includes("const chapterId = cloud.activeChapterId;") &
 assert.ok(recoveryHandler.includes("latest.chapter.id !== chapterId"),
   "recovery must verify that Cloud returned the requested chapter");
 
+const selectionStart = app.indexOf("async function selectCloudChapter(chapterId)");
+const selectionEnd = app.indexOf("\nfunction scheduleCloudSave", selectionStart);
+assert.ok(selectionStart >= 0 && selectionEnd > selectionStart,
+  "Cloud chapter selection handler must remain discoverable");
+const selectionHandler = app.slice(selectionStart, selectionEnd);
+const selectionFetch = selectionHandler.indexOf("await cloudApi(");
+const selectionGuard = selectionHandler.indexOf("selectionToken !== cloud.chapterSelectionToken", selectionFetch);
+assert.ok(selectionHandler.includes("const selectionToken = ++cloud.chapterSelectionToken;") &&
+  selectionFetch >= 0 && selectionGuard > selectionFetch,
+  "late Cloud responses must not replace a more recent chapter selection");
+assert.ok(selectionHandler.includes("loaded.chapter.id !== chapterId"),
+  "chapter selection must verify the returned chapter ID");
+
 assert.match(css, /@media \(min-width: 981px\) and \(max-width: 1280px\)[\s\S]*?#manuscript \.manuscript-layout\s*\{\s*grid-template-columns:\s*minmax\(150px, \.72fr\) minmax\(0, 2\.1fr\) minmax\(205px, \.96fr\)/,
   "tablet workspace must retain chapter, manuscript, and insight columns");
 assert.match(css, /@media \(min-width: 1281px\)[\s\S]*?#manuscript \.manuscript-layout\s*\{\s*grid-template-columns:\s*minmax\(190px, 220px\) minmax\(420px, 1fr\) minmax\(245px, 285px\)/,
