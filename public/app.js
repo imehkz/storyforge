@@ -1316,23 +1316,31 @@ function renderRelationshipGraph() {
       if(event.button!==0) return;
       const id=node.dataset.characterId, start=positions.get(id), rect=svg.getBoundingClientRect();
       const sx=(event.clientX-rect.left)*width/rect.width-start.x, sy=(event.clientY-rect.top)*height/rect.height-start.y;
+      let moved=false;
       node.setPointerCapture?.(event.pointerId);
       const move=e=>{
+        const dx=(e.clientX-event.clientX), dy=(e.clientY-event.clientY);
+        if(Math.hypot(dx,dy)>4) moved=true;
         const x=Math.max(0,Math.min(width-nodeWidth,(e.clientX-rect.left)*width/rect.width-sx));
         const y=Math.max(0,Math.min(height-nodeHeight,(e.clientY-rect.top)*height/rect.height-sy));
         positions.set(id,{x,y});
         saved[id]={x,y};
         node.setAttribute("transform","translate("+(x-start.x)+" "+(y-start.y)+")");
       };
-      const up=()=>{
+      const finish=()=>{
         node.removeEventListener("pointermove",move);
-        node.removeEventListener("pointerup",up);
+        node.removeEventListener("pointerup",finish);
+        node.removeEventListener("pointercancel",finish);
+        if(moved) node.dataset.dragged="true";
         localStorage.setItem(layoutKey,JSON.stringify(saved));
         renderRelationshipGraph();
       };
-      node.addEventListener("pointermove",move);node.addEventListener("pointerup",up,{once:true});
+      node.addEventListener("pointermove",move);
+      node.addEventListener("pointerup",finish,{once:true});
+      node.addEventListener("pointercancel",finish,{once:true});
     });
     node.addEventListener("click",event=> {
+      if(node.dataset.dragged==="true") { delete node.dataset.dragged; return; }
       if (event.target.closest?.("button")) return;
       const character=characters.find(item=>item.id===node.dataset.characterId);
       if(character) {
