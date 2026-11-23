@@ -553,6 +553,9 @@ async function api(request, env, url) {
       env.DB.prepare(
         "UPDATE chapters SET title = ?, body = ?, sort_order = ?, word_count = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, sort_order, word_count, revision, updated_at"
       ).bind(title, body, sortOrder, wordCount, nowIso(), chapterId, current.revision, ownerId)
+      env.DB.prepare(
+        "DELETE FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ?) AND id NOT IN (SELECT id FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ?) ORDER BY created_at DESC, id DESC LIMIT 100)"
+      ).bind(chapterId, chapterId, chapterId, chapterId)
     ]);
     const updated = results[1]?.results?.[0];
     if (!updated || !results[0]?.meta?.changes) throw new Error("CONFLICT");
@@ -589,6 +592,9 @@ async function api(request, env, url) {
         env.DB.prepare(
           "UPDATE chapters SET title = ?, body = ?, sort_order = ?, word_count = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, sort_order, word_count, revision, updated_at"
         ).bind(title, body, sortOrder, wordCount, nowIso(), chapterId, input.expectedRevision, ownerId)
+        env.DB.prepare(
+          "DELETE FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ?) AND id NOT IN (SELECT id FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ?) ORDER BY created_at DESC, id DESC LIMIT 100)"
+        ).bind(chapterId, chapterId, chapterId, chapterId)
       ]);
       const updated = results[1]?.results?.[0];
       if (!updated || !results[0]?.meta?.changes) throw new Error("CONFLICT");
