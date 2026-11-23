@@ -953,7 +953,9 @@ body.writing-focus-mode #manuscript { width: 100%; max-width: 1180px; margin: 0 
 body.writing-focus-mode #manuscript .manuscript-layout { display: block; width: 100%; }
 body.writing-focus-mode #manuscript .manuscript-main { width: 100%; max-width: none; }
 body.writing-focus-mode #manuscript .manuscript-card { padding: clamp(14px, 3vw, 34px); }
-body.writing-focus-mode #manuscript .chapter-meta-grid { display: grid; grid-template-columns: minmax(150px, .7fr) minmax(0, 2fr); gap: 10px; margin: 10px 0 14px; }
+body.writing-focus-mode #manuscript .publication-wide { grid-column: 1 / -1; }
+@media (max-width: 620px) { .publication-wide { grid-column: auto; } }
+.chapter-meta-grid { display: grid; grid-template-columns: minmax(150px, .7fr) minmax(0, 2fr); gap: 10px; margin: 10px 0 14px; }
 .chapter-meta-grid > div { min-width: 0; }
 .chapter-meta-grid textarea { min-height: 62px; resize: vertical; }
 @media (max-width: 620px) { .chapter-meta-grid { grid-template-columns: 1fr; } }
