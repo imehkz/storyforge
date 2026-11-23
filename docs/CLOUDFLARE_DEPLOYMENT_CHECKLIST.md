@@ -19,7 +19,7 @@ From the repository root, after installing Node.js and Wrangler locally:
 4. Apply migrations locally first: npx wrangler d1 migrations apply storyforge --local
 5. Run the schema/security checks from the repository root: python3 tests/check_d1_schema.py and python3 tests/check_worker_contract.py.
 6. Run JavaScript/export checks: node --input-type=module --check < cloudflare/worker.js, node --check public/app.js, and node tests/check_exports.mjs
-7. Only after reviewing the local result, apply migrations to remote D1: npx wrangler d1 migrations apply storyforge --remote
+7. For an isolated staging D1 database only, apply migrations after verifying its database ID and taking a staging backup. Never point this command at the existing `storyforge` production D1 database. Use a separate staging Wrangler configuration/database binding and verify the target before running any remote migration.
 
 Do not commit cloudflare/wrangler.toml; it contains account-specific resource identifiers. The example file is safe to commit.
 
@@ -28,6 +28,16 @@ Do not commit cloudflare/wrangler.toml; it contains account-specific resource id
 Do not put secrets in source files, Wrangler vars, frontend code, or chat. Configure sensitive values with Wrangler's secret mechanism. Required values are the GitHub OAuth client secret and owner GitHub numeric ID; optional Telegram backup requires its own secret, bot token, and chat ID. The current identity OAuth flow discards the GitHub access token, so no token-encryption key is required by this implementation.
 
 The Worker now implements owner-only GitHub OAuth and project/chapter/module APIs. The browser editor source is connected to those APIs for cloud projects, chapters, autosave, snapshots, and studio modules, while retaining local recovery drafts. These paths cannot be exercised until Worker/D1/OAuth are configured. Do not deploy as a finished writing app before end-to-end tests.
+
+## Staging-first migration safety
+
+Read-only inspection on 23 November 2026 found that the existing `storyforge` D1 database has only migrations `0001`–`0003` recorded as applied. The current feature branch contains migrations through `0012`. The existing Worker is serving 100% of traffic and is an earlier build. No isolated staging Worker/D1 was visible during that inspection.
+
+Therefore:
+- Do not run `wrangler d1 migrations apply storyforge --remote` against the existing production binding.
+- Create a separate staging D1 database and staging Worker first, with no production novel data.
+- Apply migrations `0001`–`0012` to staging in order, verify schema and all API flows, and run the browser/device acceptance suite.
+- Keep production unchanged until the owner reviews the staging evidence and explicitly approves a separate production migration and deployment plan.
 
 ## Release gates
 
