@@ -281,3 +281,11 @@ No hosting resources or secrets have been provisioned, and no production deploym
 - Added source-contract regression coverage for the storage-failure path. This does not replace a real-device offline/reload test; browser storage behavior still needs Android tablet QA.
 
 - Added an executable Node-based recovery test with simulated browser storage quota failures; CI verifies the local recovery error is contained and Cloud autosave is still scheduled.
+
+
+### Restore failure compensation — 23 November 2026
+
+- Cloud restore now records which projects, chapters, and module records were newly created by the current restore attempt. If a later write fails, it attempts to delete only those newly created records and restore any pre-existing project status changed by the attempt.
+- Existing projects and records are not deleted during compensation. Newly created projects are removed as a unit; their child records are left to the project's database cascade behavior.
+- Added executable Node tests for failure during module restore against both a newly created project and an existing project. CI passed on commit 91c387c.
+- This is best-effort compensating rollback, not a single D1 transaction. If the network fails during rollback, the UI reports that manual Cloud review is needed. Live Cloud restore/rollback still requires a controlled test with disposable data.
