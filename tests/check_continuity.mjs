@@ -8,8 +8,8 @@ assert.ok(start >= 0 && end > start, "continuity analyzer must exist");
 const helpers = [
   "function plotChapterIdsForCheck(plot) { try { const ids = JSON.parse(plot.chapter_ids_json || \"[]\"); return Array.isArray(ids) ? ids : []; } catch { return []; } }",
   "function chapterCharacterIdsForCheck(chapter) { try { const ids = JSON.parse(chapter.character_ids_json || \"[]\"); return Array.isArray(ids) ? ids : []; } catch { return []; } }"
-].join("\\n");
-const analyze = new Function(helpers + "\\n" + app.slice(start, end) + "\\nreturn analyzeStoryContinuity;")();
+].join("\n");
+const analyze = new Function(helpers + "\n" + app.slice(start, end) + "\nreturn analyzeStoryContinuity;")();
 
 const characters = [
   { id: "c1", name: "Mira", profile_json: JSON.stringify({ nickname: "Mi", aliases: "เจ้าหญิงเงา, Mira of Dawn" }) },
