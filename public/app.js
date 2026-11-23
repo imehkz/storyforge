@@ -910,7 +910,20 @@ function buildStoryAssistantContext() {
     "Project ID: " + (active.id || "Local"),
     "แนวเรื่อง: " + (active.genre || "ไม่ระบุ"),
     "",
-    "## เรื่องย่อและข้อมูลสำคัญ",
+    "## การตั้งค่าการเขียน",
+  ];
+  let writingSettings = {};
+  try { writingSettings = JSON.parse(localStorage.getItem(writingSettingsKey(active.id)) || "{}"); } catch {}
+  lines.push(
+    "จำนวนบทเป้าหมาย: " + (writingSettings.chapterCount || 20),
+    "จำนวนคำต่อบท: " + (writingSettings.wordsPerChapter || 2000),
+    "มุมมอง: " + (writingSettings.pov || "third"),
+    "สไตล์ภาษา: " + (writingSettings.style || "literary"),
+    "ขอบเขตฉากผู้ใหญ่: " + (writingSettings.adultContent || "off"),
+    "ข้อกำหนดเพิ่มเติม: " + (writingSettings.extraNotes || "ไม่มี")
+  );
+  Object.entries(writingSettings.genres || {}).forEach(([genre, level]) => lines.push("- " + genre + ": " + level + "/10"));
+  lines.push("", "## เรื่องย่อและข้อมูลสำคัญ",
     active.context || "ยังไม่มีข้อมูล",
     ""
   ];
