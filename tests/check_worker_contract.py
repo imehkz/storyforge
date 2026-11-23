@@ -233,7 +233,7 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("characterReferenceNames", APP)
 
     def test_canonical_character_references_survive_backup_and_restore(self):
-        restore = APP[APP.index("function validateCloudBackupData"):APP.index("async function restoreCloudBackup")]
+        restore = APP[APP.index("async function restoreCloudBackup"):APP.index("function restoreFromFile")]
         self.assertIn('character_ids_json: ["json_array", 8000]', WORKER)
         self.assertIn('"character_ids_json"', restore)
         self.assertIn('for (const collection of ["plot-threads", "world-lore", "timeline"])', restore)
