@@ -373,3 +373,14 @@ No hosting resources or secrets have been provisioned, and no production deploym
 ### Next 20 writer-first implementation tasks
 
 See [ROADMAP_NEXT_20.md](./ROADMAP_NEXT_20.md) for the ordered acceptance checklist. Scene Tracker is the first slice; it reuses project-scoped Story Notes with migration 0008 and does not require a new table or paid provider.
+
+
+### Scene and Canon-to-chapter tracking — 23 November 2026
+
+- Added a project-scoped Scene Tracker on top of Story Notes, with scene type, drafting status, descriptive purpose, linked chapters, and linked characters. Scenes can be created, edited, deleted, and opened in their associated manuscript chapters.
+- Added migration 0008 for scene metadata and chapter references. Existing Story Notes are preserved with default values.
+- Scene chapter links are validated against the active project by the Worker. Deleting a chapter removes its ID from plot and scene references in the same D1 batch.
+- Cloud Backup preflight validates scene references and Restore defers those links until after the referenced chapters have been recreated. Regression tests cover that ordering.
+- The Continuity Checker now flags unlinked planned scenes, dangling scene references, and scenes marked written when all linked chapters are empty.
+- Added project-scoped chapter links to World Lore and Timeline with migration 0009. Their links are validated on create/update, shown in lists, removed when a chapter is deleted, and restored only after chapters exist.
+- These are test-branch code changes only. Migrations 0008 and 0009 have not been applied to the live D1 database, and no deployment has occurred. Browser/tablet and live D1 integration checks remain outstanding.
