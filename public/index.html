@@ -36,6 +36,7 @@
       <button class="nav" data-tab="manuscript"><span class="nav-index">08</span><span>ห้องเขียนต้นฉบับ</span></button>
       <button class="nav" data-tab="assistant"><span class="nav-index">09</span><span>ผู้ช่วยเขียนนิยาย AI</span></button>
       <button class="nav" data-tab="cover"><span class="nav-index">10</span><span>ห้องออกแบบปก</span></button>
+      <button class="nav" data-tab="illustrations"><span class="nav-index">11</span><span>ห้องภาพประกอบ</span></button>
     </nav>
     <div class="sidebar-note">
       <span class="gold-text">✧ นิยายหนึ่งเรื่อง ทุกส่วนเชื่อมถึงกัน</span>
@@ -383,6 +384,35 @@
             <textarea id="coverPrompt" rows="13" aria-label="Prompt หน้าปกที่แก้ไขได้" placeholder="สร้าง Prompt จากรายละเอียดด้านซ้าย หรือพิมพ์แก้ไขเองได้"></textarea>
             <div class="row-actions"><button id="buildCoverPrompt" class="outline-button" type="button">สร้าง Prompt จากข้อมูล</button><button id="copyCoverPrompt" class="gold-button" type="button">คัดลอก Prompt</button></div>
             <div class="ai-notice">ขณะนี้ยังไม่มีระบบสร้างภาพปกเชื่อมต่ออยู่ ปุ่มนี้จึงเตรียมและคัดลอก Prompt เท่านั้น ยังไม่มีการสร้างภาพหรือเรียกบริการแบบคิดเงิน</div>
+          </div>
+        </div>
+      </section>
+      <section id="illustrations" class="panel hidden">
+        <div class="page-intro"><div><span class="eyebrow">ILLUSTRATION STUDIO</span><h1>ห้องภาพประกอบนิยาย</h1><p>เพิ่มภาพประกอบลงในต้นฉบับ ณ ตำแหน่งที่ต้องการ พร้อมคำบรรยายและแนวทางภาพ</p></div></div>
+        <div class="illustration-studio-grid">
+          <div class="card-frame form-card">
+            <h2>สร้างแนวทางภาพประกอบ</h2>
+            <label for="illustrationStyle">สไตล์ภาพ</label>
+            <select id="illustrationStyle"><option>Pencil Sketch</option><option>Ink Illustration</option><option>Ink Engraving</option><option>Watercolor</option><option>Classic Storybook</option><option>Historical Illustration</option><option>Custom</option></select>
+            <label for="illustrationMoment">ฉาก / ช่วงเวลาที่ต้องการวาด</label>
+            <textarea id="illustrationMoment" rows="4" maxlength="3000" placeholder="บรรยายฉาก ตัวละคร การกระทำ และอารมณ์ที่ต้องการ"></textarea>
+            <label for="illustrationDirection">รายละเอียดเพิ่มเติม</label>
+            <textarea id="illustrationDirection" rows="3" maxlength="2000" placeholder="แสง องค์ประกอบ มุมกล้อง โทนสี และสิ่งที่ต้องหลีกเลี่ยง"></textarea>
+            <div class="row-actions"><button id="buildIllustrationPrompt" class="outline-button" type="button">สร้าง Prompt จากนิยายนี้</button><button id="copyIllustrationPrompt" class="gold-button" type="button">คัดลอก Prompt</button></div>
+            <label for="illustrationPrompt">Prompt (แก้ไขได้)</label><textarea id="illustrationPrompt" rows="9" placeholder="Prompt สำหรับนำไปใช้กับเครื่องมือสร้างภาพ"></textarea>
+            <div class="ai-notice">ยังไม่มีผู้ให้บริการสร้างภาพเชื่อมต่อ จึงยังไม่สร้างภาพอัตโนมัติหรือส่งข้อมูลออกนอกระบบ</div>
+          </div>
+          <div class="card-frame form-card">
+            <h2>เพิ่มภาพลงในต้นฉบับ</h2>
+            <label for="illustrationFile">เลือกรูปภาพจากอุปกรณ์</label><input id="illustrationFile" type="file" accept="image/png,image/jpeg,image/webp">
+            <p class="form-hint">ระบบจะย่อภาพก่อนฝังในต้นฉบับ จำกัดประมาณ 180 KB ต่อภาพ เพื่อให้บันทึกและซิงก์ได้</p>
+            <label for="illustrationCaption">คำบรรยายใต้ภาพ</label><input id="illustrationCaption" maxlength="300" placeholder="เช่น ปราสาทอาร์เดนในคืนจันทรคราส">
+            <label for="illustrationAlign">ตำแหน่งภาพ</label><select id="illustrationAlign"><option value="center">กึ่งกลาง</option><option value="left">ชิดซ้าย</option><option value="right">ชิดขวา</option></select>
+            <label for="illustrationWidth">ขนาดภาพ</label><select id="illustrationWidth"><option value="100%">เต็มความกว้าง</option><option value="80%">กว้าง 80%</option><option value="60%">กว้าง 60%</option><option value="40%">กว้าง 40%</option></select>
+            <button id="insertIllustration" class="gold-button" type="button" disabled>แทรกภาพ ณ ตำแหน่งเคอร์เซอร์</button>
+            <p id="illustrationStatus" class="form-hint" role="status" aria-live="polite">เปิดห้องเขียนต้นฉบับและวางเคอร์เซอร์ในตำแหน่งที่ต้องการก่อนแทรกภาพ</p>
+            <div id="illustrationSelectedPreview" class="illustration-selected-preview" hidden></div>
+            <div class="ai-notice">ภาพจะถูกเก็บภายในเนื้อหาของบทที่เลือก ไม่ได้แชร์ข้ามนิยาย บันทึกบน Cloud จะรวมภาพไว้ในข้อมูลบทนั้น</div>
           </div>
         </div>
       </section>
