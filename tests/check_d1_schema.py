@@ -65,10 +65,10 @@ class D1SchemaTests(unittest.TestCase):
             self.db.execute("SELECT character_ids_json FROM chapters WHERE id='chapter-1'").fetchone()[0],
             '["char-1"]',
         )
-        with self.assertRaises(Exception):
+        with self.assertRaises(sqlite3.IntegrityError):
             self.db.execute(
                 "UPDATE chapters SET character_ids_json = ? WHERE id='chapter-1'",
-                ('["character-from-another-project"]',),
+                ("not-json",),
             )
 
     def test_child_rows_require_a_real_project(self):
