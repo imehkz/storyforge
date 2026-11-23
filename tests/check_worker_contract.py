@@ -55,6 +55,7 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('await env.DB.prepare("SELECT 1 AS ok").first()', WORKER)
         self.assertIn('error: "DATABASE_UNAVAILABLE"', WORKER)
         self.assertIn('databaseReady: true', WORKER)
+        self.assertIn("authConfigured: Boolean(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET && env.GITHUB_OWNER_ID)", WORKER)
 
     def test_project_queries_are_owner_scoped(self):
         self.assertIn("WHERE owner_id = ?", WORKER)
