@@ -492,7 +492,7 @@ async function exportEntireNovelTxt() {
       "แนวเรื่อง: " + (project.genre || "ไม่ระบุ"),
       "จำนวนบท: " + full.length,
       ""
-    ].filter((line, index) => line !== "" || index === sections.length - 1);
+    ];
     if (project.foreword) sections.push("คำนำ", "", project.foreword, "", "—".repeat(24), "");
     full.forEach((chapter, index) => {
       sections.push("บทที่ " + (index + 1) + " — " + (chapter.title || "บทไม่มีชื่อ"), "");
@@ -4232,7 +4232,7 @@ function exportManuscriptDocx(chapters = null, projectTitle = null) {
     : manuscriptHtmlToWord();
   const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
-<w:body>${wordParagraph(title, "Title")}${isWholeBook ? tocParagraphs : wordParagraph(chapter, "Heading1")}${paragraphs}
+<w:body>${wordParagraph(title, "Title")}${publicationFrontMatter}${isWholeBook ? tocParagraphs : wordParagraph(chapter, "Heading1")}${paragraphs}${publicationBackMatter}
 <w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>
 </w:body></w:document>`;
   const files = [
