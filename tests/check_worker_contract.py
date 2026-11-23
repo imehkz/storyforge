@@ -264,6 +264,8 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('id="plotChapters"', HTML)
         self.assertIn("promptChapterReferences", APP)
         self.assertIn("data-plot-chapter", APP)
+        self.assertIn("plot-linked-scenes", APP)
+        self.assertIn("data-plot-scene-chapter", APP)
 
     def test_plot_world_and_timeline_character_references_are_project_scoped(self):
         module_route = WORKER[WORKER.index("const moduleMatch"):WORKER.index("const chaptersMatch")]
