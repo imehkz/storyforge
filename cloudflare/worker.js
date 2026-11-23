@@ -242,6 +242,8 @@ async function api(request, env, url) {
     }
   }
   if (path === "/api/telegram-backup" && method === "POST") {
+    // Telegram backups contain private novel data: require the owner session and CSRF guard.
+    await requireSession(request, env, true);
     if (!env.BACKUP_SECRET || !env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
       return json({ error: "TELEGRAM_BACKUP_NOT_CONFIGURED" }, 503);
     }
