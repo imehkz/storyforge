@@ -79,6 +79,14 @@ class WorkerContractTests(unittest.TestCase):
             2,
         )
 
+    def test_local_recovery_storage_failure_does_not_block_cloud_autosave(self):
+        self.assertIn("function storeLocalChapterDraft(chapterId, draft, revision = 0)", APP)
+        self.assertIn("Local chapter recovery draft could not be stored", APP)
+        self.assertIn("return false;", APP[APP.index("function storeLocalChapterDraft"):APP.index("async function cloudApi")])
+        save_function = APP[APP.index("function save(changedKey = \\\"\\\")"):APP.index("// ==========================================\\n// PROJECT NAVIGATION")]
+        self.assertIn("localStorageReady = false", save_function)
+        self.assertIn("scheduleCloudSave();", save_function)
+
     def test_telegram_backup_requires_owner_session_and_csrf(self):
         route = WORKER[WORKER.index('if (path === "/api/telegram-backup"'):WORKER.index('if (path === "/api/session"')]
         self.assertIn("await requireSession(request, env, true)", route)
