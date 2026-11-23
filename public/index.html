@@ -422,12 +422,13 @@
             <label for="illustrationCaption">คำบรรยายใต้ภาพ</label><input id="illustrationCaption" maxlength="300" placeholder="เช่น ปราสาทอาร์เดนในคืนจันทรคราส">
             <label for="illustrationAlign">ตำแหน่งภาพ</label><select id="illustrationAlign"><option value="center">กึ่งกลาง</option><option value="left">ชิดซ้าย</option><option value="right">ชิดขวา</option></select>
             <label for="illustrationWidth">ขนาดภาพ</label><select id="illustrationWidth"><option value="100%">เต็มความกว้าง</option><option value="80%">กว้าง 80%</option><option value="60%">กว้าง 60%</option><option value="40%">กว้าง 40%</option></select>
-            <button id="insertIllustration" class="gold-button" type="button" disabled>แทรกภาพ ณ ตำแหน่งเคอร์เซอร์</button>
+            <div class="row-actions"><button id="saveIllustrationToLibrary" class="outline-button" type="button" disabled>เก็บเข้าคลังภาพ</button><button id="insertIllustration" class="gold-button" type="button" disabled>แทรกภาพ ณ ตำแหน่งเคอร์เซอร์</button></div>
             <p id="illustrationStatus" class="form-hint" role="status" aria-live="polite">เปิดห้องเขียนต้นฉบับและวางเคอร์เซอร์ในตำแหน่งที่ต้องการก่อนแทรกภาพ</p>
             <div id="illustrationSelectedPreview" class="illustration-selected-preview" hidden></div>
-            <div class="ai-notice">ภาพจะถูกเก็บภายในเนื้อหาของบทที่เลือก ไม่ได้แชร์ข้ามนิยาย บันทึกบน Cloud จะรวมภาพไว้ในข้อมูลบทนั้น</div>
+            <div class="ai-notice">คลังภาพประกอบแยกตามนิยายและเก็บในอุปกรณ์นี้ ภาพที่แทรกในบทจะถูกบันทึกไปกับต้นฉบับบน Cloud</div>
           </div>
         </div>
+        <section class="card-frame form-card illustration-library-section"><div class="section-heading"><div><h2>คลังภาพประกอบของนิยายนี้</h2><p>เลือกภาพที่บันทึกไว้กลับมาแทรกในต้นฉบับได้</p></div><span class="micro-label">แยกตาม Project</span></div><div id="illustrationLibraryGallery" class="character-reference-gallery" aria-live="polite"><p class="muted-note">คลังภาพยังว่าง</p></div></section>
       </section>
       <section id="assistant" class="panel hidden">
         <div class="page-intro"><div><span class="eyebrow">AI STORY ASSISTANT</span><h1>ผู้ช่วยเขียนนิยาย AI</h1><p>ผู้ช่วยที่ควรเข้าใจบริบทของนิยายที่คุณกำลังเขียน</p></div></div>
