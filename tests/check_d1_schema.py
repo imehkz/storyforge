@@ -29,6 +29,15 @@ class D1SchemaTests(unittest.TestCase):
             "INSERT INTO projects(id, owner_id, title) VALUES ('p1','u1','Novel One')"
         )
 
+    def test_projects_store_publication_metadata(self):
+        columns = {row[1] for row in self.db.execute("PRAGMA table_info(projects)")}
+        self.assertTrue({"pen_name", "copyright_text", "foreword", "author_bio"}.issubset(columns))
+        self.seed_project()
+        self.db.execute("UPDATE projects SET pen_name = ?, copyright_text = ?, foreword = ?, author_bio = ? WHERE id='p1'",
+                        ("Pen", "Copyright", "Foreword", "Bio"))
+        self.assertEqual(self.db.execute("SELECT pen_name, copyright_text, foreword, author_bio FROM projects WHERE id='p1'").fetchone(),
+                         ("Pen", "Copyright", "Foreword", "Bio"))
+
     def test_expected_tables_exist(self):
         expected = {
             "users", "sessions", "oauth_states", "oauth_credentials",
