@@ -2372,7 +2372,8 @@ function exportManuscriptEpub() {
   const chapter = $("chapterTitle").value || "ต้นฉบับ";
   const identifier = "urn:uuid:" + crypto.randomUUID();
   const editor = $("manuscriptEditor");
-  const richBody = editor ? sanitizeManuscriptHtml(editor.innerHTML) : "";
+  const richBody = editor && editor.innerHTML && typeof DOMParser !== "undefined"
+    ? sanitizeManuscriptHtml(editor.innerHTML) : "";
   const paragraphs = richBody || getManuscriptText().split(/\r?\n/).map(line =>
     line ? `<p>${xmlEscape(line)}</p>` : '<p class="blank">&#160;</p>'
   ).join("");
