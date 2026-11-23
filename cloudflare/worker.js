@@ -632,7 +632,7 @@ async function api(request, env, url) {
     const chapterId = chapterMatch[1];
     if (method === "GET") {
       const chapter = await env.DB.prepare(
-        "SELECT c.id, c.project_id, c.title, c.body, c.sort_order, c.character_ids_json, c.revision, c.created_at, c.updated_at FROM chapters c JOIN projects p ON p.id = c.project_id WHERE c.id = ? AND p.owner_id = ?"
+        "SELECT c.id, c.project_id, c.title, c.body, c.sort_order, c.word_count, c.character_ids_json, c.revision, c.created_at, c.updated_at FROM chapters c JOIN projects p ON p.id = c.project_id WHERE c.id = ? AND p.owner_id = ?"
       ).bind(chapterId, ownerId).first();
       if (!chapter) throw new Error("NOT_FOUND");
       return json({ chapter });
