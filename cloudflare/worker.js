@@ -360,9 +360,9 @@ async function api(request, env, url) {
     const modules = {
       characters: { table: "characters", fields: { name: ["string", 160], role: ["string", 80], profile_json: ["json", 20000], sort_order: ["number", 1000000] }, required: ["name"] },
       relationships: { table: "relationships", fields: { source_character_id: ["id", 80], target_character_id: ["id", 80], relationship_type: ["string", 100], description: ["string", 5000] }, required: ["source_character_id", "target_character_id"] },
-      "plot-threads": { table: "plot_threads", fields: { title: ["string", 200], summary: ["string", 10000], status: ["status", 30], sort_order: ["number", 1000000] }, required: ["title"] },
-      "world-lore": { table: "world_lore", fields: { category: ["string", 80], title: ["string", 200], content: ["string", 30000], sort_order: ["number", 1000000] }, required: ["title"] },
-      timeline: { table: "timeline_events", fields: { title: ["string", 200], description: ["string", 10000], story_time: ["string", 120], sort_order: ["number", 1000000] }, required: ["title"] },
+      "plot-threads": { table: "plot_threads", fields: { title: ["string", 200], summary: ["string", 10000], status: ["status", 30], character_ids_json: ["json_array", 8000], sort_order: ["number", 1000000] }, required: ["title"] },
+      "world-lore": { table: "world_lore", fields: { category: ["string", 80], title: ["string", 200], content: ["string", 30000], character_ids_json: ["json_array", 8000], sort_order: ["number", 1000000] }, required: ["title"] },
+      timeline: { table: "timeline_events", fields: { title: ["string", 200], description: ["string", 10000], story_time: ["string", 120], character_ids_json: ["json_array", 8000], sort_order: ["number", 1000000] }, required: ["title"] },
       notes: { table: "story_notes", fields: { title: ["string", 200], content: ["string", 30000], note_type: ["string", 60], pinned: ["boolean", 1] }, required: [] }
     };
     const config = modules[collection];
@@ -375,6 +375,21 @@ async function api(request, env, url) {
         "SELECT id FROM characters WHERE project_id = ? AND id IN (?, ?)"
       ).bind(projectId, sourceId, targetId).all();
       if ((endpoints.results || []).length !== 2) throw new Error("INVALID_RELATIONSHIP_CHARACTER");
+    };
+
+    const validateCharacterReferences = async (raw) => {
+      let ids;
+      try { ids = typeof raw === "string" ? JSON.parse(raw) : raw; } catch { throw new Error("INVALID_CHARACTER_REFERENCES"); }
+      if (!Array.isArray(ids) || ids.length > 50 || ids.some(id => typeof id !== "string" || !id.trim() || id.length > 80) || new Set(ids).size !== ids.length) {
+        throw new Error("INVALID_CHARACTER_REFERENCES");
+      }
+      if (!ids.length) return JSON.stringify([]);
+      const placeholders = ids.map(() => "?").join(", ");
+      const found = await env.DB.prepare(
+        "SELECT id FROM characters WHERE project_id = ? AND id IN (" + placeholders + ")"
+      ).bind(projectId, ...ids).all();
+      if ((found.results || []).length !== ids.length) throw new Error("INVALID_CHARACTER_REFERENCE");
+      return JSON.stringify(ids);
     };
 
     const normalize = (field, value) => {
@@ -392,6 +407,12 @@ async function api(request, env, url) {
       if (type === "status") {
         if (!["planned", "in_progress", "completed", "paused"].includes(value)) throw new Error("INVALID_STATUS");
         return value;
+      }
+      if (type === "json_array") {
+        let parsed;
+        try { parsed = typeof value === "string" ? JSON.parse(value) : value; } catch { throw new Error("INVALID_" + field.toUpperCase()); }
+        if (!Array.isArray(parsed) || parsed.length > 50 || parsed.some(id => typeof id !== "string" || !id.trim() || id.length > 80) || new Set(parsed).size !== parsed.length) throw new Error("INVALID_" + field.toUpperCase());
+        return JSON.stringify(parsed);
       }
       if (type === "json") {
         const serialized = typeof value === "string" ? value : JSON.stringify(value);
@@ -419,6 +440,7 @@ async function api(request, env, url) {
         else if (config.required.includes(field)) throw new Error("INVALID_" + field.toUpperCase());
       }
       if (collection === "relationships") await validateRelationshipEndpoints(values.source_character_id, values.target_character_id);
+      if (values.character_ids_json !== undefined) values.character_ids_json = await validateCharacterReferences(values.character_ids_json);
       const clientId = input.clientId;
       if (clientId !== undefined && (typeof clientId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientId))) {
         throw new Error("INVALID_CLIENTID");
@@ -441,6 +463,13 @@ async function api(request, env, url) {
       const values = {};
       for (const field of Object.keys(config.fields)) {
         if (input[field] !== undefined) values[field] = normalize(field, input[field]);
+      }
+      if (["plot-threads", "world-lore", "timeline"].includes(collection) && values.character_ids_json !== undefined) {
+        const existing = await env.DB.prepare(
+          "SELECT character_ids_json FROM " + config.table + " WHERE id = ? AND project_id = ?"
+        ).bind(itemId, projectId).first();
+        if (!existing) throw new Error("NOT_FOUND");
+        values.character_ids_json = await validateCharacterReferences(values.character_ids_json);
       }
       if (!Object.keys(values).length) throw new Error("INVALID_UPDATE");
       if (collection === "relationships") {
