@@ -71,7 +71,7 @@ assert.equal(countWords(""), 0);
 assert.equal(countWords("ห้องสมุดแห่งความทรงจำ"), 6, "Thai word segmentation");
 class ExportDOMParser {
   parseFromString(html) {
-    return { body: { innerHTML: String(html), querySelectorAll: () => [] } };
+    return { body: { innerHTML: String(html), querySelectorAll: () => [], childNodes: [] }, querySelectorAll: () => [] };
   }
 }
 const exportsApi = new Function("$", "downloadBlob", "crypto", code +
