@@ -1145,7 +1145,7 @@ function showTab(tab, activeButton = null) {
   if (tab === "projects") renderProjects();
   if (tab === "dashboard") renderDashboard();
   if (tab === "cover") loadCoverBrief();
-  if (tab === "illustrations") loadIllustrationSettings();
+  if (tab === "illustrations") { loadIllustrationSettings(); renderIllustrationLibrary(); }
 }
 
 
@@ -1412,6 +1412,7 @@ function setupIllustrationStudio() {
     try {
       const data = await compressIllustration(event.target.files?.[0]);
       pendingIllustrationData = data;
+      $("saveIllustrationToLibrary").disabled = false;
       const preview = $("illustrationSelectedPreview");
       preview.replaceChildren();
       const img = document.createElement("img"); img.src = data; img.alt = "ตัวอย่างภาพที่จะเพิ่ม";
@@ -1424,11 +1425,75 @@ function setupIllustrationStudio() {
     }
   });
   $("insertIllustration")?.addEventListener("click", insertIllustrationAtCursor);
+  $("saveIllustrationToLibrary")?.addEventListener("click", async () => { try { await savePendingIllustrationToLibrary(); } catch (error) { $("illustrationStatus").textContent = error.message; } });
   $("illustrationFile")?.addEventListener("click", () => {
     const selection = window.getSelection();
     illustrationSavedRange = selection && selection.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
   });
   loadIllustrationSettings();
+}
+
+async function illustrationLibraryRecords(projectId) {
+  const db = await openCharacterVault();
+  return new Promise((resolve,reject) => {
+    const tx = db.transaction(ILLUSTRATION_LIBRARY_STORE,"readonly");
+    const req = tx.objectStore(ILLUSTRATION_LIBRARY_STORE).index("projectId").getAll(projectId);
+    req.onsuccess = () => { db.close(); resolve((req.result || []).sort((a,b) => b.createdAt-a.createdAt)); };
+    req.onerror = () => { db.close(); reject(req.error); };
+  });
+}
+async function savePendingIllustrationToLibrary() {
+  const project = illustrationProject();
+  if (!project?.id || !pendingIllustrationData) throw new Error("เลือกนิยายและภาพก่อนบันทึกเข้าคลัง");
+  const rows = await illustrationLibraryRecords(project.id);
+  if (rows.length >= 100 || rows.reduce((n,r) => n + (r.dataUrl || "").length,0) + pendingIllustrationData.length > 12*1024*1024) throw new Error("คลังภาพถึงขีดจำกัดแล้ว กรุณาลบภาพเก่าก่อน");
+  const db = await openCharacterVault();
+  const caption = $("illustrationCaption")?.value.trim() || "";
+  await new Promise((resolve,reject) => {
+    const tx = db.transaction(ILLUSTRATION_LIBRARY_STORE,"readwrite");
+    tx.objectStore(ILLUSTRATION_LIBRARY_STORE).put({id:crypto.randomUUID(),projectId:project.id,dataUrl:pendingIllustrationData,label:caption.slice(0,100)||"ภาพประกอบ "+(rows.length+1),caption:caption.slice(0,300),style:$("illustrationStyle")?.value||"",createdAt:Date.now()});
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
+  await renderIllustrationLibrary();
+  $("illustrationStatus").textContent = "บันทึกภาพไว้ในคลังของนิยายนี้แล้ว (เก็บในอุปกรณ์นี้)";
+}
+async function renderIllustrationLibrary() {
+  const target = $("illustrationLibraryGallery"), project = illustrationProject();
+  if (!target) return;
+  if (!project?.id) { target.textContent = "เลือกนิยายก่อนเพื่อเปิดคลังภาพประกอบ"; return; }
+  target.textContent = "กำลังโหลดคลังภาพ…";
+  try {
+    const rows = await illustrationLibraryRecords(project.id);
+    if (illustrationProject()?.id !== project.id) return;
+    target.replaceChildren();
+    if (!rows.length) { target.textContent = "คลังภาพของนิยายนี้ยังว่าง"; return; }
+    rows.forEach(record => {
+      const card = document.createElement("article"); card.className = "character-reference-card illustration-library-card";
+      const img = document.createElement("img"); img.src = record.dataUrl; img.alt = record.caption || record.label; img.loading = "lazy";
+      const title = document.createElement("b"); title.textContent = record.label;
+      const caption = document.createElement("small"); caption.textContent = record.caption || "";
+      const select = document.createElement("button"); select.type = "button"; select.className = "outline-button compact"; select.textContent = "เตรียมแทรก";
+      select.addEventListener("click", () => {
+        if (illustrationProject()?.id !== project.id) return;
+        pendingIllustrationData = record.dataUrl; $("illustrationCaption").value = record.caption || "";
+        $("insertIllustration").disabled = false; $("saveIllustrationToLibrary").disabled = false;
+        const preview = $("illustrationSelectedPreview"); preview.replaceChildren();
+        const p = document.createElement("img"); p.src = record.dataUrl; p.alt = "ภาพที่เลือก"; preview.appendChild(p); preview.hidden = false;
+        $("illustrationStatus").textContent = "เลือกภาพจากคลังแล้ว — วางเคอร์เซอร์ในต้นฉบับแล้วกดแทรกภาพ";
+      });
+      const remove = document.createElement("button"); remove.type = "button"; remove.className = "outline-button compact"; remove.textContent = "ลบ";
+      remove.addEventListener("click", async () => {
+        if (!confirm("ลบภาพนี้ออกจากคลังของนิยายนี้หรือไม่? ภาพในต้นฉบับจะไม่ถูกลบ")) return;
+        const db = await openCharacterVault();
+        await new Promise((resolve,reject) => { const tx=db.transaction(ILLUSTRATION_LIBRARY_STORE,"readwrite"); tx.objectStore(ILLUSTRATION_LIBRARY_STORE).delete(record.id); tx.oncomplete=()=>{db.close();resolve();}; tx.onerror=()=>{db.close();reject(tx.error);}; });
+        await renderIllustrationLibrary();
+      });
+      const meta = document.createElement("div"); meta.className = "character-reference-meta"; meta.append(title,caption);
+      const actions = document.createElement("div"); actions.className = "module-actions"; actions.append(select,remove);
+      card.append(img,meta,actions); target.appendChild(card);
+    });
+  } catch (error) { target.textContent = "เปิดคลังภาพไม่สำเร็จ: " + error.message; }
 }
 
 function buildStoryAssistantContext() {
@@ -2257,15 +2322,20 @@ function characterProfileFromForm() {
 // ==========================================
 const CHARACTER_VAULT_DB = "storyforge_character_vault_v1";
 const CHARACTER_VAULT_STORE = "references";
+const ILLUSTRATION_LIBRARY_STORE = "illustrations";
 function openCharacterVault() {
   return new Promise((resolve, reject) => {
     if (!("indexedDB" in window)) return reject(new Error("อุปกรณ์นี้ไม่รองรับคลังภาพ IndexedDB"));
-    const request = indexedDB.open(CHARACTER_VAULT_DB, 1);
+    const request = indexedDB.open(CHARACTER_VAULT_DB, 2);
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains(CHARACTER_VAULT_STORE)) {
         const store = db.createObjectStore(CHARACTER_VAULT_STORE, { keyPath: "id" });
         store.createIndex("projectCharacter", ["projectId", "characterId"], { unique: false });
+      }
+      if (!db.objectStoreNames.contains(ILLUSTRATION_LIBRARY_STORE)) {
+        const library = db.createObjectStore(ILLUSTRATION_LIBRARY_STORE, { keyPath: "id" });
+        library.createIndex("projectId", "projectId", { unique: false });
       }
     };
     request.onsuccess = () => resolve(request.result);
