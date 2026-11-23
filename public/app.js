@@ -68,6 +68,7 @@ function setProjectGenre(value = "") {
 
 let writingSettingsProjectId = "";
 function writingSettingsKey(projectId) { return "sf_writing_settings_" + (projectId || writingSettingsProjectId || localStorage.getItem("sf_active_project_id") || "draft"); }
+function writingWordGoalKey(projectId) { return "sf_chapter_word_goal_" + (projectId || cloud.activeProjectId || writingSettingsProjectId || localStorage.getItem("sf_active_project_id") || "draft"); }
 function readWritingSettings() {
   const genres = {};
   document.querySelectorAll("[data-genre-level]").forEach(input => { genres[input.dataset.genreLevel] = Number(input.value) || 1; });
@@ -87,6 +88,7 @@ function loadWritingSettings(projectId) {
   try { data=JSON.parse(localStorage.getItem(writingSettingsKey(projectId))||"{}"); } catch {}
   if ($("plannedChapterCount")) $("plannedChapterCount").value=data.chapterCount||20;
   if ($("plannedWordsPerChapter")) $("plannedWordsPerChapter").value=data.wordsPerChapter||2000;
+  if ($("wordGoal")) $("wordGoal").value=localStorage.getItem(writingWordGoalKey(writingSettingsProjectId)) || String(data.wordsPerChapter || 2000);
   if ($("writingPov")) $("writingPov").value=data.pov||"third";
   if ($("writingStyle")) $("writingStyle").value=data.style||"literary";
   if ($("adultContentMode")) $("adultContentMode").value=data.adultContent||"off";
@@ -750,7 +752,7 @@ function countWords(text) {
 function updateWordGoal(knownWordCount) {
   const goal = Math.max(1, Math.min(100000, Number.parseInt($("wordGoal")?.value || "1000", 10) || 1000));
   if ($("wordGoal")) $("wordGoal").value = String(goal);
-  localStorage.setItem("sf_chapter_word_goal", String(goal));
+  localStorage.setItem(writingWordGoalKey(), String(goal));
   const words = Number.isInteger(knownWordCount) ? knownWordCount : countWords($("manuscriptBody")?.value || "");
   if ($("wordGoalStatus")) $("wordGoalStatus").textContent =
     words.toLocaleString("th-TH") + " / " + goal.toLocaleString("th-TH") + " คำ";
@@ -2535,7 +2537,7 @@ function init() {
   setupBackupEvents();
 
   setupAuthEvents();
-  if ($("wordGoal")) $("wordGoal").value = localStorage.getItem("sf_chapter_word_goal") || "1000";
+  if ($("wordGoal") && !$("wordGoal").value) $("wordGoal").value = "2000";
   updateWordGoal();
   setupCloudEvents();
   setupModuleEvents();
