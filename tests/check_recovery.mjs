@@ -99,7 +99,9 @@ const restoreProject = {
   ],
   modules: { characters: [{ id: "33333333-3333-4333-8333-333333333333", name: "ตัวละคร" }],
     relationships: [], "plot-threads": [{ id: "55555555-5555-4555-8555-555555555555", title: "Main", chapter_ids_json: '["22222222-2222-4222-8222-222222222222"]' }], "world-lore": [], timeline: [],
-    notes: [{ id: "66666666-6666-4666-8666-666666666666", title: "ฉากเปิด", note_type: "scene", scene_type: "setup", scene_status: "planned", chapter_ids_json: '["22222222-2222-4222-8222-222222222222"]' }] }
+    notes: [{ id: "66666666-6666-4666-8666-666666666666", title: "ฉากเปิด", note_type: "scene", scene_type: "setup", scene_status: "planned", chapter_ids_json: '["22222222-2222-4222-8222-222222222222"]' }],
+    "world-lore": [{ id: "77777777-7777-4777-8777-777777777777", title: "หอคอย", chapter_ids_json: '["22222222-2222-4222-8222-222222222222"]' }],
+    timeline: [{ id: "88888888-8888-4888-8888-888888888888", title: "การพบกัน", chapter_ids_json: '["22222222-2222-4222-8222-222222222222"]' }] }
 };
 const successCalls = [];
 await makeRestore(true, successCalls, false)([restoreProject]);
@@ -111,6 +113,10 @@ assert.ok(plotLinkPatch > lastChapterCreate, "plot-to-chapter links are restored
 const sceneLinkPatch = successCalls.findIndex(call =>
   call.path.endsWith("/notes/66666666-6666-4666-8666-666666666666") && call.method === "PATCH");
 assert.ok(sceneLinkPatch > lastChapterCreate, "scene-to-chapter links are restored only after chapters exist");
+const worldLinkPatch = successCalls.findIndex(call => call.path.endsWith("/world-lore/77777777-7777-4777-8777-777777777777") && call.method === "PATCH");
+const timelineLinkPatch = successCalls.findIndex(call => call.path.endsWith("/timeline/88888888-8888-4888-8888-888888888888") && call.method === "PATCH");
+assert.ok(worldLinkPatch > lastChapterCreate, "world canon chapter links are restored only after chapters exist");
+assert.ok(timelineLinkPatch > lastChapterCreate, "timeline chapter links are restored only after chapters exist");
 console.log("Cloud restore plot-link ordering tests passed.");
 const newProjectCalls = [];
 await assert.rejects(() => makeRestore(true, newProjectCalls)([restoreProject]), /simulated chapter failure/);
