@@ -4352,6 +4352,8 @@ function exportManuscriptEpub(chapters = null, projectTitle = null) {
 <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">${identifier}</dc:identifier><dc:title>${xmlEscape(title)} - ${xmlEscape(chapter)}</dc:title><dc:language>th</dc:language><dc:creator>StoryForge</dc:creator><meta property="dcterms:modified">${new Date().toISOString().replace(/\.\d{3}Z$/, "Z")}</meta></metadata>
 <manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="chapter" href="chapter.xhtml" media-type="application/xhtml+xml"/><item id="css" href="style.css" media-type="text/css"/>${epubImages.map((item,index) => '<item id="illustration' + (index + 1) + '" href="images/' + item.fileName + '" media-type="image/' + (item.extension === "jpg" ? "jpeg" : item.extension) + '"/>').join("")}</manifest>
 <spine><itemref idref="chapter"/></spine></package>` },
+    { name: "OEBPS/frontmatter.xhtml", data: '<?xml version="1.0" encoding="UTF-8"?>' + frontMatter },
+    ...(backMatter ? [{ name: "OEBPS/backmatter.xhtml", data: '<?xml version="1.0" encoding="UTF-8"?>' + backMatter }] : []),
     { name: "OEBPS/nav.xhtml", data: `<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="th"><head><title>สารบัญ</title></head><body><nav epub:type="toc" id="toc"><h1>สารบัญ</h1><ol><li><a href="chapter.xhtml">${xmlEscape(chapter)}</a></li></ol></nav></body></html>` },
     { name: "OEBPS/chapter.xhtml", data: `<?xml version="1.0" encoding="UTF-8"?>
@@ -4367,8 +4369,12 @@ function exportWholeNovelEpub(chapters, projectTitle) {
   const penName = $("penName")?.value.trim() || "StoryForge";
   const copyrightText = $("copyrightText")?.value.trim() || "";
   const authorBio = $("authorBio")?.value || "";
+  const foreword = $("foreword")?.value || "";
   const synopsis = $("context")?.value || "";
   const identifier = "urn:uuid:" + crypto.randomUUID();
+  const textToXhtml = value => String(value || "").split(/\n{2,}/).map(part =>
+    "<p>" + xmlEscape(part).replace(/\n/g, "<br/>") + "</p>"
+  ).join("");
   const images = [];
   const chapterFiles = chapters.map((chapter, index) => {
     const raw = sanitizeManuscriptHtml(chapter.body || "");
@@ -4394,15 +4400,21 @@ function exportWholeNovelEpub(chapters, projectTitle) {
   const manifestChapters = chapterFiles.map((item, index) =>
     '<item id="chapter' + (index + 1) + '" href="' + item.fileName + '" media-type="application/xhtml+xml"/>'
   ).join("");
+  const frontMatter = '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="th"><head><title>' + xmlEscape(title) + '</title><link rel="stylesheet" type="text/css" href="style.css"/></head><body><section epub:type="titlepage"><h1>' + xmlEscape(title) + '</h1><p>' + xmlEscape(penName) + '</p><p>' + xmlEscape(copyrightText) + '</p></section>' + (foreword ? '<section epub:type="foreword"><h2>คำนำ</h2>' + textToXhtml(foreword) + '</section>' : '') + '</body></html>';
+  const backMatter = authorBio
+    ? '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="th"><head><title>เกี่ยวกับผู้เขียน</title><link rel="stylesheet" type="text/css" href="style.css"/></head><body><h1>เกี่ยวกับผู้เขียน</h1>' + textToXhtml(authorBio) + '</body></html>'
+    : "";
   const manifestImages = images.map((item, index) =>
     '<item id="illustration' + (index + 1) + '" href="images/' + item.fileName + '" media-type="image/' + (item.extension === "jpg" ? "jpeg" : item.extension) + '"/>'
   ).join("");
-  const spine = chapterFiles.map((item, index) => '<itemref idref="chapter' + (index + 1) + '"/>').join("");
-  const nav = chapterFiles.map(item => '<li><a href="' + item.fileName + '">' + xmlEscape(item.title) + '</a></li>').join("");
+  const manifestFrontMatter = '<item id="frontmatter" href="frontmatter.xhtml" media-type="application/xhtml+xml"/>';
+  const manifestBackMatter = backMatter ? '<item id="backmatter" href="backmatter.xhtml" media-type="application/xhtml+xml"/>' : "";
+  const spine = '<itemref idref="frontmatter"/>' + chapterFiles.map((item, index) => '<itemref idref="chapter' + (index + 1) + '"/>').join("") + (backMatter ? '<itemref idref="backmatter"/>' : "");
+  const nav = '<li><a href="frontmatter.xhtml">หน้าปกในและคำนำ</a></li>' + chapterFiles.map(item => '<li><a href="' + item.fileName + '">' + xmlEscape(item.title) + '</a></li>').join("") + (backMatter ? '<li><a href="backmatter.xhtml">เกี่ยวกับผู้เขียน</a></li>' : "");
   const files = [
     { name: "mimetype", data: "application/epub+zip" },
     { name: "META-INF/container.xml", data: '<?xml version="1.0" encoding="UTF-8"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>' },
-    { name: "OEBPS/content.opf", data: '<?xml version="1.0" encoding="UTF-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid" xml:lang="th"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">' + identifier + '</dc:identifier><dc:title>' + xmlEscape(title) + '</dc:title><dc:language>th</dc:language><dc:creator>' + xmlEscape(penName) + '</dc:creator><dc:rights>' + xmlEscape(copyrightText) + '</dc:rights><dc:description>' + xmlEscape([synopsis, authorBio].filter(Boolean).join("\n\n")) + '</dc:description><meta property="dcterms:modified">' + new Date().toISOString().replace(/\.\d{3}Z$/, "Z") + '</meta></metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="css" href="style.css" media-type="text/css"/>' + manifestChapters + manifestImages + '</manifest><spine>' + spine + '</spine></package>' },
+    { name: "OEBPS/content.opf", data: '<?xml version="1.0" encoding="UTF-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid" xml:lang="th"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">' + identifier + '</dc:identifier><dc:title>' + xmlEscape(title) + '</dc:title><dc:language>th</dc:language><dc:creator>' + xmlEscape(penName) + '</dc:creator><dc:rights>' + xmlEscape(copyrightText) + '</dc:rights><dc:description>' + xmlEscape([synopsis, authorBio].filter(Boolean).join("\n\n")) + '</dc:description><meta property="dcterms:modified">' + new Date().toISOString().replace(/\.\d{3}Z$/, "Z") + '</meta></metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="css" href="style.css" media-type="text/css"/>' + manifestFrontMatter + manifestChapters + manifestBackMatter + manifestImages + '</manifest><spine>' + spine + '</spine></package>' },
     { name: "OEBPS/nav.xhtml", data: '<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="th"><head><title>สารบัญ</title></head><body><nav epub:type="toc" id="toc"><h1>' + xmlEscape(title) + '</h1><ol>' + nav + '</ol></nav></body></html>' },
     { name: "OEBPS/style.css", data: "body{font-family:serif;line-height:1.65;margin:5%;}h1,h2{line-height:1.3;}p{margin:0 0 0.8em;text-indent:1.2em}.blank{height:0.8em}figure{margin:1.5em auto;text-align:center;break-inside:avoid}img{max-width:100%;height:auto}figcaption{font-style:italic;text-align:center}" }
   ];
