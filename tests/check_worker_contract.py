@@ -241,6 +241,10 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('id="addScene"', HTML)
         self.assertIn('note_type: "scene"', APP)
         self.assertIn("selectedModuleChapterIds", APP)
+        self.assertIn("createdSceneChapterLinks", APP)
+        self.assertIn('notes: ["title", "content", "note_type", "pinned", "character_ids_json", "chapter_ids_json", "scene_type", "scene_status"]', APP)
+        self.assertIn("INVALID_SCENE_STATUS", WORKER)
+        self.assertIn("sceneReferencesUpdated", WORKER)
 
     def test_plot_chapter_references_are_project_scoped_and_cleaned_on_delete(self):
         module_route = WORKER[WORKER.index("const moduleMatch"):WORKER.index("const chaptersMatch")]
