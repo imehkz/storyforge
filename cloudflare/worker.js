@@ -361,8 +361,8 @@ async function api(request, env, url) {
       characters: { table: "characters", fields: { name: ["string", 160], role: ["string", 80], profile_json: ["json", 20000], sort_order: ["number", 1000000] }, required: ["name"] },
       relationships: { table: "relationships", fields: { source_character_id: ["id", 80], target_character_id: ["id", 80], relationship_type: ["string", 100], description: ["string", 5000] }, required: ["source_character_id", "target_character_id"] },
       "plot-threads": { table: "plot_threads", fields: { title: ["string", 200], summary: ["string", 10000], status: ["status", 30], character_ids_json: ["json_array", 8000], chapter_ids_json: ["json_array", 16000], sort_order: ["number", 1000000] }, required: ["title"] },
-      "world-lore": { table: "world_lore", fields: { category: ["string", 80], title: ["string", 200], content: ["string", 30000], character_ids_json: ["json_array", 8000], sort_order: ["number", 1000000] }, required: ["title"] },
-      timeline: { table: "timeline_events", fields: { title: ["string", 200], description: ["string", 10000], story_time: ["string", 120], character_ids_json: ["json_array", 8000], sort_order: ["number", 1000000] }, required: ["title"] },
+      "world-lore": { table: "world_lore", fields: { category: ["string", 80], title: ["string", 200], content: ["string", 30000], character_ids_json: ["json_array", 8000], chapter_ids_json: ["json_array", 16000], sort_order: ["number", 1000000] }, required: ["title"] },
+      timeline: { table: "timeline_events", fields: { title: ["string", 200], description: ["string", 10000], story_time: ["string", 120], character_ids_json: ["json_array", 8000], chapter_ids_json: ["json_array", 16000], sort_order: ["number", 1000000] }, required: ["title"] },
       notes: { table: "story_notes", fields: { title: ["string", 200], content: ["string", 30000], note_type: ["string", 60], pinned: ["boolean", 1], character_ids_json: ["json_array", 8000], chapter_ids_json: ["json_array", 16000], scene_type: ["string", 40], scene_status: ["string", 40] }, required: [] }
     };
     const config = modules[collection];
@@ -456,7 +456,7 @@ async function api(request, env, url) {
       }
       if (collection === "relationships") await validateRelationshipEndpoints(values.source_character_id, values.target_character_id);
       if (values.character_ids_json !== undefined) values.character_ids_json = await validateCharacterReferences(values.character_ids_json);
-      if (["plot-threads", "notes"].includes(collection) && values.chapter_ids_json !== undefined) values.chapter_ids_json = await validateChapterReferences(values.chapter_ids_json);
+      if (["plot-threads", "notes", "world-lore", "timeline"].includes(collection) && values.chapter_ids_json !== undefined) values.chapter_ids_json = await validateChapterReferences(values.chapter_ids_json);
       if (collection === "notes" && values.note_type === "scene") {
         if (!["setup", "conflict", "turning_point", "climax", "resolution", "other"].includes(values.scene_type || "other")) throw new Error("INVALID_SCENE_TYPE");
         if (!["planned", "drafting", "written", "revised"].includes(values.scene_status || "planned")) throw new Error("INVALID_SCENE_STATUS");
@@ -484,7 +484,7 @@ async function api(request, env, url) {
       for (const field of Object.keys(config.fields)) {
         if (input[field] !== undefined) values[field] = normalize(field, input[field]);
       }
-      if (["plot-threads", "notes"].includes(collection) && values.chapter_ids_json !== undefined) {
+      if (["plot-threads", "notes", "world-lore", "timeline"].includes(collection) && values.chapter_ids_json !== undefined) {
         values.chapter_ids_json = await validateChapterReferences(values.chapter_ids_json);
       }
       if (collection === "notes" && (values.note_type === "scene" || values.scene_type !== undefined || values.scene_status !== undefined)) {
@@ -694,6 +694,12 @@ async function api(request, env, url) {
           "UPDATE chapters SET title = ?, body = ?, sort_order = ?, word_count = ?, character_ids_json = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, sort_order, word_count, character_ids_json, revision, updated_at"
         ).bind(title, body, sortOrder, wordCount, characterIds, nowIso(), chapterId, input.expectedRevision, ownerId),
         env.DB.prepare(
+          "UPDATE world_lore SET chapter_ids_json = COALESCE((SELECT json_group_array(value) FROM json_each(world_lore.chapter_ids_json) WHERE value <> ?), '[]'), updated_at = ? WHERE project_id = (SELECT project_id FROM chapters WHERE id = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)) AND EXISTS (SELECT 1 FROM json_each(world_lore.chapter_ids_json) WHERE value = ?)"
+        ).bind(chapterId, nowIso(), chapterId, ownerId, chapterId),
+        env.DB.prepare(
+          "UPDATE timeline_events SET chapter_ids_json = COALESCE((SELECT json_group_array(value) FROM json_each(timeline_events.chapter_ids_json) WHERE value <> ?), '[]'), updated_at = ? WHERE project_id = (SELECT project_id FROM chapters WHERE id = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)) AND EXISTS (SELECT 1 FROM json_each(timeline_events.chapter_ids_json) WHERE value = ?)"
+        ).bind(chapterId, nowIso(), chapterId, ownerId, chapterId),
+        env.DB.prepare(
           "DELETE FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ?) AND id NOT IN (SELECT id FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ?) ORDER BY created_at DESC, id DESC LIMIT 100)"
         ).bind(chapterId, chapterId, chapterId, chapterId)
       ]);
@@ -716,8 +722,8 @@ async function api(request, env, url) {
           "DELETE FROM chapters WHERE id = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
         ).bind(chapterId, ownerId)
       ]);
-      if (!results[3]?.meta?.changes) throw new Error("NOT_FOUND");
-      return json({ ok: true, plotReferencesUpdated: Boolean(results[0]?.meta?.changes), sceneReferencesUpdated: Boolean(results[1]?.meta?.changes) });
+      if (!results[5]?.meta?.changes) throw new Error("NOT_FOUND");
+      return json({ ok: true, plotReferencesUpdated: Boolean(results[0]?.meta?.changes), sceneReferencesUpdated: Boolean(results[1]?.meta?.changes), worldReferencesUpdated: Boolean(results[2]?.meta?.changes), timelineReferencesUpdated: Boolean(results[3]?.meta?.changes) });
     }
   }
 
