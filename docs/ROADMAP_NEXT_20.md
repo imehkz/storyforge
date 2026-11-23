@@ -13,7 +13,7 @@ The sequence is deliberately writer-first. Status is updated only after code and
 | 5 | Continuity integration | Checker reports scenes without chapter links and dangling scene links | Implemented in rule-based checker; CI verification pending |
 | 6 | Timeline-to-chapter linking | Events can reference relevant chapters without cross-project leakage | Implemented on test branch; migration 0009 and CI verification pending |
 | 7 | World-lore chapter links | Locations/rules can be traced to chapters that establish or use them | Implemented on test branch; migration 0009 and CI verification pending |
-| 8 | Plot-to-scene navigation | Plot cards expose their related scenes and chapter progression | Planned |
+| 8 | Plot-to-scene navigation | Plot cards expose their related scenes and chapter progression | Implemented by matching scenes and plots through linked chapter IDs; CI verification pending |
 | 9 | Chapter status metadata | Track outline/draft/revision/final state separately from save revision | Planned |
 | 10 | Chapter synopsis fields | Store per-chapter summary for navigation and context assembly | Planned |
 | 11 | Manuscript outline view | Reorder chapters and inspect synopsis/scene coverage before drafting | Planned |
