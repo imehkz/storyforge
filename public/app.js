@@ -488,6 +488,43 @@ async function exportEntireNovelTxt() {
   }
 }
 
+async function exportEntireNovelDocx() {
+  const projectId = cloud.activeProjectId;
+  if (!cloud.authenticated || !cloud.ready || !projectId) {
+    alert("การส่งออก DOCX ทั้งเล่มต้องเลือกนิยายที่เชื่อมต่อ Cloud และเข้าสู่ระบบก่อนครับ");
+    return;
+  }
+  const button = $("exportBookDocx");
+  if (button) { button.disabled = true; button.textContent = "กำลังรวบรวมบท..."; }
+  try {
+    if (cloud.saveTimer) { clearTimeout(cloud.saveTimer); cloud.saveTimer = null; }
+    if (cloud.activeChapterId && !(await saveCloudChapter())) {
+      throw new Error("บันทึกบทปัจจุบันไม่สำเร็จ จึงหยุดส่งออกเพื่อป้องกันข้อมูลล่าสุดตกหล่น");
+    }
+    const project = cloud.projects.find(item => item.id === projectId);
+    if (!project) throw new Error("ไม่พบโครงการที่เลือก");
+    const list = await cloudApi("/api/projects/" + encodeURIComponent(projectId) + "/chapters");
+    const rows = list.chapters || [];
+    if (!rows.length) throw new Error("นิยายนี้ยังไม่มีบทให้ส่งออก");
+    const chapters = await Promise.all(rows.map(async item => {
+      const result = await cloudApi("/api/chapters/" + encodeURIComponent(item.id));
+      if (!result.chapter || result.chapter.project_id !== projectId) throw new Error("พบข้อมูลบทข้ามนิยาย ระบบยกเลิกการส่งออก");
+      return result.chapter;
+    }));
+    chapters.sort((left, right) => (left.sort_order - right.sort_order) ||
+      String(left.created_at || "").localeCompare(String(right.created_at || "")));
+    const totalSize = chapters.reduce((sum, item) => sum + String(item.body || "").length, 0);
+    if (totalSize > 12 * 1024 * 1024) throw new Error("ต้นฉบับทั้งเล่มมีขนาดเกิน 12 MB กรุณาแบ่งส่งออกเป็นส่วน");
+    exportManuscriptDocx(chapters, project.title || "ต้นฉบับนิยาย");
+    const status = $("chapterSaveHint");
+    if (status) status.textContent = "ส่งออก DOCX ทั้งเล่มแล้ว · " + chapters.length + " บท";
+  } catch (error) {
+    alert("ส่งออก DOCX ทั้งเล่มไม่สำเร็จ: " + error.message);
+  } finally {
+    if (button) { button.disabled = false; button.textContent = "DOCX ทั้งเล่ม"; }
+  }
+}
+
 async function exportEntireNovelPdf() {
   const projectId = cloud.activeProjectId;
   if (!cloud.authenticated || !cloud.ready || !projectId) {
@@ -1723,6 +1760,7 @@ function setupEvents() {
     ].join("\n"));
   };
   $("exportBookTxt")?.addEventListener("click", exportEntireNovelTxt);
+  $("exportBookDocx")?.addEventListener("click", exportEntireNovelDocx);
   $("exportBookPdf")?.addEventListener("click", exportEntireNovelPdf);
   $("exportDocx").onclick = exportManuscriptDocx;
   $("exportEpub").onclick = exportManuscriptEpub;
@@ -3247,12 +3285,14 @@ function wordRunsFromNode(node, inherited = {}) {
   return [...node.childNodes].map(child => wordRunsFromNode(child, next)).join("");
 }
 
-function manuscriptHtmlToWord() {
+function manuscriptHtmlToWord(htmlOverride) {
   const editor = $("manuscriptEditor");
-  if (!editor || !editor.innerHTML || typeof DOMParser === "undefined") {
-    return getManuscriptText().split(/\r?\n/).map(line => wordParagraph(line)).join("");
+  const rawHtml = htmlOverride === undefined ? (editor?.innerHTML || "") : String(htmlOverride || "");
+  if (!rawHtml || typeof DOMParser === "undefined") {
+    const fallback = htmlOverride === undefined ? getManuscriptText() : String(htmlOverride || "").replace(/<[^>]*>/g, " ");
+    return fallback.split(/\r?\n/).map(line => wordParagraph(line)).join("");
   }
-  const source = sanitizeManuscriptHtml(editor.innerHTML);
+  const source = sanitizeManuscriptHtml(rawHtml);
   const doc = new DOMParser().parseFromString(source, "text/html");
   const blocks = [...doc.body.childNodes];
   if (!blocks.length) return getManuscriptText().split(/\r?\n/).map(line => wordParagraph(line)).join("");
@@ -3271,11 +3311,14 @@ function manuscriptHtmlToWord() {
   }).join("");
 }
 
-function exportManuscriptDocx() {
+function exportManuscriptDocx(chapters = null, projectTitle = null) {
   docxImageAssets = [];
-  const title = $("title").value || "StoryForge Manuscript";
-  const chapter = $("chapterTitle").value || "ต้นฉบับ";
-  const paragraphs = manuscriptHtmlToWord();
+  const isWholeBook = Array.isArray(chapters);
+  const title = projectTitle || $("title").value || "StoryForge Manuscript";
+  const chapter = isWholeBook ? "ฉบับเต็ม" : ($("chapterTitle").value || "ต้นฉบับ");
+  const paragraphs = isWholeBook
+    ? chapters.map((item, index) => wordParagraph("บทที่ " + (index + 1) + " — " + (item.title || "บทไม่มีชื่อ"), "Heading1") + manuscriptHtmlToWord(item.body || "")).join("")
+    : manuscriptHtmlToWord();
   const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
 <w:body>${wordParagraph(title, "Title")}${wordParagraph(chapter, "Heading1")}${paragraphs}
