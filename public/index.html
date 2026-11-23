@@ -302,6 +302,11 @@
               <button id="reloadChapter" class="outline-button compact" type="button" hidden>โหลดฉบับล่าสุด</button>
               <button id="recoverLocalDraft" class="outline-button compact" type="button" hidden>กู้คืนฉบับในเครื่อง</button>
             </div>
+            <div id="chapterCanonPanel" class="chapter-canon-panel card-frame" hidden>
+              <div><b>Canon ของบทนี้</b><small>เลือกตัวละครที่ปรากฏหรือมีบทบาทในบทนี้ · ข้อมูลจะบันทึกไปกับบทนิยาย</small></div>
+              <label for="chapterCharacters">ตัวละครที่เกี่ยวข้อง</label>
+              <select id="chapterCharacters" multiple size="3" aria-label="เลือกตัวละครที่เกี่ยวข้องกับบทนี้"></select>
+            </div>
             <div class="card-frame manuscript-card">
               <label for="chapterTitle">ชื่อบท</label><input id="chapterTitle" placeholder="เช่น บทที่ 1 — จุดเริ่มต้น">
               <label for="manuscriptEditor">ต้นฉบับ</label>
