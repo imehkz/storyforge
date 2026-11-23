@@ -314,3 +314,11 @@ No hosting resources or secrets have been provisioned, and no production deploym
 - Character-reference validation applies on note creation and update; deleting a character cleans references in notes together with plot, world, and timeline records.
 - Note links are visible in the notes list and included in manually copied ChatGPT story context.
 - Backup/restore validation and payload mapping include note character references.
+
+
+### Character-consistent illustration prompts — 23 November 2026
+
+- The illustration prompt builder now lets the writer select scene characters from the active project.
+- Selected character appearance details (face, skin, eyes, hair, build, clothing, accessories, and other stored attributes) are added to the editable prompt.
+- Character selection is saved per project on the current device. The prompt asks the image tool to preserve each character's traits and avoid mixing designs.
+- This remains prompt preparation only; no image-generation provider or paid API is connected.
