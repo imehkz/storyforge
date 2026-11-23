@@ -24,6 +24,7 @@ STORYFORGE เป็นพื้นที่ทำงานสำหรับว
 - `docs/IMPLEMENTATION_PLAN.md` — สถานะและแผนพัฒนา
 - `docs/ROADMAP_NEXT_20.md` — ลำดับงานและผลการดำเนินงาน
 - `docs/PRIVATE_BETA_QA_GATE.md` — เกณฑ์ตรวจรับก่อน Private Beta
+- `docs/STAGING_VERIFICATION_2026-11-23.md` — หลักฐาน Staging D1/Worker, migrations และ project-isolation smoke test
 - `docs/CLOUDFLARE_DEPLOYMENT_CHECKLIST.md` — การเตรียม Cloudflare
 - `docs/CLOUDFLARE_WORKER_API.md` — API และ Authentication contract
 - `docs/SECURITY_AND_STORAGE_DECISIONS.md` — ข้อกำหนดความปลอดภัยและการจัดเก็บข้อมูล
