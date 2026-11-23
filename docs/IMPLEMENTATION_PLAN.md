@@ -279,3 +279,5 @@ No hosting resources or secrets have been provisioned, and no production deploym
 - Hardened local chapter-draft persistence against browser storage quota and privacy-mode errors. A failed local recovery write now reports the limitation without throwing through the editor's save handler.
 - Hardened the general local recovery-key writes so one storage failure does not prevent the Cloud autosave from being scheduled.
 - Added source-contract regression coverage for the storage-failure path. This does not replace a real-device offline/reload test; browser storage behavior still needs Android tablet QA.
+
+- Added an executable Node-based recovery test with simulated browser storage quota failures; CI verifies the local recovery error is contained and Cloud autosave is still scheduled.
