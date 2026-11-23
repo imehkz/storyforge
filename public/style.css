@@ -1193,3 +1193,12 @@ body.writing-focus-mode #manuscript .editor-footer { max-width: 1000px; margin: 
   #manuscript .manuscript-card.studio-paper-card { padding: 12px; }
   #manuscript .manuscript-format-toolbar.studio-format-toolbar { flex-wrap: nowrap; }
 }
+
+
+/* Keep the legacy storage textarea hidden; the contenteditable manuscript is the visible editor. */
+#manuscriptBody[hidden] { display: none !important; }
+#manuscript .manuscript-editor-surface { display: block; width: 100%; box-sizing: border-box; overflow-wrap: anywhere; }
+#manuscript .studio-focus-card .outline-button + .outline-button { margin-top: 8px; }
+#manuscript .studio-focus-card .outline-button { justify-content: center; }
+#manuscript .studio-insight-rail { min-width: 0; }
+#manuscript .manuscript-main { min-width: 0; }
