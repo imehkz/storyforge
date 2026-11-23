@@ -220,6 +220,18 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("await validateRelationshipEndpoints(source, target)", module_route)
         self.assertIn("INVALID_RELATIONSHIP_CHARACTER", module_route)
 
+    def test_plot_world_and_timeline_character_references_are_project_scoped(self):
+        module_route = WORKER[WORKER.index("const moduleMatch"):WORKER.index("const chaptersMatch")]
+        self.assertGreaterEqual(module_route.count('character_ids_json: ["json_array", 8000]'), 3)
+        self.assertIn("const validateCharacterReferences = async (raw)", module_route)
+        self.assertIn('"SELECT id FROM characters WHERE project_id = ? AND id IN (" + placeholders + ")"', module_route)
+        self.assertIn("await validateCharacterReferences(values.character_ids_json)", module_route)
+        for control in ("plotCharacters", "worldCharacters", "timelineCharacters"):
+            self.assertIn(control, HTML)
+            self.assertIn(control, APP)
+        self.assertIn("promptCharacterReferences", APP)
+        self.assertIn("characterReferenceNames", APP)
+
     def test_relationship_edit_can_reassign_character_endpoints(self):
         self.assertIn("characters[sourceIndex].id", APP)
         self.assertIn("characters[targetIndex].id", APP)
