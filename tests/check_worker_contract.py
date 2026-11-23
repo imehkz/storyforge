@@ -258,6 +258,14 @@ class WorkerContractTests(unittest.TestCase):
     def test_ai_context_includes_canonical_character_links(self):
         context = APP[APP.index("function buildStoryAssistantContext"):APP.index("async function copyStoryText")]
         self.assertGreaterEqual(context.count('JSON.parse(item.character_ids_json || "[]")'), 4)
+
+    def test_manuscript_focus_mode_keeps_editor_and_exit_available(self):
+        self.assertIn('id="toggleWritingFocus"', HTML)
+        self.assertIn("function setWritingFocusMode(enabled)", APP)
+        self.assertIn('document.body.classList.toggle("writing-focus-mode", active)', APP)
+        self.assertIn('event.key === "Escape"', APP)
+        self.assertIn("body.writing-focus-mode #manuscript .manuscript-format-toolbar", CSS)
+        self.assertIn("body.writing-focus-mode #manuscript .manuscript-editor-surface", CSS)
         self.assertIn("ตัวละครที่เกี่ยวข้อง:", context)
 
     def test_character_delete_cleans_project_canonical_references(self):
