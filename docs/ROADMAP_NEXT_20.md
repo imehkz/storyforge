@@ -23,8 +23,8 @@ The sequence is deliberately writer-first. Status is updated only after code and
 | 15 | DOCX validation | Verify headings, Thai typography, embedded images and metadata in office-reader package tests; real reader QA pending | Implemented package tests for multi-chapter Thai, TOC, page breaks and publishing metadata; real reader QA pending |
 | 16 | EPUB validation | Verify metadata, navigation, chapter XHTML, image embedding and Thai rendering | Implemented package tests for Thai language, chapter navigation and publication metadata; real e-reader QA pending |
 | 17 | Publishing metadata | Add title page, pen name, copyright, foreword and author bio fields | Implemented per-project metadata fields and TXT/DOCX/EPUB metadata export; CI passed; migration 0011 pending runtime application |
-| 18 | Cover Studio persistence | Persist cover brief, prompt revisions and approved-cover selection per project | Implemented Cloud/local project-scoped cover brief persistence; CI passed; migration 0012 pending runtime application |
-| 19 | Illustration asset workflow | Improve project-local library categories, insert/replace/caption and backup checks | Implemented category tags/filtering and backup validation; library remains device-local by design |
+| 18 | Cover Studio persistence | Persist cover brief, prompt and selected character references per project; approved artwork selection awaits image assets | Implemented Cloud/local project-scoped brief persistence; approved cover asset workflow remains pending; migration 0012 pending runtime application |
+| 19 | Illustration asset workflow | Categorize, filter, caption and reinsert project-local illustrations with backup checks | Implemented categories, filtering, captions and reinsert; library remains device-local by design |
 | 20 | Private-beta QA gate | Browser/tablet, isolation, backup/restore, security and accessibility test report | QA gate checklist documented; gate remains blocked until staging/browser/device and backup-restore drills pass |
 
 ## Current execution note
