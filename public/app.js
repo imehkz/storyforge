@@ -487,15 +487,19 @@ async function exportEntireNovelTxt() {
       String(left.created_at || "").localeCompare(String(right.created_at || "")));
     const sections = [
       project.title || "นิยายไม่มีชื่อ",
+      project.pen_name ? "นามปากกา: " + project.pen_name : "",
+      project.copyright_text || "",
       "แนวเรื่อง: " + (project.genre || "ไม่ระบุ"),
       "จำนวนบท: " + full.length,
       ""
-    ];
+    ].filter((line, index) => line !== "" || index === sections.length - 1);
+    if (project.foreword) sections.push("คำนำ", "", project.foreword, "", "—".repeat(24), "");
     full.forEach((chapter, index) => {
       sections.push("บทที่ " + (index + 1) + " — " + (chapter.title || "บทไม่มีชื่อ"), "");
       sections.push(chapterHtmlToPlainText(chapter.body) || "");
       sections.push("", "—".repeat(24), "");
     });
+    if (project.author_bio) sections.push("เกี่ยวกับผู้เขียน", "", project.author_bio, "");
     download(exportBaseName() + "-ทั้งเล่ม.txt", sections.join("\n"));
     const status = $("chapterSaveHint");
     if (status) status.textContent = "ส่งออกนิยายทั้งเล่มแล้ว · " + full.length + " บท";
@@ -4202,6 +4206,18 @@ function exportManuscriptDocx(chapters = null, projectTitle = null) {
   const isWholeBook = Array.isArray(chapters);
   const title = projectTitle || $("title").value || "StoryForge Manuscript";
   const chapter = isWholeBook ? "ฉบับเต็ม" : ($("chapterTitle").value || "ต้นฉบับ");
+  const penName = $("penName")?.value.trim() || "";
+  const copyrightText = $("copyrightText")?.value.trim() || "";
+  const foreword = $("foreword")?.value || "";
+  const authorBio = $("authorBio")?.value || "";
+  const publicationFrontMatter = [
+    penName ? wordParagraph("นามปากกา: " + penName) : "",
+    copyrightText ? wordParagraph(copyrightText) : "",
+    foreword ? wordParagraph("คำนำ", "Heading1") + manuscriptHtmlToWord(foreword) : ""
+  ].join("");
+  const publicationBackMatter = authorBio
+    ? wordParagraph("เกี่ยวกับผู้เขียน", "Heading1") + manuscriptHtmlToWord(authorBio)
+    : "";
   const tocParagraphs = isWholeBook
     ? wordParagraph("สารบัญ", "Heading1") + chapters.map((item, index) =>
         wordParagraph("บทที่ " + (index + 1) + " — " + (item.title || "บทไม่มีชื่อ"))
@@ -4252,7 +4268,7 @@ ${docxImageAssets.map(asset => '<Relationship Id="' + asset.relationshipId + '" 
 </w:styles>` },
     { name: "docProps/core.xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-<dc:title>${xmlEscape(title)} - ${xmlEscape(chapter)}</dc:title><dc:creator>StoryForge</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${new Date().toISOString()}</dcterms:created>
+<dc:title>${xmlEscape(title)} - ${xmlEscape(chapter)}</dc:title><dc:creator>${xmlEscape(penName || "StoryForge")}</dc:creator><dc:rights>${xmlEscape(copyrightText)}</dc:rights><dcterms:created xsi:type="dcterms:W3CDTF">${new Date().toISOString()}</dcterms:created>
 </cp:coreProperties>` },
     { name: "docProps/app.xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>StoryForge</Application></Properties>` }
@@ -4311,6 +4327,10 @@ function exportManuscriptEpub(chapters = null, projectTitle = null) {
 
 function exportWholeNovelEpub(chapters, projectTitle) {
   const title = projectTitle || $("title").value || "StoryForge Manuscript";
+  const penName = $("penName")?.value.trim() || "StoryForge";
+  const copyrightText = $("copyrightText")?.value.trim() || "";
+  const authorBio = $("authorBio")?.value || "";
+  const synopsis = $("context")?.value || "";
   const identifier = "urn:uuid:" + crypto.randomUUID();
   const images = [];
   const chapterFiles = chapters.map((chapter, index) => {
@@ -4345,7 +4365,7 @@ function exportWholeNovelEpub(chapters, projectTitle) {
   const files = [
     { name: "mimetype", data: "application/epub+zip" },
     { name: "META-INF/container.xml", data: '<?xml version="1.0" encoding="UTF-8"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>' },
-    { name: "OEBPS/content.opf", data: '<?xml version="1.0" encoding="UTF-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid" xml:lang="th"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">' + identifier + '</dc:identifier><dc:title>' + xmlEscape(title) + '</dc:title><dc:language>th</dc:language><dc:creator>StoryForge</dc:creator><meta property="dcterms:modified">' + new Date().toISOString().replace(/\.\d{3}Z$/, "Z") + '</meta></metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="css" href="style.css" media-type="text/css"/>' + manifestChapters + manifestImages + '</manifest><spine>' + spine + '</spine></package>' },
+    { name: "OEBPS/content.opf", data: '<?xml version="1.0" encoding="UTF-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid" xml:lang="th"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">' + identifier + '</dc:identifier><dc:title>' + xmlEscape(title) + '</dc:title><dc:language>th</dc:language><dc:creator>' + xmlEscape(penName) + '</dc:creator><dc:rights>' + xmlEscape(copyrightText) + '</dc:rights><dc:description>' + xmlEscape([synopsis, authorBio].filter(Boolean).join("\n\n")) + '</dc:description><meta property="dcterms:modified">' + new Date().toISOString().replace(/\.\d{3}Z$/, "Z") + '</meta></metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="css" href="style.css" media-type="text/css"/>' + manifestChapters + manifestImages + '</manifest><spine>' + spine + '</spine></package>' },
     { name: "OEBPS/nav.xhtml", data: '<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="th"><head><title>สารบัญ</title></head><body><nav epub:type="toc" id="toc"><h1>' + xmlEscape(title) + '</h1><ol>' + nav + '</ol></nav></body></html>' },
     { name: "OEBPS/style.css", data: "body{font-family:serif;line-height:1.65;margin:5%;}h1,h2{line-height:1.3;}p{margin:0 0 0.8em;text-indent:1.2em}.blank{height:0.8em}figure{margin:1.5em auto;text-align:center;break-inside:avoid}img{max-width:100%;height:auto}figcaption{font-style:italic;text-align:center}" }
   ];
