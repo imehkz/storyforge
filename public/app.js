@@ -1651,11 +1651,28 @@ async function editModuleItem(collection, itemId) {
     if (content === null) return;
     payload = { title, content };
   } else if (collection === "relationships") {
+    const characters = cloud.modules.characters || [];
+    if (characters.length < 2) return alert("ต้องมีตัวละครอย่างน้อยสองตัวเพื่อแก้ไขความสัมพันธ์");
+    const choices = characters.map((character, index) => (index + 1) + ". " + character.name).join("\n");
+    const currentSource = characters.findIndex(character => character.id === item.source_character_id);
+    const currentTarget = characters.findIndex(character => character.id === item.target_character_id);
+    const sourceChoice = prompt("เลือกตัวละครต้นทาง โดยใส่หมายเลข:\n" + choices, String(currentSource + 1));
+    if (sourceChoice === null) return;
+    const sourceIndex = Number(sourceChoice) - 1;
+    if (!Number.isInteger(sourceIndex) || sourceIndex < 0 || sourceIndex >= characters.length) return alert("หมายเลขตัวละครต้นทางไม่ถูกต้อง");
+    const targetChoice = prompt("เลือกตัวละครปลายทาง โดยใส่หมายเลข:\n" + choices, String(currentTarget + 1));
+    if (targetChoice === null) return;
+    const targetIndex = Number(targetChoice) - 1;
+    if (!Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= characters.length || targetIndex === sourceIndex) return alert("กรุณาเลือกตัวละครปลายทางให้ถูกต้องและไม่ซ้ำกับต้นทาง");
     const relationship_type = prompt("ประเภทความสัมพันธ์", item.relationship_type || "");
     if (relationship_type === null) return;
     const description = prompt("รายละเอียด", item.description || "");
     if (description === null) return;
-    payload = { relationship_type, description };
+    payload = {
+      source_character_id: characters[sourceIndex].id,
+      target_character_id: characters[targetIndex].id,
+      relationship_type, description
+    };
   }
   try {
     await cloudApi("/api/projects/" + encodeURIComponent(cloud.activeProjectId) + "/" + collection + "/" + encodeURIComponent(itemId), {
