@@ -93,6 +93,14 @@ class WorkerContractTests(unittest.TestCase):
         ):
             self.assertIn(fragment, APP)
 
+    def test_illustration_library_is_project_scoped(self):
+        for fragment in ("ILLUSTRATION_LIBRARY_STORE", "illustrationLibraryRecords(projectId)", "savePendingIllustrationToLibrary", "renderIllustrationLibrary"):
+            self.assertIn(fragment, APP)
+        self.assertIn("indexedDB.open(CHARACTER_VAULT_DB, 2)", APP)
+        self.assertIn("id=\"illustrationLibraryGallery\"", HTML)
+        self.assertIn("id=\"saveIllustrationToLibrary\"", HTML)
+        self.assertIn(".illustration-library-card", CSS)
+
     def test_editor_backup_key_is_preserved(self):
         self.assertIn('key === "manuscriptBody" ? "sf_manuscript"', APP)
         self.assertIn("storageKeyFor", APP)
