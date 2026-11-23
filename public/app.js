@@ -917,6 +917,7 @@ function buildStoryAssistantContext() {
   lines.push(
     "จำนวนบทเป้าหมาย: " + (writingSettings.chapterCount || 20),
     "จำนวนคำต่อบท: " + (writingSettings.wordsPerChapter || 2000),
+    "เป้าหมายคำของบทที่กำลังเขียน: " + (localStorage.getItem(writingWordGoalKey(active.id)) || writingSettings.wordsPerChapter || 2000),
     "มุมมอง: " + (writingSettings.pov || "third"),
     "สไตล์ภาษา: " + (writingSettings.style || "literary"),
     "ขอบเขตฉากผู้ใหญ่: " + (writingSettings.adultContent || "off"),
