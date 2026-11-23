@@ -143,7 +143,7 @@ assert.ok(source.includes("async function exportEntireNovelPdf()"), "whole-novel
 
 const printHelpers = ["printPlainTextParagraphs", "buildWholeNovelPrintHtml"].map(extractFunction).join("\n");
 const printHtmlBuilder = new Function("escapeHtml", "sanitizeManuscriptHtml", printHelpers +
-  "\\nreturn buildWholeNovelPrintHtml;")(
+  "\nreturn buildWholeNovelPrintHtml;")(
   value => String(value).replace(/[&<>"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char]),
   value => String(value || "")
 );
@@ -151,7 +151,7 @@ const wholeBookPrintHtml = printHtmlBuilder({
   title: "นิยาย <ทดสอบ>",
   pen_name: "นามปากกา",
   copyright_text: "ลิขสิทธิ์ & สงวนสิทธิ์",
-  foreword: "คำนำบรรทัดแรก\\nคำนำบรรทัดสอง",
+  foreword: "คำนำบรรทัดแรก\nคำนำบรรทัดสอง",
   author_bio: "ประวัติผู้เขียน"
 }, [
   { title: "บทแรก", body: "<p>เนื้อหาบทแรก</p>" },
