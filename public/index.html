@@ -334,6 +334,10 @@
             </section>
             <div class="card-frame manuscript-card">
               <label for="chapterTitle">ชื่อบท</label><input id="chapterTitle" placeholder="เช่น บทที่ 1 — จุดเริ่มต้น">
+              <div class="chapter-meta-grid">
+                <div><label for="chapterStatus">สถานะการเขียน</label><select id="chapterStatus"><option value="planned">วางแผน</option><option value="draft" selected>ฉบับร่าง</option><option value="revised">ปรับแก้แล้ว</option><option value="final">ฉบับสมบูรณ์</option></select></div>
+                <div><label for="chapterSynopsis">สรุปย่อของบท</label><textarea id="chapterSynopsis" rows="2" maxlength="3000" placeholder="สรุปเหตุการณ์สำคัญของบทนี้ เพื่อใช้วางแผนและทบทวนเรื่อง"></textarea></div>
+              </div>
               <label for="manuscriptEditor">ต้นฉบับ</label>
               <div class="manuscript-format-toolbar" role="toolbar" aria-label="เครื่องมือจัดรูปแบบต้นฉบับ">
                 <button type="button" id="toggleWritingFocus" class="writing-focus-toggle" aria-pressed="false" title="ซ่อนเมนูรอบข้างเพื่อเขียนอย่างต่อเนื่อง">⛶ โหมดเขียนเต็มจอ</button>
