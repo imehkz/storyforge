@@ -306,7 +306,7 @@
         </section>
       </section>
       <section id="manuscript" class="panel hidden">
-        <div class="page-intro manuscript-page-intro"><div><span class="eyebrow">MANUSCRIPT STUDIO</span><h1>ห้องเขียนต้นฉบับ</h1><p>ดูแลทุกฉบับร่าง เขียนต่อได้อย่างอุ่นใจ</p></div><span class="save-indicator" id="manuscriptStatusMini">ฉบับร่างส่วนตัว</span></div>
+        <div class="page-intro manuscript-page-intro"><div><span class="eyebrow">MANUSCRIPT STUDIO · พื้นที่เขียนส่วนตัว</span><h1>ห้องเขียนต้นฉบับ</h1><p>บทที่กำลังเขียน · <span id="studioChapterMeta">เลือกบทเพื่อเริ่มเขียน</span></p></div><div class="studio-header-actions"><span class="save-indicator" id="manuscriptStatusMini">ฉบับร่างส่วนตัว</span><button id="studioFocusButton" class="outline-button" type="button">⛶ โหมดสมาธิ</button></div></div>
         <div class="manuscript-layout">
           <aside class="chapter-sidebar card-frame">
             <div class="chapter-sidebar-head"><div><span class="eyebrow">CHAPTERS</span><h2>ต้นฉบับ</h2></div><span id="chapterTotal">0 บท</span></div>
@@ -342,14 +342,14 @@
               <p id="continuityHint" class="form-hint" aria-live="polite">ระบบจะตรวจได้สูงสุด 40 บทต่อครั้ง และจะแจ้งรายการที่ควรตรวจทาน ไม่แก้ไขต้นฉบับให้อัตโนมัติ</p>
               <div id="continuityResults" class="continuity-results" aria-live="polite"></div>
             </section>
-            <div class="card-frame manuscript-card">
-              <label for="chapterTitle">ชื่อบท</label><input id="chapterTitle" placeholder="เช่น บทที่ 1 — จุดเริ่มต้น">
+            <div class="card-frame manuscript-card studio-paper-card">
+              <label class="studio-title-label" for="chapterTitle">ชื่อบท</label><input id="chapterTitle" class="studio-chapter-title-input" placeholder="เช่น บทที่ 1 — จุดเริ่มต้น">
               <div class="chapter-meta-grid">
                 <div><label for="chapterStatus">สถานะการเขียน</label><select id="chapterStatus"><option value="planned">วางแผน</option><option value="draft" selected>ฉบับร่าง</option><option value="revised">ปรับแก้แล้ว</option><option value="final">ฉบับสมบูรณ์</option></select></div>
                 <div><label for="chapterSynopsis">สรุปย่อของบท</label><textarea id="chapterSynopsis" rows="2" maxlength="3000" placeholder="สรุปเหตุการณ์สำคัญของบทนี้ เพื่อใช้วางแผนและทบทวนเรื่อง"></textarea></div>
               </div>
-              <label for="manuscriptEditor">ต้นฉบับ</label>
-              <div class="manuscript-format-toolbar" role="toolbar" aria-label="เครื่องมือจัดรูปแบบต้นฉบับ">
+              <label class="studio-body-label" for="manuscriptEditor">ต้นฉบับ</label>
+              <div class="manuscript-format-toolbar studio-format-toolbar" role="toolbar" aria-label="เครื่องมือจัดรูปแบบต้นฉบับ">
                 <button type="button" id="toggleWritingFocus" class="writing-focus-toggle" aria-pressed="false" title="ซ่อนเมนูรอบข้างเพื่อเขียนอย่างต่อเนื่อง">⛶ โหมดเขียนเต็มจอ</button>
                 <select id="editorFont" aria-label="แบบอักษร"><option value='"Noto Serif Thai",serif'>Noto Serif Thai</option><option value='"Noto Sans Thai",sans-serif'>Noto Sans Thai</option><option value='"TH Sarabun New",serif'>TH Sarabun New</option><option value="Georgia,serif">Georgia</option></select>
                 <select id="editorSize" aria-label="ขนาดตัวอักษร"><option value="14px">14</option><option value="16px" selected>16</option><option value="18px">18</option><option value="20px">20</option><option value="22px">22</option><option value="24px">24</option></select>
@@ -436,7 +436,7 @@
               <span class="micro-label">WRITER'S DESK</span>
               <h2>พื้นที่ของคุณ</h2>
               <p>บันทึกฉบับร่างและประวัติเวอร์ชันอยู่ใกล้มือเสมอ</p>
-              <button id="studioFocusButton" class="outline-button full-width" type="button">⛶ โหมดเขียนเต็มจอ</button>
+              <button class="outline-button full-width" data-open-tab="assistant" type="button">เปิดผู้ช่วยเขียน →</button>
             </section>
           </aside>
         </div>
