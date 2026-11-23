@@ -230,6 +230,18 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("await validateRelationshipEndpoints(source, target)", module_route)
         self.assertIn("INVALID_RELATIONSHIP_CHARACTER", module_route)
 
+    def test_scene_tracker_uses_project_scoped_notes_and_chapter_references(self):
+        module_route = WORKER[WORKER.index("const moduleMatch"):WORKER.index("const chaptersMatch")]
+        self.assertIn('chapter_ids_json: ["json_array", 16000]', module_route)
+        self.assertIn('scene_type: ["string", 40]', module_route)
+        self.assertIn('scene_status: ["string", 40]', module_route)
+        self.assertIn('["plot-threads", "notes"].includes(collection)', module_route)
+        self.assertIn("UPDATE story_notes SET chapter_ids_json", WORKER)
+        self.assertIn('id="sceneTrackerList"', HTML)
+        self.assertIn('id="addScene"', HTML)
+        self.assertIn('note_type: "scene"', APP)
+        self.assertIn("selectedModuleChapterIds", APP)
+
     def test_plot_chapter_references_are_project_scoped_and_cleaned_on_delete(self):
         module_route = WORKER[WORKER.index("const moduleMatch"):WORKER.index("const chaptersMatch")]
         self.assertIn('chapter_ids_json: ["json_array", 16000]', module_route)
