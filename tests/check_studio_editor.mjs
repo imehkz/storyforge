@@ -47,4 +47,15 @@ assert.ok(app.includes('"newChapter", "studioContinuityShortcut"'),
   "continuity shortcut must be hidden when no Cloud project is active");
 assert.ok(app.includes('"chapterHistoryInline", "studioHistoryShortcut"'),
   "history shortcut must be hidden when no chapter is active");
+
+assert.match(css, /@media \(min-width: 981px\) and \(max-width: 1280px\)[\s\S]*?#manuscript \.manuscript-layout\s*\{\s*grid-template-columns:\s*minmax\(150px, \.72fr\) minmax\(0, 2\.1fr\) minmax\(205px, \.96fr\)/,
+  "tablet workspace must retain chapter, manuscript, and insight columns");
+assert.match(css, /@media \(min-width: 1281px\)[\s\S]*?#manuscript \.manuscript-layout\s*\{\s*grid-template-columns:\s*minmax\(190px, 220px\) minmax\(420px, 1fr\) minmax\(245px, 285px\)/,
+  "wide desktop workspace must retain three columns");
+assert.match(css, /@media \(max-width: 980px\)[\s\S]*?#manuscript \.manuscript-layout\s*\{\s*grid-template-columns:\s*minmax\(0, 1fr\)/,
+  "narrow layouts must collapse the workspace to one column");
+assert.match(css, /@media \(max-width: 620px\)[\s\S]*?#manuscript \.chapter-list\s*\{\s*display:\s*flex;\s*overflow-x:\s*auto/,
+  "mobile chapter navigation must remain horizontally scrollable");
+assert.match(css, /#manuscript \.manuscript-main\s*\{\s*min-width:\s*0;/,
+  "manuscript column must be allowed to shrink without forcing page overflow");
 console.log("Novel Studio contract tests passed: shortcut targets, editor controls, hidden storage field, and save handlers are wired.");
