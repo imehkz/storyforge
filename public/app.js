@@ -943,8 +943,19 @@ function buildStoryAssistantContext() {
       let profile = {};
       try { profile = typeof character.profile_json === "string" ? JSON.parse(character.profile_json || "{}") : (character.profile_json || {}); } catch {}
       lines.push("- " + character.name + (character.role ? " — " + character.role : ""));
+      const profileLabels = {
+        nickname:"ชื่อเล่น/นามแฝง", gender:"เพศ", birthday:"วันเกิด", profession:"อาชีพ/ตำแหน่ง",
+        age:"อายุ", pronouns:"สรรพนาม", species:"เผ่าพันธุ์", height:"ส่วนสูง/รูปร่าง",
+        face:"รูปหน้า", skin:"สีผิว/จุดสังเกต", eyes:"ดวงตา", hair:"เส้นผม",
+        build:"สัดส่วน", clothing:"เครื่องแต่งกาย", accessories:"เครื่องประดับ",
+        expressions:"สีหน้า/ภาษากาย", appearance:"รูปลักษณ์โดยรวม",
+        personality:"บุคลิก", motivation:"เป้าหมาย", backstory:"ภูมิหลัง",
+        strengths:"จุดแข็ง", weaknesses:"จุดอ่อน", likes:"สิ่งที่ชอบ",
+        dislikes:"สิ่งที่ไม่ชอบ", skills:"ทักษะ", family:"ครอบครัว/สังกัด",
+        customFields:"ข้อมูลเฉพาะโลกนิยาย", secret:"ความลับ", description:"บันทึกเพิ่มเติม"
+      };
       Object.entries(profile).forEach(([key, value]) => {
-        if (value && String(value).trim()) lines.push("  - " + key + ": " + String(value).trim());
+        if (value && String(value).trim()) lines.push("  - " + (profileLabels[key] || key) + ": " + String(value).trim());
       });
     });
     lines.push("", "## ความสัมพันธ์");
