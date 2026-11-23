@@ -654,7 +654,8 @@ async function sendTelegramBackup(isAutomatic = false) {
 
       headers: {
         "Content-Type": "application/json",
-        "x-backup-secret": secret
+        "x-backup-secret": secret,
+        "X-CSRF-Token": cloud.csrfToken
       },
 
       body: JSON.stringify({
