@@ -6,6 +6,7 @@ let creatingProject = false;
 let backupBusy = false;
 let nextAutoBackupAt = null;
 let autoBackupTimer = null;
+const AUTO_BACKUP_RETRY_MS = 15 * 60 * 1000;
 
 const keys = [
   "title",
@@ -764,10 +765,17 @@ function setupAutoBackup() {
 
     const hours = Number($("backupInterval").value);
 
-    await sendTelegramBackup(true);
+    const succeeded = await sendTelegramBackup(true);
 
-    nextAutoBackupAt =
-      Date.now() + hours * 60 * 60 * 1000;
+    // A failed backup must retry soon instead of silently waiting another full interval.
+    nextAutoBackupAt = succeeded
+      ? Date.now() + hours * 60 * 60 * 1000
+      : Date.now() + AUTO_BACKUP_RETRY_MS;
+
+    if (!succeeded) {
+      $("backupStatus").textContent =
+        "Backup อัตโนมัติไม่สำเร็จ ระบบจะลองใหม่ใน 15 นาที";
+    }
 
   }, 60 * 1000);
 }
