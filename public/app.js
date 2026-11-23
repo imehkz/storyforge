@@ -2397,12 +2397,16 @@ function exportManuscriptEpub() {
 
 function exportManuscriptPdf() {
   const printNode = $("printManuscriptText");
-  printNode.textContent = [
-    $("title").value,
-    $("chapterTitle").value,
-    "",
-    getManuscriptText()
-  ].filter((value, index) => value !== "" || index === 2).join("\n");
+  const title = $("title").value || "ต้นฉบับนิยาย";
+  const chapter = $("chapterTitle").value || "ต้นฉบับ";
+  const editor = $("manuscriptEditor");
+  const bodyHtml = editor && editor.innerHTML && typeof DOMParser !== "undefined"
+    ? sanitizeManuscriptHtml(editor.innerHTML)
+    : getManuscriptText().split(/\r?\n/).map(line => `<p>${escapeHtml(line)}</p>`).join("");
+  printNode.innerHTML =
+    `<h1 class="print-book-title">${escapeHtml(title)}</h1>` +
+    `<h2 class="print-chapter-title">${escapeHtml(chapter)}</h2>` +
+    `<div class="print-book-body">${bodyHtml}</div>`;
   document.body.classList.add("print-manuscript");
   const cleanup = () => {
     document.body.classList.remove("print-manuscript");
