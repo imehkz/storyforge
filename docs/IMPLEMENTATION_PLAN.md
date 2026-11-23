@@ -392,3 +392,11 @@ See [ROADMAP_NEXT_20.md](./ROADMAP_NEXT_20.md) for the ordered acceptance checkl
 - Manuscript Studio now edits and autosaves the synopsis/status alongside the chapter, includes them in local recovery drafts, and shows status, word count, synopsis preview, and linked-scene count in the chapter outline.
 - Chapter revision snapshots now include synopsis and writing status; restoring a revision restores both fields. Cloud Backup validation and restore preserve these fields while accepting older archives that do not contain them.
 - No migration was applied to live D1 and no deployment occurred. Browser/tablet and live D1 runtime checks remain outstanding.
+
+
+### Publishing metadata and Cover Studio persistence — 23 November 2026
+
+- Added per-project pen name, copyright line, foreword, and author biography through migration 0011. Project API, project load/save, backup validation, and restore now preserve these fields.
+- Whole-book TXT and DOCX include the configured publication front/back matter; EPUB OPF metadata includes pen name, rights, synopsis, and author bio. Automated fixtures verify multi-chapter Thai text, order, TOC/page breaks, language metadata, and publication metadata. Real Microsoft Word/LibreOffice/e-reader rendering checks remain pending.
+- Cover Studio brief now saves to project-scoped Cloud JSON when the project is Cloud-connected, while keeping a local recovery copy. Loading prefers Cloud brief data and falls back to local storage. Backup/restore validates project identity and size. Migration 0012 adds the JSON object column.
+- CI passed after these changes. Migrations 0011 and 0012 have not been applied to live D1 and no production deployment occurred.
