@@ -1764,7 +1764,7 @@ function buildStoryAssistantContext() {
       try { profile = typeof character.profile_json === "string" ? JSON.parse(character.profile_json || "{}") : (character.profile_json || {}); } catch {}
       lines.push("- " + character.name + (character.role ? " — " + character.role : ""));
       const profileLabels = {
-        nickname:"ชื่อเล่น/นามแฝง", gender:"เพศ", birthday:"วันเกิด", profession:"อาชีพ/ตำแหน่ง",
+        nickname:"ชื่อเล่น/นามแฝง", aliases:"ชื่อเรียกอื่น", gender:"เพศ", birthday:"วันเกิด", profession:"อาชีพ/ตำแหน่ง",
         age:"อายุ", pronouns:"สรรพนาม", species:"เผ่าพันธุ์", height:"ส่วนสูง/รูปร่าง",
         face:"รูปหน้า", skin:"สีผิว/จุดสังเกต", eyes:"ดวงตา", hair:"เส้นผม",
         build:"สัดส่วน", clothing:"เครื่องแต่งกาย", accessories:"เครื่องประดับ",
@@ -2270,16 +2270,21 @@ function analyzeStoryContinuity({ chapters = [], characters = [], timeline = [],
       if (!character) continue;
       let profile = {};
       try { profile = JSON.parse(character.profile_json || "{}"); } catch {}
-      const names = [character.name, profile.nickname].filter(name => String(name || "").trim().length >= 2);
+      const aliases = Array.isArray(profile.aliases) ? profile.aliases : String(profile.aliases || "").split(/[\n,;、，]+/);
+      const names = [character.name, profile.nickname, ...aliases].filter(name => String(name || "").trim().length >= 2);
       if (body && names.length && !names.some(name => body.includes(normalize(name)))) {
         add("hint", "ตรวจการปรากฏของตัวละคร", "Canon ระบุ “" + character.name + "” แต่ไม่พบชื่อหรือชื่อเล่นในข้อความบทนี้ อาจใช้สรรพนามหรือชื่อเรียกอื่นอยู่แล้ว", chapter.id);
       }
     }
 
     for (const character of characters) {
-      const name = String(character.name || "").trim();
-      if (name.length < 2 || !body.includes(normalize(name)) || ids.includes(character.id)) continue;
-      add("hint", "ตรวจ Canon ตัวละคร", "พบชื่อ “" + name + "” ในเนื้อหา แต่ยังไม่ได้เชื่อมตัวละครนี้กับ Canon ของบท", chapter.id);
+      let profile = {};
+      try { profile = JSON.parse(character.profile_json || "{}"); } catch {}
+      const aliases = Array.isArray(profile.aliases) ? profile.aliases : String(profile.aliases || "").split(/[\n,;、，]+/);
+      const names = [character.name, profile.nickname, ...aliases].filter(name => String(name || "").trim().length >= 2);
+      const foundName = names.find(name => body.includes(normalize(name)));
+      if (!foundName || ids.includes(character.id)) continue;
+      add("hint", "ตรวจ Canon ตัวละคร", "พบชื่อเรียก “" + foundName.trim() + "” ของตัวละคร “" + character.name + "” ในเนื้อหา แต่ยังไม่ได้เชื่อมตัวละครนี้กับ Canon ของบท", chapter.id);
     }
   }
 
@@ -2308,6 +2313,16 @@ function analyzeStoryContinuity({ chapters = [], characters = [], timeline = [],
       add("review", "ลำดับ Timeline อาจไม่ตรงวันที่", "“" + event.title + "” ระบุวันที่ " + event.story_time + " แต่เรียงอยู่หลังเหตุการณ์ “" + previous.title + "” (" + previous.storyTime + ")");
     }
     previous = { date, title: event.title, storyTime: event.story_time };
+  }
+
+  for (const event of timeline) {
+    let ids = [];
+    try { ids = JSON.parse(event.character_ids_json || "[]"); } catch {}
+    if (!Array.isArray(ids)) continue;
+    const linked = ids.filter(id => characterById.has(id));
+    if (linked.length && !linked.some(id => chapterCanonIds.has(id))) {
+      add("hint", "เหตุการณ์ Timeline ยังไม่เชื่อมกับบท", "เหตุการณ์ “" + event.title + "” อ้างถึงตัวละคร แต่ยังไม่พบตัวละครเหล่านี้ใน Canon ของบทที่ตรวจ อาจเป็นเหตุการณ์ในอนาคตหรือยังไม่ได้เชื่อมบท");
+    }
   }
 
   for (const plot of plotThreads) {
@@ -2749,7 +2764,7 @@ function renderModuleLists() {
 }
 
 const CHARACTER_PROFILE_FIELDS = [
-  "characterNickname", "characterGender", "characterBirthday", "characterProfession",
+  "characterNickname", "characterAliases", "characterGender", "characterBirthday", "characterProfession",
   "characterAge", "characterPronouns", "characterSpecies", "characterHeight",
   "characterFace", "characterSkin", "characterEyes", "characterHair",
   "characterBuild", "characterClothing", "characterAccessories", "characterExpressions",
@@ -2762,6 +2777,7 @@ const CHARACTER_PROFILE_FIELDS = [
 function characterProfileFromForm() {
   return {
     nickname: $("characterNickname").value,
+    aliases: $("characterAliases").value,
     gender: $("characterGender").value,
     birthday: $("characterBirthday").value,
     profession: $("characterProfession").value,
@@ -2951,7 +2967,7 @@ function startEditCharacter(item) {
   $("characterName").value = item.name || "";
   $("characterRole").value = item.role || "";
   const values = {
-    characterNickname: profile.nickname, characterGender: profile.gender,
+    characterNickname: profile.nickname, characterAliases: profile.aliases, characterGender: profile.gender,
     characterBirthday: profile.birthday, characterProfession: profile.profession,
     characterAge: profile.age, characterPronouns: profile.pronouns,
     characterSpecies: profile.species, characterHeight: profile.height,
