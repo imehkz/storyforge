@@ -4564,6 +4564,9 @@ function setupManuscriptEditor() {
   $("toggleWritingFocus")?.addEventListener("click", () =>
     setWritingFocusMode(!document.body.classList.contains("writing-focus-mode"))
   );
+  $("studioFocusButton")?.addEventListener("click", () =>
+    setWritingFocusMode(!document.body.classList.contains("writing-focus-mode"))
+  );
   document.addEventListener("keydown", event => {
     if (event.key === "Escape" && document.body.classList.contains("writing-focus-mode")) {
       setWritingFocusMode(false);
