@@ -1159,9 +1159,9 @@ function compressIllustration(file) {
         if (!ctx) return reject(new Error("ไม่สามารถประมวลผลภาพบนอุปกรณ์นี้ได้"));
         ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-        let quality = 0.82, data = canvas.toDataURL("image/jpeg", quality);
-        while (data.length > 235000 && quality > 0.35) { quality -= 0.1; data = canvas.toDataURL("image/jpeg", quality); }
-        if (data.length > 235000) return reject(new Error("ภาพยังใหญ่เกินไปหลังย่อ กรุณาเลือกรูปที่เล็กกว่านี้"));
+        let quality = 0.78, data = canvas.toDataURL("image/jpeg", quality);
+        while (data.length > 125000 && quality > 0.3) { quality -= 0.08; data = canvas.toDataURL("image/jpeg", quality); }
+        if (data.length > 125000) return reject(new Error("ภาพยังใหญ่เกินไปหลังย่อ กรุณาเลือกรูปที่เล็กกว่านี้"));
         resolve(data);
       };
       image.src = String(reader.result || "");
