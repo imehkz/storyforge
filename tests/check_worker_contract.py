@@ -234,12 +234,13 @@ class WorkerContractTests(unittest.TestCase):
 
     def test_canonical_character_references_survive_backup_and_restore(self):
         restore = APP[APP.index("async function restoreCloudBackup"):APP.index("function restoreFromFile")]
+        validation = APP[APP.index("function validateCloudBackupData"):APP.index("async function restoreCloudBackup")]
         self.assertIn('character_ids_json: ["json_array", 8000]', WORKER)
         self.assertIn('"character_ids_json"', restore)
         self.assertIn('"plot-threads": ["title", "summary", "status", "sort_order", "character_ids_json"]', restore)
         self.assertIn('"world-lore": ["category", "title", "content", "sort_order", "character_ids_json"]', restore)
         self.assertIn('timeline: ["title", "description", "story_time", "sort_order", "character_ids_json"]', restore)
-        self.assertIn('characterIds.has(id)', restore)
+        self.assertIn('characterIds.has(id)', validation)
 
     def test_relationship_edit_can_reassign_character_endpoints(self):
         self.assertIn("characters[sourceIndex].id", APP)
