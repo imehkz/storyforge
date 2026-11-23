@@ -832,7 +832,26 @@ input::placeholder,textarea::placeholder{color:rgba(154,169,190,.66)}
  .relationship-graph-tools { align-items:flex-start; flex-direction:column; }
 }
 
-#manuscript hr, #manuscript .manuscript-editor-surface hr { display:none!important; border:0!important; height:0!important; margin:0!important; }
+/* Section 08: suppress stray horizontal rules/separator overlays while the manuscript workspace is active. */
+body:has(#manuscript:not(.hidden)) hr,
+body:has(#manuscript:not(.hidden)) [role="separator"] {
+  display: none !important;
+  border: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+#manuscript .chapter-sidebar-actions {
+  border-top: 0 !important;
+}
+#manuscript hr,
+#manuscript .manuscript-editor-surface hr {
+  display: none !important;
+  border: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+}
 
 
 /* Book Cover Studio */
