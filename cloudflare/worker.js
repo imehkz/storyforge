@@ -563,7 +563,7 @@ async function api(request, env, url) {
     if (!owned) throw new Error("NOT_FOUND");
     if (method === "GET") {
       const rows = await env.DB.prepare(
-        "SELECT id, project_id, title, sort_order, word_count, character_ids_json, revision, created_at, updated_at FROM chapters WHERE project_id = ? ORDER BY sort_order, created_at LIMIT 500"
+        "SELECT id, project_id, title, synopsis, writing_status, sort_order, word_count, character_ids_json, revision, created_at, updated_at FROM chapters WHERE project_id = ? ORDER BY sort_order, created_at LIMIT 500"
       ).bind(projectId).all();
       return json({ chapters: rows.results || [] });
     }
@@ -579,12 +579,15 @@ async function api(request, env, url) {
       const sortOrder = input.sortOrder === undefined ? 0 :
         (Number.isInteger(input.sortOrder) && input.sortOrder >= 0 && input.sortOrder <= 1000000 ? input.sortOrder : (() => { throw new Error("INVALID_SORTORDER"); })());
       const wordCount = validateWordCount(input.wordCount, countWords(body));
+      const synopsis = optionalString(input.synopsis, 3000, "synopsis");
+      const writingStatus = input.writing_status === undefined ? "draft" : input.writing_status;
+      if (!["planned", "draft", "revised", "final"].includes(writingStatus)) throw new Error("INVALID_WRITING_STATUS");
       const characterIds = await validateChapterCharacterReferences(projectId, input.character_ids_json ?? []);
       const inserted = await env.DB.prepare(
-        "INSERT OR IGNORE INTO chapters (id, project_id, title, body, sort_order, word_count, character_ids_json) VALUES (?, ?, ?, ?, ?, ?, ?)"
-      ).bind(id, projectId, title, body, sortOrder, wordCount, characterIds).run();
+        "INSERT OR IGNORE INTO chapters (id, project_id, title, body, synopsis, writing_status, sort_order, word_count, character_ids_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      ).bind(id, projectId, title, body, synopsis, writingStatus, sortOrder, wordCount, characterIds).run();
       const chapter = await env.DB.prepare(
-        "SELECT id, project_id, title, body, sort_order, word_count, character_ids_json, revision, created_at, updated_at FROM chapters WHERE id = ?"
+        "SELECT id, project_id, title, body, synopsis, writing_status, sort_order, word_count, character_ids_json, revision, created_at, updated_at FROM chapters WHERE id = ?"
       ).bind(id).first();
       if (!chapter || chapter.project_id !== projectId) throw new Error("CONFLICT");
       return json({ chapter, created: Boolean(inserted.meta?.changes) }, inserted.meta?.changes ? 201 : 200);
@@ -630,7 +633,7 @@ async function api(request, env, url) {
     const input = await readJson(request);
     const snapshotId = requiredString(input.snapshotId, 80, "snapshotId");
     const current = await env.DB.prepare(
-      "SELECT c.id, c.project_id, c.title, c.body, c.sort_order, c.word_count, c.character_ids_json, c.revision FROM chapters c JOIN projects p ON p.id = c.project_id WHERE c.id = ? AND p.owner_id = ?"
+      "SELECT c.id, c.project_id, c.title, c.body, c.synopsis, c.writing_status, c.sort_order, c.word_count, c.character_ids_json, c.revision FROM chapters c JOIN projects p ON p.id = c.project_id WHERE c.id = ? AND p.owner_id = ?"
     ).bind(chapterId, ownerId).first();
     if (!current) throw new Error("NOT_FOUND");
     const snapshot = await env.DB.prepare(
@@ -641,16 +644,19 @@ async function api(request, env, url) {
     try { restored = JSON.parse(snapshot.content_json); } catch { throw new Error("INVALID_SNAPSHOT"); }
     const title = optionalString(restored.title, 240, "title");
     const body = optionalString(restored.body, 500000, "body");
+    const synopsis = optionalString(restored.synopsis ?? current.synopsis ?? "", 3000, "synopsis");
+    const writingStatus = restored.writing_status ?? current.writing_status ?? "draft";
+    if (!["planned", "draft", "revised", "final"].includes(writingStatus)) throw new Error("INVALID_WRITING_STATUS");
     const sortOrder = Number.isInteger(restored.sort_order) ? Math.max(0, Math.min(restored.sort_order, 1000000)) : current.sort_order;
     const wordCount = validateWordCount(restored.word_count, countWords(body));
     const characterIds = await validateChapterCharacterReferences(current.project_id, restored.character_ids_json ?? current.character_ids_json ?? []);
     const results = await env.DB.batch([
       env.DB.prepare(
-        "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'sort_order', sort_order, 'word_count', word_count, 'character_ids_json', character_ids_json, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
+        "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'synopsis', synopsis, 'writing_status', writing_status, 'sort_order', sort_order, 'word_count', word_count, 'character_ids_json', character_ids_json, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
       ).bind(crypto.randomUUID(), chapterId, current.revision, ownerId),
       env.DB.prepare(
-        "UPDATE chapters SET title = ?, body = ?, sort_order = ?, word_count = ?, character_ids_json = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, sort_order, word_count, character_ids_json, revision, updated_at"
-      ).bind(title, body, sortOrder, wordCount, characterIds, nowIso(), chapterId, current.revision, ownerId),
+        "UPDATE chapters SET title = ?, body = ?, synopsis = ?, writing_status = ?, sort_order = ?, word_count = ?, character_ids_json = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, synopsis, writing_status, sort_order, word_count, character_ids_json, revision, updated_at"
+      ).bind(title, body, synopsis, writingStatus, sortOrder, wordCount, characterIds, nowIso(), chapterId, current.revision, ownerId),
       env.DB.prepare(
         "DELETE FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ?) AND id NOT IN (SELECT id FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ?) ORDER BY created_at DESC, id DESC LIMIT 100)"
       ).bind(chapterId, chapterId, chapterId, chapterId)
@@ -665,7 +671,7 @@ async function api(request, env, url) {
     const chapterId = chapterMatch[1];
     if (method === "GET") {
       const chapter = await env.DB.prepare(
-        "SELECT c.id, c.project_id, c.title, c.body, c.sort_order, c.word_count, c.character_ids_json, c.revision, c.created_at, c.updated_at FROM chapters c JOIN projects p ON p.id = c.project_id WHERE c.id = ? AND p.owner_id = ?"
+        "SELECT c.id, c.project_id, c.title, c.body, c.synopsis, c.writing_status, c.sort_order, c.word_count, c.character_ids_json, c.revision, c.created_at, c.updated_at FROM chapters c JOIN projects p ON p.id = c.project_id WHERE c.id = ? AND p.owner_id = ?"
       ).bind(chapterId, ownerId).first();
       if (!chapter) throw new Error("NOT_FOUND");
       return json({ chapter });
@@ -674,12 +680,15 @@ async function api(request, env, url) {
       const input = await readJson(request, 2 * 1024 * 1024);
       if (!Number.isInteger(input.expectedRevision) || input.expectedRevision < 1) throw new Error("INVALID_EXPECTEDREVISION");
       const current = await env.DB.prepare(
-        "SELECT c.id, c.project_id, c.title, c.body, c.sort_order, c.character_ids_json, c.revision FROM chapters c JOIN projects p ON p.id = c.project_id WHERE c.id = ? AND p.owner_id = ?"
+        "SELECT c.id, c.project_id, c.title, c.body, c.synopsis, c.writing_status, c.sort_order, c.character_ids_json, c.revision FROM chapters c JOIN projects p ON p.id = c.project_id WHERE c.id = ? AND p.owner_id = ?"
       ).bind(chapterId, ownerId).first();
       if (!current) throw new Error("NOT_FOUND");
       if (current.revision !== input.expectedRevision) throw new Error("CONFLICT");
       const title = input.title === undefined ? current.title : optionalString(input.title, 240, "title");
       const body = input.body === undefined ? current.body : optionalString(input.body, 500000, "body");
+      const synopsis = input.synopsis === undefined ? current.synopsis : optionalString(input.synopsis, 3000, "synopsis");
+      const writingStatus = input.writing_status === undefined ? current.writing_status : input.writing_status;
+      if (!["planned", "draft", "revised", "final"].includes(writingStatus)) throw new Error("INVALID_WRITING_STATUS");
       const sortOrder = input.sortOrder === undefined ? current.sort_order :
         (Number.isInteger(input.sortOrder) && input.sortOrder >= 0 && input.sortOrder <= 1000000 ? input.sortOrder : (() => { throw new Error("INVALID_SORTORDER"); })());
       const wordCount = validateWordCount(input.wordCount, countWords(body));
@@ -691,8 +700,8 @@ async function api(request, env, url) {
           "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'sort_order', sort_order, 'word_count', word_count, 'character_ids_json', character_ids_json, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
         ).bind(crypto.randomUUID(), chapterId, input.expectedRevision, ownerId),
         env.DB.prepare(
-          "UPDATE chapters SET title = ?, body = ?, sort_order = ?, word_count = ?, character_ids_json = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, sort_order, word_count, character_ids_json, revision, updated_at"
-        ).bind(title, body, sortOrder, wordCount, characterIds, nowIso(), chapterId, input.expectedRevision, ownerId),
+          "UPDATE chapters SET title = ?, body = ?, synopsis = ?, writing_status = ?, sort_order = ?, word_count = ?, character_ids_json = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, synopsis, writing_status, sort_order, word_count, character_ids_json, revision, updated_at"
+        ).bind(title, body, synopsis, writingStatus, sortOrder, wordCount, characterIds, nowIso(), chapterId, input.expectedRevision, ownerId),
         env.DB.prepare(
           "DELETE FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ?) AND id NOT IN (SELECT id FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ?) ORDER BY created_at DESC, id DESC LIMIT 100)"
         ).bind(chapterId, chapterId, chapterId, chapterId)
