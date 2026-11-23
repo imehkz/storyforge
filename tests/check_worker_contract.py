@@ -230,6 +230,19 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("await validateRelationshipEndpoints(source, target)", module_route)
         self.assertIn("INVALID_RELATIONSHIP_CHARACTER", module_route)
 
+    def test_plot_chapter_references_are_project_scoped_and_cleaned_on_delete(self):
+        module_route = WORKER[WORKER.index("const moduleMatch"):WORKER.index("const chaptersMatch")]
+        self.assertIn('chapter_ids_json: ["json_array", 16000]', module_route)
+        self.assertIn("const validateChapterReferences = async (raw)", module_route)
+        self.assertIn('"SELECT id FROM chapters WHERE project_id = ? AND id IN (" + placeholders + ")"', module_route)
+        self.assertIn("await validateChapterReferences(values.chapter_ids_json)", module_route)
+        chapter_delete = WORKER[WORKER.index('if (method === "DELETE")', WORKER.index("const chaptersMatch")):]
+        self.assertIn("UPDATE plot_threads SET chapter_ids_json", chapter_delete)
+        self.assertIn("plotReferencesUpdated", chapter_delete)
+        self.assertIn('id="plotChapters"', HTML)
+        self.assertIn("promptChapterReferences", APP)
+        self.assertIn("data-plot-chapter", APP)
+
     def test_plot_world_and_timeline_character_references_are_project_scoped(self):
         module_route = WORKER[WORKER.index("const moduleMatch"):WORKER.index("const chaptersMatch")]
         self.assertGreaterEqual(module_route.count('character_ids_json: ["json_array", 8000]'), 4)
