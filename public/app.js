@@ -3678,6 +3678,12 @@ async function recoverLocalChapterDraft() {
   if (!draft) return;
   try {
     const latest = await cloudApi("/api/chapters/" + encodeURIComponent(chapterId));
+    // The user may navigate while the latest Cloud revision is loading.
+    // Never apply an old chapter's recovery draft to a newly selected chapter.
+    if (cloud.activeChapterId !== chapterId) return;
+    if (!latest.chapter || latest.chapter.id !== chapterId) {
+      throw new Error("ข้อมูลบทที่ได้รับไม่ตรงกับบทที่กำลังกู้คืน");
+    }
     cloud.chapters = cloud.chapters.map(item => item.id === chapterId ? latest.chapter : item);
     cloud.revision = latest.chapter.revision;
     $("chapterTitle").value = draft.title || "";
