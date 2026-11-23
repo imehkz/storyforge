@@ -4567,6 +4567,14 @@ function setupManuscriptEditor() {
   $("studioFocusButton")?.addEventListener("click", () =>
     setWritingFocusMode(!document.body.classList.contains("writing-focus-mode"))
   );
+  $("studioHistoryShortcut")?.addEventListener("click", () => $("chapterHistoryButton")?.click());
+  $("studioContinuityShortcut")?.addEventListener("click", () => {
+    const panel = $("continuityPanel");
+    if (!panel) return;
+    panel.hidden = false;
+    panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    $("runContinuityCheck")?.focus({ preventScroll: true });
+  });
   document.addEventListener("keydown", event => {
     if (event.key === "Escape" && document.body.classList.contains("writing-focus-mode")) {
       setWritingFocusMode(false);
