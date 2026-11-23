@@ -53,6 +53,7 @@ A direct attempt to create a relationship in Project A using Project B's charact
 - [x] Staging Worker uploaded and its D1 binding verified.
 - [x] Staging Worker deployment reports 100% traffic to its own version.
 - [x] Staging workers.dev subdomain enabled; production subdomain and routing untouched.
+- [x] GitHub Actions live HTTP smoke test passed on commit 8c7dab2769c2731d5950bdb16c3932fbe02b82ab: /api/health returned 200 with D1 ready; unauthenticated /api/projects returned 401 UNAUTHENTICATED; /, /app.js, and /style.css returned 200 with expected content types.
 
 ## Still not verified
 
@@ -67,7 +68,7 @@ A direct attempt to create a relationship in Project A using Project B's charact
 
 ## Important limitation
 
-The staging Worker is deployed with the branch Worker API source, the staging D1 binding, and embedded copies of the branch frontend files. It is not yet a complete authenticated staging environment because it has no separate OAuth configuration or owner allowlist. Cloudflare API inspection confirmed the Worker version and binding; direct HTTP requests from the available Cloudflare execution environment and web reader were blocked by their network policies, so no live API/browser success is claimed here.
+The staging Worker is deployed with the branch Worker API source, the staging D1 binding, and embedded copies of the branch frontend files. It is not yet a complete authenticated staging environment because it has no separate OAuth configuration or owner allowlist. Cloudflare API inspection confirmed the Worker version and binding. Direct HTTP requests from the Cloudflare execution tool and web reader were blocked by their network policies, but the GitHub Actions runner successfully completed live HTTP smoke tests for D1 health, unauthenticated access rejection, and all three frontend assets. Authenticated API and browser/device flows remain unverified.
 
 ## Production safety
 
