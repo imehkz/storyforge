@@ -400,3 +400,10 @@ See [ROADMAP_NEXT_20.md](./ROADMAP_NEXT_20.md) for the ordered acceptance checkl
 - Whole-book TXT and DOCX include the configured publication front/back matter; EPUB OPF metadata includes pen name, rights, synopsis, and author bio. Automated fixtures verify multi-chapter Thai text, order, TOC/page breaks, language metadata, and publication metadata. Real Microsoft Word/LibreOffice/e-reader rendering checks remain pending.
 - Cover Studio brief now saves to project-scoped Cloud JSON when the project is Cloud-connected, while keeping a local recovery copy. Loading prefers Cloud brief data and falls back to local storage. Backup/restore validates project identity and size. Migration 0012 adds the JSON object column.
 - CI passed after these changes. Migrations 0011 and 0012 have not been applied to live D1 and no production deployment occurred.
+
+
+### Illustration library and private-beta release gate — 23 November 2026
+
+- Illustration Library now supports per-image categories (scene, character, location, object, cover, other), category filtering, and preserves captions/metadata in the existing project-scoped IndexedDB store. Backup validation rejects unknown categories while allowing older records without a category.
+- Added a private-beta QA gate checklist covering staging setup, Thai IME/autosave/revision restore, project isolation, module references, export rendering, Backup/Restore rollback, security, accessibility, and Android tablet QA.
+- The QA gate is explicitly NOT READY: no isolated staging Worker/D1, real browser/tablet E2E, or independent encrypted off-site D1 restore drill is evidenced. Production migration/deployment remains intentionally untouched.
