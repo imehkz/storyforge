@@ -43,12 +43,33 @@ class D1SchemaTests(unittest.TestCase):
         }
         self.assertTrue(expected.issubset(actual), expected - actual)
 
-    def test_chapters_store_word_counts(self):
+    def test_chapters_store_word_counts_and_character_references(self):
         columns = {
             row[1] for row in self.db.execute("PRAGMA table_info(chapters)")
         }
         self.assertIn("word_count", columns)
         self.assertIn("character_ids_json", columns)
+        self.assertEqual(
+            self.db.execute("SELECT dflt_value FROM pragma_table_info('chapters') WHERE name='character_ids_json'").fetchone()[0],
+            "'[]'",
+        )
+
+    def test_chapter_character_references_are_kept_within_project(self):
+        self.seed_project()
+        self.db.execute("INSERT INTO characters(id, project_id, name) VALUES ('char-1','p1','Mira')")
+        self.db.execute(
+            "INSERT INTO chapters(id, project_id, title, character_ids_json) VALUES ('chapter-1','p1','Chapter', ?)",
+            ('["char-1"]',),
+        )
+        self.assertEqual(
+            self.db.execute("SELECT character_ids_json FROM chapters WHERE id='chapter-1'").fetchone()[0],
+            '["char-1"]',
+        )
+        with self.assertRaises(Exception):
+            self.db.execute(
+                "UPDATE chapters SET character_ids_json = ? WHERE id='chapter-1'",
+                ('["character-from-another-project"]',),
+            )
 
     def test_child_rows_require_a_real_project(self):
         with self.assertRaises(sqlite3.IntegrityError):
