@@ -339,3 +339,13 @@ No hosting resources or secrets have been provisioned, and no production deploym
 - Deleting a character cleans its references from chapters as well as Plot, World, Timeline, and Story Notes.
 - Cloud Backup validation and restore preserve chapter character links and reject missing or cross-project character IDs.
 - The feature is implemented on the test branch only. Migration 0006_chapter_character_references.sql must be applied before this Worker build can run against D1; no live deployment or migration has been performed.
+
+
+### Rule-based continuity checker — 23 November 2026
+
+- Added a non-destructive Continuity Checker panel to Manuscript Studio on the test branch.
+- It checks up to 40 saved chapters (and up to 1,000,000 characters of chapter text per run) for duplicate or missing titles, empty chapter text, possible mismatches between chapter Canon links and character names/nicknames in prose, and ISO-style or numeric-date Timeline order that appears inconsistent with the configured event order.
+- It also flags active plot threads whose linked characters have not yet been assigned to any chapter Canon. These are review suggestions, not confirmed continuity errors.
+- Findings can open the relevant chapter. The checker saves the active chapter before scanning and does not modify manuscript or Canon records.
+- This is deterministic rule-based checking only; it does not yet understand aliases beyond the character nickname field, pronouns, implicit references, narrative causality, or semantic contradictions. Timeline comparison only runs when dates use a supported numeric format.
+- Cloud requests are made using the existing owner-authenticated, project-scoped chapter endpoint. No new endpoint, AI API, billing, or external data transfer was added.
