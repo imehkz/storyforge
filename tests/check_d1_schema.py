@@ -31,12 +31,14 @@ class D1SchemaTests(unittest.TestCase):
 
     def test_projects_store_publication_metadata(self):
         columns = {row[1] for row in self.db.execute("PRAGMA table_info(projects)")}
-        self.assertTrue({"pen_name", "copyright_text", "foreword", "author_bio"}.issubset(columns))
+        self.assertTrue({"pen_name", "copyright_text", "foreword", "author_bio", "cover_brief_json"}.issubset(columns))
         self.seed_project()
-        self.db.execute("UPDATE projects SET pen_name = ?, copyright_text = ?, foreword = ?, author_bio = ? WHERE id='p1'",
-                        ("Pen", "Copyright", "Foreword", "Bio"))
+        self.db.execute("UPDATE projects SET pen_name = ?, copyright_text = ?, foreword = ?, author_bio = ?, cover_brief_json = ? WHERE id='p1'",
+                        ("Pen", "Copyright", "Foreword", "Bio", '{"title":"Cover","projectId":"p1"}'))
         self.assertEqual(self.db.execute("SELECT pen_name, copyright_text, foreword, author_bio FROM projects WHERE id='p1'").fetchone(),
                          ("Pen", "Copyright", "Foreword", "Bio"))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.db.execute("UPDATE projects SET cover_brief_json = ? WHERE id='p1'", ("[]",))
 
     def test_expected_tables_exist(self):
         expected = {
