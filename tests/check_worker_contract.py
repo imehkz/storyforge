@@ -520,6 +520,25 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("record.projectId !== cloud.activeProjectId", APP)
         self.assertIn("insertIllustrationAtCursor();", APP)
 
+    def test_secondary_ui_text_remains_readable_on_tablet(self):
+        for fragment in (
+            ".brand small{display:block;color:#9aa6b6;font-size:12px;",
+            ".dashboard-recent-row .recent-detail{font-size:12px;",
+            ".save-indicator{font-size:12px;",
+            ".chapter-list-item small { display: block; color: var(--muted); margin-top: 3px; font-size: 12px; }",
+            ".manuscript-tool-card > small { display: block; margin-top: 8px; color: var(--muted); font-size: 12px; }",
+            "font-size: 12px;\\n  color: rgba(212,183,121,.82);",
+            ".cover-preview-style{font-size:12px;",
+            ".character-reference-meta small{color:var(--muted);font-size:12px;",
+            "color:var(--gold);font-size:12px}",
+            ".continuity-item>span{font-size:12px;",
+            ".studio-rail-card small{display:block;font-size:12px;",
+            ".studio-rail-link small{font-size:12px;",
+            "#manuscript .studio-rail-link small { font-size: 12px; }",
+        ):
+            self.assertIn(fragment, CSS)
+        self.assertNotIn("#manuscript .studio-rail-link small { font-size: 10px; }", CSS)
+
     def test_html_ids_are_unique(self):
         parser = IdCollector()
         parser.feed(HTML)
