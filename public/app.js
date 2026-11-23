@@ -888,47 +888,83 @@ async function restoreCloudBackup(backupProjects) {
     throw new Error("ไฟล์นี้มีข้อมูล Cloud กรุณาเข้าสู่ระบบ StoryForge ก่อนกู้คืน");
   }
   const collections = ["characters", "plot-threads", "world-lore", "timeline", "notes", "relationships"];
-  for (const entry of backupProjects) {
-    if (!entry?.project?.id || !Array.isArray(entry.chapters) || !entry.modules || typeof entry.modules !== "object") {
-      throw new Error("โครงสร้างข้อมูลโครงการใน Backup ไม่ถูกต้อง");
-    }
-    const project = entry.project;
-    await cloudApi("/api/projects", {
-      method: "POST",
-      body: JSON.stringify({ clientId: project.id, title: project.title || "นิยายที่กู้คืน", genre: project.genre || "", synopsis: project.synopsis || "" })
-    });
-    if (project.status === "archived") {
-      await cloudApi("/api/projects/" + encodeURIComponent(project.id), {
-        method: "PATCH", body: JSON.stringify({ status: "archived" })
-      });
-    }
-    for (const chapter of entry.chapters) {
-      await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/chapters", {
+  const createdProjects = new Set();
+  const createdItems = [];
+  const changedProjectStatuses = [];
+  try {
+    for (const entry of backupProjects) {
+      if (!entry?.project?.id || !Array.isArray(entry.chapters) || !entry.modules || typeof entry.modules !== "object") {
+        throw new Error("โครงสร้างข้อมูลโครงการใน Backup ไม่ถูกต้อง");
+      }
+      const project = entry.project;
+      const projectResult = await cloudApi("/api/projects", {
         method: "POST",
-        body: JSON.stringify({ clientId: chapter.id, title: chapter.title || "", body: chapter.body || "", sortOrder: Number.isInteger(chapter.sort_order) ? chapter.sort_order : 0, wordCount: Number.isInteger(chapter.word_count) ? chapter.word_count : countWords(chapter.body || "") })
+        body: JSON.stringify({ clientId: project.id, title: project.title || "นิยายที่กู้คืน", genre: project.genre || "", synopsis: project.synopsis || "" })
       });
-    }
-    for (const collection of collections) {
-      const rows = entry.modules[collection] || [];
-      if (!Array.isArray(rows)) throw new Error("ข้อมูล " + collection + " ใน Backup ไม่ถูกต้อง");
-      for (const item of rows) {
-        const payload = { clientId: item.id };
-        const allowed = {
-          characters: ["name", "role", "profile_json", "sort_order"],
-          relationships: ["source_character_id", "target_character_id", "relationship_type", "description"],
-          "plot-threads": ["title", "summary", "status", "sort_order"],
-          "world-lore": ["category", "title", "content", "sort_order"],
-          timeline: ["title", "description", "story_time", "sort_order"],
-          notes: ["title", "content", "note_type", "pinned"]
-        }[collection];
-        for (const field of allowed) {
-          if (item[field] !== undefined) payload[field] = field === "pinned" ? Boolean(item[field]) : item[field];
-        }
-        await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/" + collection, {
-          method: "POST", body: JSON.stringify(payload)
+      if (projectResult.created) createdProjects.add(project.id);
+      if (project.status === "archived" && projectResult.project?.status !== "archived") {
+        changedProjectStatuses.push({ id: project.id, status: projectResult.project?.status || "active" });
+        await cloudApi("/api/projects/" + encodeURIComponent(project.id), {
+          method: "PATCH", body: JSON.stringify({ status: "archived" })
         });
       }
+      for (const chapter of entry.chapters) {
+        const result = await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/chapters", {
+          method: "POST",
+          body: JSON.stringify({ clientId: chapter.id, title: chapter.title || "", body: chapter.body || "", sortOrder: Number.isInteger(chapter.sort_order) ? chapter.sort_order : 0, wordCount: Number.isInteger(chapter.word_count) ? chapter.word_count : countWords(chapter.body || "") })
+        });
+        if (result.created) createdItems.push({ projectId: project.id, path: "/api/chapters/" + encodeURIComponent(chapter.id) });
+      }
+      for (const collection of collections) {
+        const rows = entry.modules[collection] || [];
+        if (!Array.isArray(rows)) throw new Error("ข้อมูล " + collection + " ใน Backup ไม่ถูกต้อง");
+        for (const item of rows) {
+          const payload = { clientId: item.id };
+          const allowed = {
+            characters: ["name", "role", "profile_json", "sort_order"],
+            relationships: ["source_character_id", "target_character_id", "relationship_type", "description"],
+            "plot-threads": ["title", "summary", "status", "sort_order"],
+            "world-lore": ["category", "title", "content", "sort_order"],
+            timeline: ["title", "description", "story_time", "sort_order"],
+            notes: ["title", "content", "note_type", "pinned"]
+          }[collection];
+          for (const field of allowed) {
+            if (item[field] !== undefined) payload[field] = field === "pinned" ? Boolean(item[field]) : item[field];
+          }
+          const result = await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/" + collection, {
+            method: "POST", body: JSON.stringify(payload)
+          });
+          if (result.created) createdItems.push({
+            projectId: project.id,
+            path: "/api/projects/" + encodeURIComponent(project.id) + "/" + collection + "/" + encodeURIComponent(item.id)
+          });
+        }
+      }
     }
+  } catch (restoreError) {
+    // Roll back only records created by this restore. Existing Cloud records are never deleted.
+    const rollbackErrors = [];
+    for (const item of createdItems.reverse()) {
+      if (createdProjects.has(item.projectId)) continue;
+      try { await cloudApi(item.path, { method: "DELETE" }); }
+      catch (error) { rollbackErrors.push(error.message); }
+    }
+    for (const project of changedProjectStatuses.reverse()) {
+      if (createdProjects.has(project.id)) continue;
+      try {
+        await cloudApi("/api/projects/" + encodeURIComponent(project.id), {
+          method: "PATCH", body: JSON.stringify({ status: project.status })
+        });
+      } catch (error) { rollbackErrors.push(error.message); }
+    }
+    for (const projectId of Array.from(createdProjects).reverse()) {
+      try { await cloudApi("/api/projects/" + encodeURIComponent(projectId), { method: "DELETE" }); }
+      catch (error) { rollbackErrors.push(error.message); }
+    }
+    if (rollbackErrors.length) {
+      throw new Error(restoreError.message + " · การย้อนคืนบางรายการไม่สำเร็จ กรุณาตรวจสอบโครงการบน Cloud (" + rollbackErrors.length + " รายการ)");
+    }
+    throw restoreError;
   }
 }
 
