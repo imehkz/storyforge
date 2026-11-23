@@ -97,3 +97,15 @@ Required automated tests:
 - The editor now saves selected projects and chapters through the authenticated Worker APIs, while retaining per-chapter local recovery drafts and an explicit idempotent import path. Local data is not deleted by import. Live Cloud sync remains unavailable until the owner provisions and configures Cloudflare D1 and GitHub OAuth.
 - Optional Telegram backup requires Worker secrets and remains separate from independent encrypted D1 backups.
 - AI integration remains disabled until the owner approves a provider; the user has explicitly ruled out GitHub Copilot.
+
+
+## Current implementation status — 23 November 2026
+
+This section supersedes older status statements above where they conflict.
+
+- Cloudflare Worker, D1 database, GitHub OAuth, and owner allowlist are provisioned. The active Worker deployment remains an earlier build; this feature branch has not been deployed.
+- The browser's Character Reference Vault and Illustration Library both use the same local IndexedDB database. The database schema is version 2; the original character-reference object store is retained.
+- Illustration Library records are scoped by Project ID, stored on the current device, and included in Backup/Restore format v4. The restore path validates each image's MIME/data URL, size, metadata, and Project ID before writing. Restore is additive; it does not delete existing library entries.
+- The Illustration Library is not cloud-synced and is not a substitute for an independent off-site backup. Manuscript-embedded illustrations remain part of chapter content.
+- No R2 bucket or other paid storage service has been enabled. No AI provider is approved or connected. No GitHub Copilot integration is permitted.
+- No production deployment or merge to `main` has been performed or authorized. Browser-based end-to-end verification and Android tablet testing remain outstanding.
