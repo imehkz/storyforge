@@ -93,6 +93,20 @@ class D1SchemaTests(unittest.TestCase):
                 "INSERT INTO relationships(id, project_id, source_character_id, target_character_id) VALUES ('r1','p1','a','b')"
             )
 
+    def test_plot_threads_store_chapter_reference_arrays(self):
+        columns = {row[1] for row in self.db.execute("PRAGMA table_info(plot_threads)")}
+        self.assertIn("chapter_ids_json", columns)
+        self.assertEqual(
+            self.db.execute("SELECT dflt_value FROM pragma_table_info('plot_threads') WHERE name='chapter_ids_json'").fetchone()[0],
+            "'[]'",
+        )
+        self.seed_project()
+        self.db.execute("INSERT INTO chapters(id, project_id, title) VALUES ('chapter-1','p1','Chapter One')")
+        self.db.execute("INSERT INTO plot_threads(id, project_id, title, chapter_ids_json) VALUES ('plot-1','p1','Main', ?)", ('["chapter-1"]',))
+        self.assertEqual(self.db.execute("SELECT chapter_ids_json FROM plot_threads WHERE id='plot-1'").fetchone()[0], '["chapter-1"]')
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.db.execute("UPDATE plot_threads SET chapter_ids_json = ? WHERE id='plot-1'", ("not-json",))
+
     def test_plot_world_timeline_store_character_reference_arrays(self):
         for table in ("plot_threads", "world_lore", "timeline_events"):
             columns = {row[1] for row in self.db.execute("PRAGMA table_info(" + table + ")")}
