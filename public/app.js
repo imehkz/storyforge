@@ -1761,6 +1761,7 @@ function setupEvents() {
   };
   $("exportBookTxt")?.addEventListener("click", exportEntireNovelTxt);
   $("exportBookDocx")?.addEventListener("click", exportEntireNovelDocx);
+  $("exportBookEpub")?.addEventListener("click", exportEntireNovelEpub);
   $("exportBookPdf")?.addEventListener("click", exportEntireNovelPdf);
   $("exportDocx").onclick = exportManuscriptDocx;
   $("exportEpub").onclick = exportManuscriptEpub;
@@ -3366,7 +3367,11 @@ ${docxImageAssets.map(asset => '<Relationship Id="' + asset.relationshipId + '" 
   downloadBlob(exportBaseName() + ".docx", createStoredZip(files));
 }
 
-function exportManuscriptEpub() {
+function exportManuscriptEpub(chapters = null, projectTitle = null) {
+  if (Array.isArray(chapters)) {
+    exportWholeNovelEpub(chapters, projectTitle);
+    return;
+  }
   const title = $("title").value || "StoryForge Manuscript";
   const chapter = $("chapterTitle").value || "ต้นฉบับ";
   const identifier = "urn:uuid:" + crypto.randomUUID();
@@ -3408,6 +3413,91 @@ function exportManuscriptEpub() {
   ];
   epubImages.forEach(item => files.push({ name: "OEBPS/images/" + item.fileName, data: item.bytes }));
   downloadBlob(exportBaseName() + ".epub", createStoredZip(files));
+}
+
+function exportWholeNovelEpub(chapters, projectTitle) {
+  const title = projectTitle || $("title").value || "StoryForge Manuscript";
+  const identifier = "urn:uuid:" + crypto.randomUUID();
+  const images = [];
+  const chapterFiles = chapters.map((chapter, index) => {
+    const raw = sanitizeManuscriptHtml(chapter.body || "");
+    const doc = new DOMParser().parseFromString(raw, "text/html");
+    doc.querySelectorAll("img").forEach((img, imageIndex) => {
+      const match = (img.getAttribute("src") || "").match(/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/);
+      if (!match) return;
+      const extension = match[1] === "jpeg" ? "jpg" : match[1];
+      const fileName = "illustration-" + (index + 1) + "-" + (imageIndex + 1) + "." + extension;
+      images.push({ fileName, extension, bytes: Uint8Array.from(atob(match[2]), char => char.charCodeAt(0)) });
+      img.setAttribute("src", "images/" + fileName);
+      img.removeAttribute("loading");
+    });
+    const body = (doc.body.innerHTML || "<p> </p>")
+      .replace(/<br\s*>/gi, "<br/>")
+      .replace(/<img([^>]*?)>/gi, "<img$1 />");
+    return {
+      fileName: "chapter-" + (index + 1) + ".xhtml",
+      title: "บทที่ " + (index + 1) + " — " + (chapter.title || "บทไม่มีชื่อ"),
+      body
+    };
+  });
+  const manifestChapters = chapterFiles.map((item, index) =>
+    '<item id="chapter' + (index + 1) + '" href="' + item.fileName + '" media-type="application/xhtml+xml"/>'
+  ).join("");
+  const manifestImages = images.map((item, index) =>
+    '<item id="illustration' + (index + 1) + '" href="images/' + item.fileName + '" media-type="image/' + (item.extension === "jpg" ? "jpeg" : item.extension) + '"/>'
+  ).join("");
+  const spine = chapterFiles.map((item, index) => '<itemref idref="chapter' + (index + 1) + '"/>').join("");
+  const nav = chapterFiles.map(item => '<li><a href="' + item.fileName + '">' + xmlEscape(item.title) + '</a></li>').join("");
+  const files = [
+    { name: "mimetype", data: "application/epub+zip" },
+    { name: "META-INF/container.xml", data: '<?xml version="1.0" encoding="UTF-8"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>' },
+    { name: "OEBPS/content.opf", data: '<?xml version="1.0" encoding="UTF-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid" xml:lang="th"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">' + identifier + '</dc:identifier><dc:title>' + xmlEscape(title) + '</dc:title><dc:language>th</dc:language><dc:creator>StoryForge</dc:creator><meta property="dcterms:modified">' + new Date().toISOString().replace(/\.\d{3}Z$/, "Z") + '</meta></metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="css" href="style.css" media-type="text/css"/>' + manifestChapters + manifestImages + '</manifest><spine>' + spine + '</spine></package>' },
+    { name: "OEBPS/nav.xhtml", data: '<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="th"><head><title>สารบัญ</title></head><body><nav epub:type="toc" id="toc"><h1>' + xmlEscape(title) + '</h1><ol>' + nav + '</ol></nav></body></html>' },
+    { name: "OEBPS/style.css", data: "body{font-family:serif;line-height:1.65;margin:5%;}h1,h2{line-height:1.3;}p{margin:0 0 0.8em;text-indent:1.2em}.blank{height:0.8em}figure{margin:1.5em auto;text-align:center;break-inside:avoid}img{max-width:100%;height:auto}figcaption{font-style:italic;text-align:center}" }
+  ];
+  chapterFiles.forEach((item, index) => files.push({
+    name: "OEBPS/" + item.fileName,
+    data: '<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xml:lang="th"><head><title>' + xmlEscape(item.title) + '</title><link rel="stylesheet" type="text/css" href="style.css"/></head><body><h1>' + xmlEscape(title) + '</h1><h2>' + xmlEscape(item.title) + '</h2>' + item.body + '</body></html>'
+  }));
+  images.forEach(item => files.push({ name: "OEBPS/images/" + item.fileName, data: item.bytes }));
+  downloadBlob(exportBaseName() + "-ทั้งเล่ม.epub", createStoredZip(files));
+}
+
+async function exportEntireNovelEpub() {
+  const projectId = cloud.activeProjectId;
+  if (!cloud.authenticated || !cloud.ready || !projectId) {
+    alert("การส่งออก EPUB ทั้งเล่มต้องเลือกนิยายที่เชื่อมต่อ Cloud และเข้าสู่ระบบก่อนครับ");
+    return;
+  }
+  const button = $("exportBookEpub");
+  if (button) { button.disabled = true; button.textContent = "กำลังรวบรวมบท..."; }
+  try {
+    if (cloud.saveTimer) { clearTimeout(cloud.saveTimer); cloud.saveTimer = null; }
+    if (cloud.activeChapterId && !(await saveCloudChapter())) {
+      throw new Error("บันทึกบทปัจจุบันไม่สำเร็จ จึงหยุดส่งออกเพื่อป้องกันข้อมูลล่าสุดตกหล่น");
+    }
+    const project = cloud.projects.find(item => item.id === projectId);
+    if (!project) throw new Error("ไม่พบโครงการที่เลือก");
+    const list = await cloudApi("/api/projects/" + encodeURIComponent(projectId) + "/chapters");
+    const rows = list.chapters || [];
+    if (!rows.length) throw new Error("นิยายนี้ยังไม่มีบทให้ส่งออก");
+    const chapters = await Promise.all(rows.map(async item => {
+      const result = await cloudApi("/api/chapters/" + encodeURIComponent(item.id));
+      if (!result.chapter || result.chapter.project_id !== projectId) throw new Error("พบข้อมูลบทข้ามนิยาย ระบบยกเลิกการส่งออก");
+      return result.chapter;
+    }));
+    chapters.sort((left, right) => (left.sort_order - right.sort_order) ||
+      String(left.created_at || "").localeCompare(String(right.created_at || "")));
+    const totalSize = chapters.reduce((sum, item) => sum + String(item.body || "").length, 0);
+    if (totalSize > 12 * 1024 * 1024) throw new Error("ต้นฉบับทั้งเล่มมีขนาดเกิน 12 MB กรุณาแบ่งส่งออกเป็นส่วน");
+    exportManuscriptEpub(chapters, project.title || "ต้นฉบับนิยาย");
+    const status = $("chapterSaveHint");
+    if (status) status.textContent = "ส่งออก EPUB ทั้งเล่มแล้ว · " + chapters.length + " บท";
+  } catch (error) {
+    alert("ส่งออก EPUB ทั้งเล่มไม่สำเร็จ: " + error.message);
+  } finally {
+    if (button) { button.disabled = false; button.textContent = "EPUB ทั้งเล่ม"; }
+  }
 }
 
 function exportManuscriptPdf() {
