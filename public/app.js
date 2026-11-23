@@ -1455,7 +1455,7 @@ function renderModuleLists() {
   render("characterList", characters, "characters", item => item.name, item => {
     let profile = {};
     try { profile = JSON.parse(item.profile_json || "{}"); } catch {}
-    return [item.role, profile.age, profile.personality, profile.motivation].filter(Boolean).join(" · ");
+    return [item.role, profile.nickname, profile.profession, profile.age, profile.species, profile.personality, profile.motivation].filter(Boolean).join(" · ");
   });
   render("relationshipList", relationships, "relationships", item => {
     const source = characters.find(x => x.id === item.source_character_id)?.name || "ตัวละคร";
