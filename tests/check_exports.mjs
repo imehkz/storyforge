@@ -93,6 +93,7 @@ assert.ok(epubFiles.has("OEBPS/content.opf"));
 assert.ok(epubFiles.get("OEBPS/chapter.xhtml").includes("บททดสอบ &amp; &lt;tag&gt;"));
 
 assert.ok(source.includes("function exportManuscriptPdf"));
+assert.ok(source.includes("new Blob([content]).size > 39 * 1024 * 1024"), "Backup size stays below restore limit");
 assert.ok(source.includes("window.print()"));
 assert.ok(stylesheet.includes("@page { size: A4"));
 assert.ok(stylesheet.includes("#printManuscriptText"));
