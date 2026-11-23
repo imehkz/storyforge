@@ -2243,6 +2243,12 @@ function chapterCharacterIds(chapter = null) {
 }
 
 function analyzeStoryContinuity({ chapters = [], characters = [], timeline = [], plotThreads = [] } = {}) {
+  const plotChapterIdsForCheck = plot => {
+    try { const ids = JSON.parse(plot.chapter_ids_json || "[]"); return Array.isArray(ids) ? ids : []; } catch { return []; }
+  };
+  const chapterCharacterIdsForCheck = chapter => {
+    try { const ids = JSON.parse(chapter.character_ids_json || "[]"); return Array.isArray(ids) ? ids : []; } catch { return []; }
+  };
   const findings = [];
   const add = (kind, title, detail, chapterId = "") => findings.push({ kind, title, detail, chapterId });
   const normalize = value => String(value || "").normalize("NFC").toLocaleLowerCase("th-TH").replace(/[\s\u00a0]+/g, "");
@@ -2325,13 +2331,24 @@ function analyzeStoryContinuity({ chapters = [], characters = [], timeline = [],
     }
   }
 
+  const chapterById = new Map(chapters.map(chapter => [chapter.id, chapter]));
   for (const plot of plotThreads) {
-    let ids = [];
-    try { ids = JSON.parse(plot.character_ids_json || "[]"); } catch {}
-    if (!Array.isArray(ids) || !ids.length) continue;
-    const linked = ids.filter(id => characterById.has(id));
-    if (linked.length && !linked.some(id => chapterCanonIds.has(id)) && plot.status !== "completed") {
-      add("hint", "เส้นเรื่องยังไม่เชื่อมกับบท", "พล็อต “" + plot.title + "” มีตัวละครอ้างอิง แต่ยังไม่พบตัวละครเหล่านี้ใน Canon ของบทใด");
+    const linkedChapterIds = plotChapterIdsForCheck(plot);
+    const missingChapterIds = linkedChapterIds.filter(id => !chapterById.has(id));
+    if (missingChapterIds.length) {
+      add("review", "เส้นเรื่องอ้างอิงบทที่ไม่พบ", "พล็อต “" + plot.title + "” เชื่อมกับบทที่ไม่อยู่ในโครงการนี้แล้ว ควรตรวจการอ้างอิง");
+    }
+    if (!linkedChapterIds.length && plot.status !== "completed") {
+      add("hint", "เส้นเรื่องยังไม่เชื่อมกับบท", "พล็อต “" + plot.title + "” ยังไม่ได้ระบุว่าดำเนินอยู่ในบทใด");
+      continue;
+    }
+    let characterIds = [];
+    try { characterIds = JSON.parse(plot.character_ids_json || "[]"); } catch {}
+    const linkedCharacters = Array.isArray(characterIds) ? characterIds.filter(id => characterById.has(id)) : [];
+    if (linkedCharacters.length && linkedChapterIds.some(id => chapterById.has(id))) {
+      const chapterIds = new Set(linkedChapterIds.filter(id => chapterById.has(id)));
+      const hasCanon = chapters.some(chapter => chapterIds.has(chapter.id) && chapterCharacterIdsForCheck(chapter).some(id => linkedCharacters.includes(id)));
+      if (!hasCanon) add("hint", "ตรวจ Canon ของเส้นเรื่อง", "บทที่เชื่อมกับพล็อต “" + plot.title + "” ยังไม่มีตัวละครที่ระบุไว้ในเส้นเรื่องใน Canon ของบท");
     }
   }
   return findings;
