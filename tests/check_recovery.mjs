@@ -24,6 +24,7 @@ assert.equal(warningLog.length, 1);
 const elements = {
   title: { value: "นิยาย" }, genre: { value: "แฟนตาซี" }, context: { value: "" },
   chapterTitle: { value: "บทที่ 1" }, manuscriptBody: { value: "ต้นฉบับล่าสุด" },
+  chapterSynopsis: { value: "" }, chapterStatus: { value: "draft" }, chapterCharacters: { selectedOptions: [] },
   projectMemory: { value: "" }, saveState: { innerHTML: "" }
 };
 let localDraftCalls = 0;
