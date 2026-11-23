@@ -270,6 +270,7 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("validateChapterCharacterReferences", WORKER)
         self.assertIn("INVALID_CHAPTER_CHARACTER_REFERENCE", WORKER)
         self.assertIn("character_ids_json", WORKER[WORKER.index("const chaptersMatch"):WORKER.index("const chapterMoveMatch")])
+        self.assertIn("c.word_count, c.character_ids_json", WORKER[WORKER.index("const chapterMatch"):WORKER.index("return json({ error: \"NOT_FOUND\" }, 404);")])
         self.assertIn("chapter.character_ids_json", APP[APP.index("function validateCloudBackupData"):APP.index("async function restoreCloudBackup")])
 
     def test_manuscript_focus_mode_keeps_editor_and_exit_available(self):
