@@ -163,13 +163,48 @@
   body.print-manuscript #printManuscriptText {
     display: block !important;
     visibility: visible !important;
-    white-space: pre-wrap !important;
+    white-space: normal !important;
     overflow-wrap: anywhere !important;
     color: #111 !important;
     background: #fff !important;
-    font-family: "Noto Sans Thai", "TH Sarabun New", serif !important;
+    font-family: "Noto Serif Thai", "TH Sarabun New", serif !important;
     font-size: 14pt !important;
     line-height: 1.75 !important;
+  }
+  body.print-manuscript #printManuscriptText .print-book-title {
+    margin: 0 0 18pt !important;
+    text-align: center !important;
+    font-size: 22pt !important;
+    font-weight: 700 !important;
+    page-break-after: avoid;
+  }
+  body.print-manuscript #printManuscriptText .print-chapter-title {
+    margin: 0 0 24pt !important;
+    text-align: center !important;
+    font-size: 18pt !important;
+    font-weight: 600 !important;
+    page-break-after: avoid;
+  }
+  body.print-manuscript #printManuscriptText .print-book-body p {
+    margin: 0 0 .85em !important;
+    text-indent: 1.2em !important;
+  }
+  body.print-manuscript #printManuscriptText .print-book-body h1,
+  body.print-manuscript #printManuscriptText .print-book-body h2,
+  body.print-manuscript #printManuscriptText .print-book-body h3 {
+    margin: 1.2em 0 .7em !important;
+    line-height: 1.4 !important;
+    text-indent: 0 !important;
+    page-break-after: avoid;
+  }
+  body.print-manuscript #printManuscriptText .print-book-body blockquote {
+    margin: 1em 2em !important;
+    padding-inline-start: 1em !important;
+    border-inline-start: 2px solid #777 !important;
+  }
+  body.print-manuscript #printManuscriptText .print-book-body ul,
+  body.print-manuscript #printManuscriptText .print-book-body ol {
+    padding-inline-start: 1.5em !important;
   }
 }
 
