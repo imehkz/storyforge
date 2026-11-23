@@ -249,6 +249,14 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("timelineReferencesUpdated", WORKER)
         self.assertIn('id="worldChapters"', HTML)
         self.assertIn('id="timelineChapters"', HTML)
+        chapter_route = WORKER[WORKER.index("const chapterMatch"):WORKER.index('return json({ error: "NOT_FOUND" }, 404);')]
+        chapter_patch = chapter_route[chapter_route.index('if (method === "PATCH")'):chapter_route.index('if (method === "DELETE")')]
+        chapter_delete = chapter_route[chapter_route.index('if (method === "DELETE")'):]
+        self.assertNotIn("UPDATE world_lore SET chapter_ids_json", chapter_patch)
+        self.assertNotIn("UPDATE timeline_events SET chapter_ids_json", chapter_patch)
+        self.assertIn("UPDATE world_lore SET chapter_ids_json", chapter_delete)
+        self.assertIn("UPDATE timeline_events SET chapter_ids_json", chapter_delete)
+        self.assertIn("if (!results[5]?.meta?.changes)", chapter_delete)
         self.assertIn("createdCanonChapterLinks", APP)
         self.assertIn("await validateChapterReferences(values.chapter_ids_json)", module_route)
 
