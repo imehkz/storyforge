@@ -1357,6 +1357,16 @@ function loadIllustrationSettings() {
   const saved = project ? safeJSON(localStorage.getItem(illustrationSettingsKey(project.id)) || "{}", {}) : {};
   if ($("illustrationStyle")) $("illustrationStyle").value = saved.style || "Pencil Sketch";
   if ($("illustrationDirection")) $("illustrationDirection").value = saved.direction || "";
+  const characterSelect = $("illustrationCharacters");
+  if (characterSelect) {
+    const selectedIds = new Set(Array.isArray(saved.characterIds) ? saved.characterIds : []);
+    const characters = cloud.ready && cloud.activeProjectId === project?.id ? (cloud.modules.characters || []) : [];
+    characterSelect.innerHTML = characters.map(character =>
+      '<option value="' + escapeHtml(character.id) + '">' + escapeHtml(character.name) + '</option>'
+    ).join("");
+    Array.from(characterSelect.options).forEach(option => { option.selected = selectedIds.has(option.value); });
+    characterSelect.disabled = !characters.length;
+  }
   $("illustrationStatus").textContent = project
     ? "กำลังทำงานกับนิยาย “" + (project.title || "นิยายนี้") + "” · Project ID: " + project.id
     : "กรุณาสร้างหรือเลือกนิยายก่อน";
@@ -1365,14 +1375,36 @@ function buildIllustrationPromptText() {
   const project = illustrationProject();
   if (!project) throw new Error("กรุณาสร้างหรือเลือกนิยายก่อน");
   const characters = cloud.ready && cloud.activeProjectId === project.id ? (cloud.modules.characters || []) : [];
+  const selectedIds = new Set(Array.from($("illustrationCharacters")?.selectedOptions || []).map(option => option.value));
+  const selectedCharacters = characters.filter(item => selectedIds.has(item.id));
   const lore = cloud.ready && cloud.activeProjectId === project.id ? (cloud.modules["world-lore"] || []) : [];
   const excerpt = getManuscriptText().slice(0, 1800);
+  const characterDetails = selectedCharacters.map(character => {
+    let profile = {};
+    try { profile = typeof character.profile_json === "string" ? JSON.parse(character.profile_json || "{}") : (character.profile_json || {}); } catch {}
+    const details = [
+      profile.age && "age " + profile.age,
+      profile.species && "species " + profile.species,
+      profile.height && "height/build " + profile.height,
+      profile.face && "face " + profile.face,
+      profile.skin && "skin " + profile.skin,
+      profile.eyes && "eyes " + profile.eyes,
+      profile.hair && "hair " + profile.hair,
+      profile.build && "build " + profile.build,
+      profile.clothing && "clothing " + profile.clothing,
+      profile.accessories && "accessories " + profile.accessories,
+      profile.appearance && "appearance " + profile.appearance,
+      profile.personality && "personality " + profile.personality
+    ].filter(Boolean);
+    return character.name + (details.length ? ": " + details.join("; ") : "");
+  });
   return [
     "Create an editorial illustration for a Thai novel.",
     "Novel: " + (project.title || $("title")?.value || ""),
     "Genre: " + ($("genre")?.value || "Not specified"),
     "Visual style: " + ($("illustrationStyle")?.value || "Pencil Sketch"),
-    "Characters in this project only: " + (characters.map(item => item.name).filter(Boolean).join(", ") || "Use only characters described in the supplied scene"),
+    "Selected characters from this project only: " + (characterDetails.join(" | ") || "Use only characters described in the supplied scene"),
+    "Character consistency: preserve each selected character's described face, eyes, hair, build, clothing and accessories; do not merge traits between characters.",
     "World details: " + (lore.slice(0, 8).map(item => [item.title, item.content].filter(Boolean).join(": ")).join(" | ") || "Follow the manuscript context"),
     "Scene to illustrate: " + ($("illustrationMoment")?.value.trim() || excerpt || "Scene not specified"),
     "Additional art direction: " + ($("illustrationDirection")?.value.trim() || "Readable composition, expressive poses, consistent character design"),
@@ -1471,13 +1503,23 @@ function setupIllustrationStudio() {
   $("illustrationStyle")?.addEventListener("change", () => {
     const project = illustrationProject();
     if (project) localStorage.setItem(illustrationSettingsKey(project.id), JSON.stringify({
-      style: $("illustrationStyle").value, direction: $("illustrationDirection").value
+      style: $("illustrationStyle").value, direction: $("illustrationDirection").value,
+      characterIds: Array.from($("illustrationCharacters")?.selectedOptions || []).map(option => option.value)
     }));
   });
   $("illustrationDirection")?.addEventListener("change", () => {
     const project = illustrationProject();
     if (project) localStorage.setItem(illustrationSettingsKey(project.id), JSON.stringify({
-      style: $("illustrationStyle").value, direction: $("illustrationDirection").value
+      style: $("illustrationStyle").value, direction: $("illustrationDirection").value,
+      characterIds: Array.from($("illustrationCharacters")?.selectedOptions || []).map(option => option.value)
+    }));
+  });
+  $("illustrationCharacters")?.addEventListener("change", () => {
+    const project = illustrationProject();
+    if (project) localStorage.setItem(illustrationSettingsKey(project.id), JSON.stringify({
+      style: $("illustrationStyle").value,
+      direction: $("illustrationDirection").value,
+      characterIds: Array.from($("illustrationCharacters").selectedOptions || []).map(option => option.value)
     }));
   });
   $("buildIllustrationPrompt")?.addEventListener("click", () => {
