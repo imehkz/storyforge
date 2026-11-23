@@ -6,10 +6,10 @@ The sequence is deliberately writer-first. Status is updated only after code and
 
 | # | Work item | Acceptance target | Status |
 |---:|---|---|---|
-| 1 | Scene Tracker data model | Scene records stored per novel, with type/status and chapter/character references | In progress |
-| 2 | Scene Tracker UI | Create, list, edit, delete scenes and navigate to linked chapters | In progress |
-| 3 | Scene reference integrity | Worker validates same-project chapter/character references; chapter deletion cleans links | In progress |
-| 4 | Backup/restore for scenes | Backup validates scene links; restore defers chapter links until chapters exist | Planned |
+| 1 | Scene Tracker data model | Scene records stored per novel, with type/status and chapter/character references | Implemented on test branch; migration 0008 pending runtime application |
+| 2 | Scene Tracker UI | Create, list, edit, delete scenes and navigate to linked chapters | Implemented on test branch; browser QA pending |
+| 3 | Scene reference integrity | Worker validates same-project chapter/character references; chapter deletion cleans links | Implemented with static/schema tests; runtime QA pending |
+| 4 | Backup/restore for scenes | Backup validates scene links; restore defers chapter links until chapters exist | Implemented; regression tests added |
 | 5 | Continuity integration | Checker reports scenes without chapter links and dangling scene links | Planned |
 | 6 | Scene-to-timeline linking | Events can reference relevant chapters/scenes without cross-project leakage | Planned |
 | 7 | World-lore chapter links | Locations/rules can be traced to chapters that establish or use them | Planned |
