@@ -911,3 +911,6 @@ body:has(#manuscript:not(.hidden)) [role="separator"] {
 .character-reference-meta small{color:var(--muted);font-size:11px;overflow-wrap:anywhere}
 .canonical-mark{display:inline-flex;padding:5px 8px;border-radius:4px;border:1px solid var(--gold);color:var(--gold);font-size:11px}
 @media(max-width:760px){.character-vault-panel{padding:12px}.character-reference-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}.character-reference-card img{height:135px}}
+
+/* Project-scoped illustration library */
+.illustration-library-section{margin-top:20px}#illustrationLibraryGallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}#illustrationLibraryGallery .muted-note{grid-column:1/-1}.illustration-library-card{min-width:0}.illustration-library-card>img{width:100%;max-height:220px;object-fit:contain;background:#0d1522}@media(max-width:620px){#illustrationLibraryGallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}@media(max-width:380px){#illustrationLibraryGallery{grid-template-columns:1fr}}
