@@ -1095,19 +1095,9 @@ body.writing-focus-mode #manuscript .editor-footer { max-width: 1000px; margin: 
 .studio-format-toolbar button { min-width:32px; min-height:32px; padding:5px 9px; border:1px solid transparent; border-radius:3px; background:transparent; color:#d8dce2; }
 .studio-format-toolbar button:hover,.studio-format-toolbar button:focus-visible { border-color:var(--gold); background:rgba(197,161,91,.1); }
 .studio-format-toolbar #toggleWritingFocus { margin-left:auto; border-color:#526078; }
-.studio-format-toolbar [data-editor-command="justifyLeft"],
-.studio-format-toolbar [data-editor-command="justifyCenter"],
-.studio-format-toolbar [data-editor-command="justifyRight"],
-.studio-format-toolbar [data-editor-command="insertUnorderedList"],
-.studio-format-toolbar [data-editor-command="insertOrderedList"],
-.studio-format-toolbar [data-editor-command="indent"],
-.studio-format-toolbar [data-editor-command="outdent"],
-.studio-format-toolbar [data-editor-command="formatBlock"],
-.studio-format-toolbar [data-editor-command="removeFormat"],
-.studio-format-toolbar #editorLineHeight,
-.studio-format-toolbar #editorPageMargin,
-.studio-format-toolbar #autoFormatManuscript,
-.studio-format-toolbar #aiFormatManuscript { display:none; }
+.studio-format-toolbar { overflow-x:auto; scrollbar-width:thin; }
+.studio-format-toolbar > * { flex:0 0 auto; }
+.studio-format-toolbar .toolbar-divider { height:22px; border-left:1px solid #526078; }
 .manuscript-editor-surface {
   min-height:clamp(560px,72vh,980px); padding:clamp(25px,4vw,48px);
   border:1px solid #c4ae83; outline:1px solid rgba(197,161,91,.22); outline-offset:-7px;
