@@ -2836,7 +2836,7 @@ function wordParagraph(text, style = "") {
 let docxImageAssets = [];
 function wordImageRun(node) {
   const src = node.getAttribute("src") || "";
-  const match = src.match(/^data:image\\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/);
+  const match = src.match(/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/);
   if (!match) return "";
   const bytes = Uint8Array.from(atob(match[2]), char => char.charCodeAt(0));
   const extension = match[1] === "jpeg" ? "jpg" : match[1];
@@ -2960,7 +2960,7 @@ function exportManuscriptEpub() {
   if (richBody) {
     const epubDoc = new DOMParser().parseFromString(richBody, "text/html");
     epubDoc.querySelectorAll("img").forEach((img, index) => {
-      const match = (img.getAttribute("src") || "").match(/^data:image\\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/);
+      const match = (img.getAttribute("src") || "").match(/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/);
       if (!match) return;
       const extension = match[1] === "jpeg" ? "jpg" : match[1];
       const fileName = "illustration-" + (index + 1) + "." + extension;
