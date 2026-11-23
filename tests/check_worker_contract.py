@@ -138,6 +138,14 @@ class WorkerContractTests(unittest.TestCase):
         ):
             self.assertIn(fragment, APP)
 
+    def test_illustration_prompt_uses_selected_character_appearance(self):
+        self.assertIn('id="illustrationCharacters"', HTML)
+        self.assertIn('characterIds: Array.from($("illustrationCharacters")?.selectedOptions || []).map(option => option.value)', APP)
+        self.assertIn("Selected characters from this project only:", APP)
+        self.assertIn("Character consistency: preserve each selected character", APP)
+        for field in ("profile.eyes", "profile.hair", "profile.clothing", "profile.accessories"):
+            self.assertIn(field, APP)
+
     def test_illustration_library_is_project_scoped(self):
         for fragment in ("ILLUSTRATION_LIBRARY_STORE", "illustrationLibraryRecords(projectId)", "savePendingIllustrationToLibrary", "renderIllustrationLibrary"):
             self.assertIn(fragment, APP)
