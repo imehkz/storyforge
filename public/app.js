@@ -2164,13 +2164,25 @@ async function renderCharacterVault() {
         <div class="character-reference-meta"><b>${escapeHtml(record.label || "ภาพอ้างอิง")}</b><small>${escapeHtml(record.note || "ไม่มีหมายเหตุ")}</small><small>เวอร์ชัน ${record.version} · ${new Date(record.createdAt).toLocaleDateString("th-TH")}</small></div>
         <div class="module-actions">
           ${record.canonical ? '<span class="canonical-mark">ภาพ Canon</span>' : '<button type="button" class="outline-button compact" data-reference-canonical="' + escapeHtml(record.id) + '">ตั้งเป็น Canon</button>'}
-          <button type="button" class="outline-button compact" data-reference-delete="${escapeHtml(record.id)}">ลบ</button>
+          <button type="button" class="outline-button compact" data-reference-insert="${escapeHtml(record.id)}">แทรกในต้นฉบับ</button><button type="button" class="outline-button compact" data-reference-delete="${escapeHtml(record.id)}">ลบ</button>
         </div>
       </article>`).join("") : '<p class="muted-note">ยังไม่มีภาพอ้างอิง เพิ่มภาพต้นแบบเพื่อเก็บรายละเอียดรูปลักษณ์ให้คงที่</p>';
     target.querySelectorAll("[data-reference-canonical]").forEach(button => button.addEventListener("click", async () => {
       const all = await characterVaultRecords(projectId, characterId);
       await Promise.all(all.map(item => saveCharacterVaultRecord({ ...item, canonical: item.id === button.dataset.referenceCanonical })));
       await renderCharacterVault();
+    }));
+    target.querySelectorAll("[data-reference-insert]").forEach(button => button.addEventListener("click", async () => {
+      const record = records.find(item => item.id === button.dataset.referenceInsert);
+      if (!record) return;
+      if (!cloud.activeProjectId || record.projectId !== cloud.activeProjectId) {
+        $("characterVaultStatus").textContent = "ไม่สามารถแทรกภาพจากคนละโครงการได้";
+        return;
+      }
+      pendingIllustrationData = record.dataUrl;
+      if ($("illustrationCaption")) $("illustrationCaption").value = record.label || "ภาพอ้างอิงตัวละคร";
+      insertIllustrationAtCursor();
+      $("characterVaultStatus").textContent = "ส่งภาพอ้างอิงไปยังต้นฉบับแล้ว";
     }));
     target.querySelectorAll("[data-reference-delete]").forEach(button => button.addEventListener("click", async () => {
       if (!confirm("ลบภาพอ้างอิงเวอร์ชันนี้หรือไม่?")) return;
