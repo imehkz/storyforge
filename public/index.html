@@ -307,6 +307,14 @@
               <label for="chapterCharacters">ตัวละครที่เกี่ยวข้อง</label>
               <select id="chapterCharacters" multiple size="3" aria-label="เลือกตัวละครที่เกี่ยวข้องกับบทนี้"></select>
             </div>
+            <section id="continuityPanel" class="continuity-panel card-frame" hidden aria-labelledby="continuityHeading">
+              <div class="continuity-panel-head">
+                <div><span class="eyebrow">CANON REVIEW</span><h2 id="continuityHeading">ตรวจความต่อเนื่องของนิยาย</h2><p>ตรวจชื่อบท ตัวละครที่ระบุใน Canon และวันที่ใน Timeline จากข้อมูลที่บันทึกไว้</p></div>
+                <button id="runContinuityCheck" class="outline-button" type="button">ตรวจความต่อเนื่อง</button>
+              </div>
+              <p id="continuityHint" class="form-hint" aria-live="polite">ระบบจะตรวจได้สูงสุด 40 บทต่อครั้ง และจะแจ้งรายการที่ควรตรวจทาน ไม่แก้ไขต้นฉบับให้อัตโนมัติ</p>
+              <div id="continuityResults" class="continuity-results" aria-live="polite"></div>
+            </section>
             <div class="card-frame manuscript-card">
               <label for="chapterTitle">ชื่อบท</label><input id="chapterTitle" placeholder="เช่น บทที่ 1 — จุดเริ่มต้น">
               <label for="manuscriptEditor">ต้นฉบับ</label>
