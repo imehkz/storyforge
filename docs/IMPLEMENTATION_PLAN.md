@@ -272,3 +272,10 @@ No hosting resources or secrets have been provisioned, and no production deploym
 - Telegram backup now sends the same Cloud-aware v2 archive.
 - Snapshot history is explicitly excluded and disclosed in the backup metadata and restore confirmation. A complete snapshot-history export/import and independent scheduled server-side backup remain outstanding.
 - Added CI source-contract assertions for Cloud backup coverage and restore wiring. A local mocked API smoke test and JavaScript parse check passed; GitHub Actions and browser/Cloudflare runtime verification are still pending.
+
+
+### Editor recovery resilience — 23 November 2026
+
+- Hardened local chapter-draft persistence against browser storage quota and privacy-mode errors. A failed local recovery write now reports the limitation without throwing through the editor's save handler.
+- Hardened the general local recovery-key writes so one storage failure does not prevent the Cloud autosave from being scheduled.
+- Added source-contract regression coverage for the storage-failure path. This does not replace a real-device offline/reload test; browser storage behavior still needs Android tablet QA.
