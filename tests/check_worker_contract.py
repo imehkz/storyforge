@@ -231,7 +231,7 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("function wordImageRun(node)", APP)
         self.assertIn("word/_rels/document.xml.rels", APP)
         self.assertIn("word/media/", APP)
-        self.assertIn("function exportManuscriptEpub()", APP)
+        self.assertIn("function exportManuscriptEpub(chapters = null, projectTitle = null)", APP)
         self.assertIn("OEBPS/images/", APP)
         self.assertIn("epubImages.map", APP)
         self.assertIn("function exportManuscriptPdf()", APP)
