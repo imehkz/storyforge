@@ -360,7 +360,7 @@ async function api(request, env, url) {
     const modules = {
       characters: { table: "characters", fields: { name: ["string", 160], role: ["string", 80], profile_json: ["json", 20000], sort_order: ["number", 1000000] }, required: ["name"] },
       relationships: { table: "relationships", fields: { source_character_id: ["id", 80], target_character_id: ["id", 80], relationship_type: ["string", 100], description: ["string", 5000] }, required: ["source_character_id", "target_character_id"] },
-      "plot-threads": { table: "plot_threads", fields: { title: ["string", 200], summary: ["string", 10000], status: ["status", 30], character_ids_json: ["json_array", 8000], sort_order: ["number", 1000000] }, required: ["title"] },
+      "plot-threads": { table: "plot_threads", fields: { title: ["string", 200], summary: ["string", 10000], status: ["status", 30], character_ids_json: ["json_array", 8000], chapter_ids_json: ["json_array", 16000], sort_order: ["number", 1000000] }, required: ["title"] },
       "world-lore": { table: "world_lore", fields: { category: ["string", 80], title: ["string", 200], content: ["string", 30000], character_ids_json: ["json_array", 8000], sort_order: ["number", 1000000] }, required: ["title"] },
       timeline: { table: "timeline_events", fields: { title: ["string", 200], description: ["string", 10000], story_time: ["string", 120], character_ids_json: ["json_array", 8000], sort_order: ["number", 1000000] }, required: ["title"] },
       notes: { table: "story_notes", fields: { title: ["string", 200], content: ["string", 30000], note_type: ["string", 60], pinned: ["boolean", 1], character_ids_json: ["json_array", 8000] }, required: [] }
@@ -389,6 +389,21 @@ async function api(request, env, url) {
         "SELECT id FROM characters WHERE project_id = ? AND id IN (" + placeholders + ")"
       ).bind(projectId, ...ids).all();
       if ((found.results || []).length !== ids.length) throw new Error("INVALID_CHARACTER_REFERENCE");
+      return JSON.stringify(ids);
+    };
+
+    const validateChapterReferences = async (raw) => {
+      let ids;
+      try { ids = typeof raw === "string" ? JSON.parse(raw) : raw; } catch { throw new Error("INVALID_CHAPTER_REFERENCES"); }
+      if (!Array.isArray(ids) || ids.length > 100 || ids.some(id => typeof id !== "string" || !id.trim() || id.length > 80) || new Set(ids).size !== ids.length) {
+        throw new Error("INVALID_CHAPTER_REFERENCES");
+      }
+      if (!ids.length) return JSON.stringify([]);
+      const placeholders = ids.map(() => "?").join(", ");
+      const found = await env.DB.prepare(
+        "SELECT id FROM chapters WHERE project_id = ? AND id IN (" + placeholders + ")"
+      ).bind(projectId, ...ids).all();
+      if ((found.results || []).length !== ids.length) throw new Error("INVALID_CHAPTER_REFERENCE");
       return JSON.stringify(ids);
     };
 
@@ -441,6 +456,7 @@ async function api(request, env, url) {
       }
       if (collection === "relationships") await validateRelationshipEndpoints(values.source_character_id, values.target_character_id);
       if (values.character_ids_json !== undefined) values.character_ids_json = await validateCharacterReferences(values.character_ids_json);
+      if (collection === "plot-threads" && values.chapter_ids_json !== undefined) values.chapter_ids_json = await validateChapterReferences(values.chapter_ids_json);
       const clientId = input.clientId;
       if (clientId !== undefined && (typeof clientId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientId))) {
         throw new Error("INVALID_CLIENTID");
@@ -463,6 +479,9 @@ async function api(request, env, url) {
       const values = {};
       for (const field of Object.keys(config.fields)) {
         if (input[field] !== undefined) values[field] = normalize(field, input[field]);
+      }
+      if (collection === "plot-threads" && values.chapter_ids_json !== undefined) {
+        values.chapter_ids_json = await validateChapterReferences(values.chapter_ids_json);
       }
       if (["plot-threads", "world-lore", "timeline", "notes"].includes(collection) && values.character_ids_json !== undefined) {
         const existing = await env.DB.prepare(
@@ -671,14 +690,17 @@ async function api(request, env, url) {
     if (method === "DELETE") {
       const results = await env.DB.batch([
         env.DB.prepare(
+          "UPDATE plot_threads SET chapter_ids_json = COALESCE((SELECT json_group_array(value) FROM json_each(plot_threads.chapter_ids_json) WHERE value <> ?), '[]'), updated_at = ? WHERE project_id = (SELECT project_id FROM chapters WHERE id = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)) AND EXISTS (SELECT 1 FROM json_each(plot_threads.chapter_ids_json) WHERE value = ?)"
+        ).bind(chapterId, nowIso(), chapterId, ownerId, chapterId),
+        env.DB.prepare(
           "DELETE FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?))"
         ).bind(chapterId, chapterId, ownerId),
         env.DB.prepare(
           "DELETE FROM chapters WHERE id = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
         ).bind(chapterId, ownerId)
       ]);
-      if (!results[1]?.meta?.changes) throw new Error("NOT_FOUND");
-      return json({ ok: true });
+      if (!results[2]?.meta?.changes) throw new Error("NOT_FOUND");
+      return json({ ok: true, plotReferencesUpdated: Boolean(results[0]?.meta?.changes) });
     }
   }
 
