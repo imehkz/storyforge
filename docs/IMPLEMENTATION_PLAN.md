@@ -22,8 +22,8 @@ This section supersedes earlier historical status statements below where they co
 - The Worker source implements owner-only GitHub OAuth, hashed sessions, CSRF/origin validation, logout revocation, project/chapter APIs, snapshots, and project-scoped module CRUD.
 - The browser frontend is connected to authenticated Cloud APIs for projects, chapters, autosave/revisions, snapshots, local recovery/import, and project-scoped studio modules.
 - Backup format v2 includes device-local data plus Cloud projects, chapters, and all six studio module collections. Snapshot history is excluded and explicitly disclosed. Restore preflights Cloud data, preserves stable IDs, and merges rather than deleting existing Cloud data.
-- Latest verified branch: `feature/storyforge-studio-80`, commit `bf032f62d48e4871a24e2da4c76e68938ea084a7`. Draft PR #1 targets `feature/character-studio`, not `main`.
-- GitHub Actions run `45116359195` passed on commit `bf032f62`. Checks cover JavaScript syntax/export smoke tests, D1 schema validation, and Worker security-contract checks. These are static/source and SQLite checks, not live Worker/D1 or browser end-to-end tests.
+- Latest verified branch: `feature/storyforge-studio-80`, commit `863164137e60bcc4251ba3de8879e7cb19fa0255`. Draft PR #1 targets `feature/character-studio`, not `main`.
+- GitHub Actions run `45116539453` passed on commit `86316413`. Checks cover JavaScript syntax/export smoke tests, D1 schema validation, and Worker security-contract checks. These are static/source and SQLite checks, not live Worker/D1 or browser end-to-end tests.
 - The deployed Worker is an earlier build; the latest branch changes have not been deployed. No merge to `main` or new deployment is authorized.
 - AI is intentionally disabled. No AI provider is selected or approved; GitHub identity OAuth is only for sign-in.
 
