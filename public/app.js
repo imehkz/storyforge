@@ -862,6 +862,14 @@ function validateCloudBackupData(backupProjects) {
         } else if (collection === "plot-threads") {
           checkString("title", 200, true); checkString("summary", 10000); checkOrder();
           if (item.status != null && !["planned", "in_progress", "completed", "paused"].includes(item.status)) throw new Error("สถานะปมเรื่องไม่ถูกต้อง");
+          let chapterReferences;
+          try { chapterReferences = item.chapter_ids_json == null ? [] : JSON.parse(typeof item.chapter_ids_json === "string" ? item.chapter_ids_json : JSON.stringify(item.chapter_ids_json)); }
+          catch { throw new Error("เส้นเรื่องมีรายการบทที่อ้างอิงไม่ถูกต้อง"); }
+          if (!Array.isArray(chapterReferences) || chapterReferences.length > 100 ||
+              chapterReferences.some(id => typeof id !== "string" || !UUID_RE.test(id) || !chapterIds.has(id)) ||
+              new Set(chapterReferences).size !== chapterReferences.length) {
+            throw new Error("เส้นเรื่องอ้างถึงบทที่ไม่มีอยู่ในโครงการเดียวกัน");
+          }
         } else if (collection === "world-lore") {
           checkString("category", 80); checkString("title", 200, true); checkString("content", 30000); checkOrder();
         } else if (collection === "timeline") {
@@ -915,6 +923,7 @@ async function restoreCloudBackup(backupProjects) {
   const changedProjectStatuses = [];
   try {
     for (const entry of backupProjects) {
+      const createdPlotChapterLinks = [];
       if (!entry?.project?.id || !Array.isArray(entry.chapters) || !entry.modules || typeof entry.modules !== "object") {
         throw new Error("โครงสร้างข้อมูลโครงการใน Backup ไม่ถูกต้อง");
       }
@@ -951,10 +960,17 @@ async function restoreCloudBackup(backupProjects) {
           const result = await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/" + collection, {
             method: "POST", body: JSON.stringify(payload)
           });
-          if (result.created) createdItems.push({
-            projectId: project.id,
-            path: "/api/projects/" + encodeURIComponent(project.id) + "/" + collection + "/" + encodeURIComponent(item.id)
-          });
+          if (result.created) {
+            createdItems.push({
+              projectId: project.id,
+              path: "/api/projects/" + encodeURIComponent(project.id) + "/" + collection + "/" + encodeURIComponent(item.id)
+            });
+            if (collection === "plot-threads" && Array.isArray(item.chapter_ids_json)) {
+              createdPlotChapterLinks.push({ id: item.id, chapterIds: item.chapter_ids_json });
+            } else if (collection === "plot-threads" && typeof item.chapter_ids_json === "string") {
+              createdPlotChapterLinks.push({ id: item.id, chapterIds: JSON.parse(item.chapter_ids_json) });
+            }
+          }
         }
       }
 
@@ -971,6 +987,12 @@ async function restoreCloudBackup(backupProjects) {
           })
         });
         if (result.created) createdItems.push({ projectId: project.id, path: "/api/chapters/" + encodeURIComponent(chapter.id) });
+      }
+      for (const plot of createdPlotChapterLinks) {
+        await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/plot-threads/" + encodeURIComponent(plot.id), {
+          method: "PATCH",
+          body: JSON.stringify({ chapter_ids_json: plot.chapterIds })
+        });
       }
     }
   } catch (restoreError) {
@@ -3270,6 +3292,8 @@ function renderChapterSelect() {
   if ($("chapterTotal")) $("chapterTotal").textContent = cloud.ready
     ? cloud.chapters.length.toLocaleString("th-TH") + " บท"
     : "ฉบับในเครื่อง";
+  populateModuleCharacterSelectors();
+  renderPlotBoard(cloud.modules["plot-threads"] || []);
 }
 
 async function selectCloudChapter(chapterId) {
