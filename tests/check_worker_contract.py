@@ -212,6 +212,14 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('role="button" aria-label="ตัวละคร ', APP)
         self.assertIn('edge.setAttribute("role","button")', APP)
 
+    def test_worker_rejects_relationships_linking_characters_outside_project(self):
+        module_route = WORKER[WORKER.index("const moduleMatch"):WORKER.index("const chaptersMatch")]
+        self.assertIn("const validateRelationshipEndpoints = async (sourceId, targetId)", module_route)
+        self.assertIn('"SELECT id FROM characters WHERE project_id = ? AND id IN (?, ?)"', module_route)
+        self.assertIn("await validateRelationshipEndpoints(values.source_character_id, values.target_character_id)", module_route)
+        self.assertIn("await validateRelationshipEndpoints(source, target)", module_route)
+        self.assertIn("INVALID_RELATIONSHIP_CHARACTER", module_route)
+
     def test_relationship_edit_can_reassign_character_endpoints(self):
         self.assertIn("characters[sourceIndex].id", APP)
         self.assertIn("characters[targetIndex].id", APP)
