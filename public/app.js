@@ -930,6 +930,31 @@ async function restoreCloudBackup(backupProjects) {
           method: "PATCH", body: JSON.stringify({ status: "archived" })
         });
       }
+      for (const collection of collections) {
+        const rows = entry.modules[collection] || [];
+        if (!Array.isArray(rows)) throw new Error("ข้อมูล " + collection + " ใน Backup ไม่ถูกต้อง");
+        for (const item of rows) {
+          const payload = { clientId: item.id };
+          const allowed = {
+            characters: ["name", "role", "profile_json", "sort_order"],
+            relationships: ["source_character_id", "target_character_id", "relationship_type", "description"],
+            "plot-threads": ["title", "summary", "status", "sort_order", "character_ids_json"],
+            "world-lore": ["category", "title", "content", "sort_order", "character_ids_json"],
+            timeline: ["title", "description", "story_time", "sort_order", "character_ids_json"],
+            notes: ["title", "content", "note_type", "pinned", "character_ids_json"]
+          }[collection];
+          for (const field of allowed) {
+            if (item[field] !== undefined) payload[field] = field === "pinned" ? Boolean(item[field]) : item[field];
+          }
+          const result = await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/" + collection, {
+            method: "POST", body: JSON.stringify(payload)
+          });
+          if (result.created) createdItems.push({
+            projectId: project.id,
+            path: "/api/projects/" + encodeURIComponent(project.id) + "/" + collection + "/" + encodeURIComponent(item.id)
+          });
+        }
+      }
       for (const chapter of entry.chapters) {
         const result = await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/chapters", {
           method: "POST",
@@ -937,7 +962,6 @@ async function restoreCloudBackup(backupProjects) {
         });
         if (result.created) createdItems.push({ projectId: project.id, path: "/api/chapters/" + encodeURIComponent(chapter.id) });
       }
-      for (const collection of collections) {
         const rows = entry.modules[collection] || [];
         if (!Array.isArray(rows)) throw new Error("ข้อมูล " + collection + " ใน Backup ไม่ถูกต้อง");
         for (const item of rows) {
@@ -3027,7 +3051,7 @@ async function selectCloudChapter(chapterId) {
   const localDraft = safeJSON(localStorage.getItem(localChapterDraftKey(item.id)) || "null", null);
   const hasRecoverableDraft = Boolean(localDraft &&
     (localDraft.title !== (fullChapter.title || "") || localDraft.body !== (fullChapter.body || "") ||
-      JSON.stringify(localDraft.character_ids_json || []) !== JSON.stringify(chapterCharacterIds(fullChapter))));
+      JSON.stringify(chapterCharacterIds({ character_ids_json: localDraft.character_ids_json })) !== JSON.stringify(chapterCharacterIds(fullChapter))));
   if ($("recoverLocalDraft")) {
     $("recoverLocalDraft").hidden = !hasRecoverableDraft;
     $("recoverLocalDraft").dataset.chapterId = fullChapter.id;
