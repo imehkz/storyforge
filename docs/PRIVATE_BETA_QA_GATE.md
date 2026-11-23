@@ -6,10 +6,10 @@ Scope: validate the private beta only after an isolated staging Worker and D1 da
 
 ## 1. Required staging preparation
 
-- [ ] Create a separate staging Cloudflare Worker and D1 database with no production data.
+- [x] Create a separate staging Cloudflare Worker and D1 database with no production data. The API-only staging Worker and D1 are documented in docs/STAGING_VERIFICATION_2026-11-23.md.
 - [ ] Configure staging GitHub OAuth callback and owner allowlist without exposing secrets in source control.
 - [ ] Take a verified staging D1 backup before applying migrations.
-- [ ] Apply migrations 0001–0012 to the new staging D1 database in order and verify all tables/columns/check constraints. Do not reuse the production D1 database for staging.
+- [x] Apply migrations 0001–0012 to the new staging D1 database in order and verify key tables/columns plus foreign-key integrity. Do not reuse the production D1 database for staging; see docs/STAGING_VERIFICATION_2026-11-23.md.
 - [ ] Confirm staging can be destroyed/recreated without affecting production.
 - [ ] Confirm no OpenAI API key or image provider is configured unless billing and privacy have been explicitly approved.
 
@@ -58,8 +58,8 @@ Scope: validate the private beta only after an isolated staging Worker and D1 da
 
 The following remain release blockers until evidenced as passed:
 
-1. No isolated staging Worker/D1 browser environment has been validated in this work session.
-2. Read-only Cloudflare inspection on 23 November 2026 found that the existing `storyforge` D1 database has only migrations 0001–0003 applied; branch migrations 0004–0012 remain unapplied there. The existing `storyforge` Worker is the currently deployed production Worker and runs an earlier build. Do not apply branch migrations or deploy this branch to that Worker. Create an isolated staging Worker and D1 database first.
+1. The isolated staging D1 and API-only Worker now exist and migrations 0001–0012 plus database-level project-isolation smoke checks passed. The staging site is not complete: frontend assets, staging OAuth/secrets, live HTTP/API tests, and browser/device validation remain outstanding.
+2. The existing production `storyforge` D1 database still has only migrations 0001–0003 applied; branch migrations 0004–0012 remain unapplied there. The active production Worker still runs an earlier build. Staging has its own D1 and API-only Worker. Do not apply branch migrations or deploy this branch to the production Worker.
 3. No real Android tablet/browser E2E run has been performed.
 4. Independent encrypted off-site D1 backup and restore drill is not evidenced.
 5. DOCX/EPUB have automated package-level tests, but real office/e-reader rendering remains unverified.
