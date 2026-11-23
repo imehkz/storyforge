@@ -140,6 +140,34 @@ assert.ok(source.includes("function exportManuscriptDocx(chapters = null, projec
 assert.ok(source.includes("tocParagraphs"), "whole-novel DOCX includes a contents list");
 assert.ok(source.includes("<w:pageBreakBefore/>"), "whole-novel DOCX starts each chapter on a new page");
 assert.ok(source.includes("async function exportEntireNovelPdf()"), "whole-novel print-to-PDF flow is implemented");
+
+const printHelpers = ["printPlainTextParagraphs", "buildWholeNovelPrintHtml"].map(extractFunction).join("\n");
+const printHtmlBuilder = new Function("escapeHtml", "sanitizeManuscriptHtml", printHelpers +
+  "\\nreturn buildWholeNovelPrintHtml;")(
+  value => String(value).replace(/[&<>"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char]),
+  value => String(value || "")
+);
+const wholeBookPrintHtml = printHtmlBuilder({
+  title: "นิยาย <ทดสอบ>",
+  pen_name: "นามปากกา",
+  copyright_text: "ลิขสิทธิ์ & สงวนสิทธิ์",
+  foreword: "คำนำบรรทัดแรก\\nคำนำบรรทัดสอง",
+  author_bio: "ประวัติผู้เขียน"
+}, [
+  { title: "บทแรก", body: "<p>เนื้อหาบทแรก</p>" },
+  { title: "บทที่สอง", body: "<p>เนื้อหาบทที่สอง</p>" }
+]);
+assert.ok(wholeBookPrintHtml.includes("นิยาย &lt;ทดสอบ&gt;"), "PDF title page escapes project title");
+assert.ok(wholeBookPrintHtml.includes("นามปากกา") && wholeBookPrintHtml.includes("ลิขสิทธิ์ &amp; สงวนสิทธิ์"), "PDF title page includes pen name and copyright");
+assert.ok(wholeBookPrintHtml.includes("คำนำบรรทัดแรก") && wholeBookPrintHtml.includes("คำนำบรรทัดสอง"), "PDF includes foreword paragraphs");
+assert.ok(wholeBookPrintHtml.includes("บทแรก") && wholeBookPrintHtml.includes("บทที่สอง") && wholeBookPrintHtml.includes("เนื้อหาบทที่สอง"), "PDF includes all chapters and chapter bodies");
+assert.ok(wholeBookPrintHtml.includes("เกี่ยวกับผู้เขียน") && wholeBookPrintHtml.includes("ประวัติผู้เขียน"), "PDF includes author biography");
+assert.ok(wholeBookPrintHtml.indexOf("print-book-frontmatter") < wholeBookPrintHtml.indexOf("print-book-toc") &&
+  wholeBookPrintHtml.indexOf("print-book-toc") < wholeBookPrintHtml.indexOf("print-book-chapter") &&
+  wholeBookPrintHtml.indexOf("print-book-backmatter") > wholeBookPrintHtml.indexOf("print-book-chapter"),
+  "PDF sections are ordered as front matter, contents, chapters, and back matter");
+assert.ok(stylesheet.includes(".print-book-frontmatter") && stylesheet.includes(".print-book-backmatter"),
+  "PDF publication pages have print layout rules");
 const txtDownloads = [];
 const txtCloud = {
   authenticated: true, ready: true, activeProjectId: "project-1", activeChapterId: "chapter-1",
