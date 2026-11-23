@@ -1307,7 +1307,9 @@ function renderRelationshipGraph() {
   }).join("");
   const nodes=characters.map(item=>{
     const p=positions.get(item.id), initials=String(item.name||"?").trim().slice(0,1);
-    return `<g class="relationship-node" data-character-id="${escapeHtml(item.id)}" tabindex="0" role="button" aria-label="ตัวละคร ${escapeHtml(item.name)}" style="cursor:grab"><rect x="${p.x}" y="${p.y}" width="${nodeWidth}" height="${nodeHeight}" rx="9" fill="#18263a" stroke="#c5a15b" stroke-width="1.5"/><circle cx="${p.x+27}" cy="${p.y+33}" r="17" fill="#382d29" stroke="#c5a15b"/><text x="${p.x+27}" y="${p.y+38}" fill="#eadbb9" font-size="15" text-anchor="middle">${escapeHtml(initials)}</text><text x="${p.x+52}" y="${p.y+28}" fill="#eadbb9" font-size="13">${escapeHtml(item.name.slice(0, 20))}</text><text x="${p.x+52}" y="${p.y+47}" fill="#a99b7e" font-size="10">${escapeHtml(String(item.role||"ตัวละคร").slice(0,18))}</text></g>`;
+    let profile={}; try { profile=JSON.parse(item.profile_json||"{}"); } catch {}
+    const roleLabel=profile.profession||item.role||"ตัวละคร";
+    return `<g class="relationship-node" data-character-id="${escapeHtml(item.id)}" tabindex="0" role="button" aria-label="ตัวละคร ${escapeHtml(item.name)}" style="cursor:grab"><rect x="${p.x}" y="${p.y}" width="${nodeWidth}" height="${nodeHeight}" rx="9" fill="#18263a" stroke="#c5a15b" stroke-width="1.5"/><circle cx="${p.x+27}" cy="${p.y+33}" r="17" fill="#382d29" stroke="#c5a15b"/><text x="${p.x+27}" y="${p.y+38}" fill="#eadbb9" font-size="15" text-anchor="middle">${escapeHtml(initials)}</text><text x="${p.x+52}" y="${p.y+28}" fill="#eadbb9" font-size="13">${escapeHtml(item.name.slice(0, 20))}</text><text x="${p.x+52}" y="${p.y+47}" fill="#a99b7e" font-size="10">${escapeHtml(String(roleLabel).slice(0,18))}</text></g>`;
   }).join("");
   target.innerHTML = `<div class="relationship-graph-tools"><span>ลากการ์ดเพื่อจัดตำแหน่ง · แตะตัวละครเพื่อดูข้อมูล</span><button type="button" class="outline-button compact" id="resetRelationshipLayout">จัดผังใหม่</button></div><svg viewBox="0 0 ${width} ${height}" width="100%" role="img" aria-label="แผนผังสายใยความสัมพันธ์ของตัวละคร">${edges}${nodes}</svg><div class="relationship-legend"><span><i style="background:#d58aa9"></i>ความรัก</span><span><i style="background:#c66b70"></i>ศัตรู/ขัดแย้ง</span><span><i style="background:#7da7d8"></i>ครอบครัว</span><span><i style="background:#83b99a"></i>พันธมิตร</span><span><i style="background:#c5a15b"></i>ผู้ชี้แนะ</span></div>`;
   const svg=target.querySelector("svg");
@@ -1326,6 +1328,18 @@ function renderRelationshipGraph() {
         positions.set(id,{x,y});
         saved[id]={x,y};
         node.setAttribute("transform","translate("+(x-start.x)+" "+(y-start.y)+")");
+        target.querySelectorAll(".relationship-edge").forEach(edge=>{
+          const rel=relationships.find(row=>row.id===edge.dataset.edgeId);
+          if(!rel) return;
+          const from=positions.get(rel.source_character_id), to=positions.get(rel.target_character_id);
+          if(!from||!to) return;
+          const x1=from.x+nodeWidth/2, y1=from.y+nodeHeight/2;
+          const x2=to.x+nodeWidth/2, y2=to.y+nodeHeight/2;
+          const path=edge.querySelector("path"), label=edge.querySelector("text");
+          path?.setAttribute("d", "M "+x1+" "+y1+" L "+x2+" "+y2);
+          label?.setAttribute("x", (x1+x2)/2);
+          label?.setAttribute("y", (y1+y2)/2-8);
+        });
       };
       const finish=()=>{
         node.removeEventListener("pointermove",move);
