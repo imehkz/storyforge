@@ -158,7 +158,13 @@
         <div class="two-column">
           <div class="card-frame form-card"><h2>เพิ่มตัวละคร</h2>
             <label for="characterName">ชื่อตัวละคร</label><input id="characterName" maxlength="160" placeholder="ชื่อที่ใช้ในเรื่อง">
-            <label for="characterRole">บทบาท</label><input id="characterRole" maxlength="80" placeholder="ตัวเอก / ตัวร้าย / ตัวประกอบ">
+            <label for="characterRole">บทบาทในเรื่อง</label><input id="characterRole" maxlength="80" placeholder="ตัวเอก / ตัวร้าย / ตัวประกอบ">
+            <div class="character-field-grid">
+              <div><label for="characterNickname">ชื่อเล่น / นามแฝง</label><input id="characterNickname" maxlength="160" placeholder="ชื่อที่คนสนิทใช้เรียก"></div>
+              <div><label for="characterGender">เพศ / อัตลักษณ์</label><input id="characterGender" maxlength="80" placeholder="ระบุตามที่ต้องการ"></div>
+              <div><label for="characterBirthday">วันเกิด</label><input id="characterBirthday" maxlength="80" placeholder="เช่น 12 เดือน 3 ปี 317"></div>
+              <div><label for="characterProfession">อาชีพ / ตำแหน่ง</label><input id="characterProfession" maxlength="160" placeholder="เช่น องค์รัชทายาท / นักปรุงยา"></div>
+            </div>
             <div class="character-field-grid">
               <div><label for="characterAge">อายุ</label><input id="characterAge" maxlength="40" placeholder="เช่น 24 ปี"></div>
               <div><label for="characterPronouns">สรรพนาม</label><input id="characterPronouns" maxlength="60" placeholder="เช่น เขา / เธอ"></div>
@@ -172,6 +178,12 @@
             <div class="character-field-grid">
               <div><label for="characterStrengths">จุดแข็ง</label><textarea id="characterStrengths" rows="2"></textarea></div>
               <div><label for="characterWeaknesses">จุดอ่อน</label><textarea id="characterWeaknesses" rows="2"></textarea></div>
+            </div>
+            <div class="character-field-grid">
+              <div><label for="characterLikes">สิ่งที่ชอบ</label><textarea id="characterLikes" rows="2" placeholder="สิ่งของ อาหาร กิจกรรม หรือผู้คน..."></textarea></div>
+              <div><label for="characterDislikes">สิ่งที่ไม่ชอบ</label><textarea id="characterDislikes" rows="2" placeholder="สิ่งที่หลีกเลี่ยงหรือหวาดกลัว..."></textarea></div>
+              <div><label for="characterSkills">ทักษะ / ความสามารถ</label><textarea id="characterSkills" rows="2" placeholder="ทักษะทั่วไป เวทมนตร์ หรือพลังพิเศษ..."></textarea></div>
+              <div><label for="characterFamily">ครอบครัว / สังกัด</label><textarea id="characterFamily" rows="2" placeholder="เครือญาติ ตระกูล สำนัก หรือฝ่าย..."></textarea></div>
             </div>
             <label for="characterSecret">ความลับ / ปมสำคัญ</label><textarea id="characterSecret" rows="2"></textarea>
             <label for="characterProfile">บันทึกเพิ่มเติม</label><textarea id="characterProfile" rows="3" placeholder="ข้อมูลอื่น ๆ ที่ต้องรักษาเป็น Canon..."></textarea>
