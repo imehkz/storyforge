@@ -290,7 +290,7 @@ async function api(request, env, url) {
 
   if (path === "/api/projects" && method === "GET") {
     const result = await env.DB.prepare(
-      "SELECT id, title, genre, synopsis, status, created_at, updated_at FROM projects WHERE owner_id = ? ORDER BY updated_at DESC LIMIT 200"
+      "SELECT id, title, genre, synopsis, pen_name, copyright_text, foreword, author_bio, status, created_at, updated_at FROM projects WHERE owner_id = ? ORDER BY updated_at DESC LIMIT 200"
     ).bind(ownerId).all();
     return json({ projects: result.results || [] });
   }
@@ -304,11 +304,15 @@ async function api(request, env, url) {
     const title = requiredString(input.title, 160, "title");
     const genre = optionalString(input.genre, 100, "genre");
     const synopsis = optionalString(input.synopsis, 10000, "synopsis");
+    const penName = optionalString(input.pen_name, 120, "pen_name");
+    const copyrightText = optionalString(input.copyright_text, 300, "copyright_text");
+    const foreword = optionalString(input.foreword, 10000, "foreword");
+    const authorBio = optionalString(input.author_bio, 3000, "author_bio");
     const inserted = await env.DB.prepare(
-      "INSERT OR IGNORE INTO projects (id, owner_id, title, genre, synopsis) VALUES (?, ?, ?, ?, ?)"
-    ).bind(id, ownerId, title, genre, synopsis).run();
+      "INSERT OR IGNORE INTO projects (id, owner_id, title, genre, synopsis, pen_name, copyright_text, foreword, author_bio) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    ).bind(id, ownerId, title, genre, synopsis, penName, copyrightText, foreword, authorBio).run();
     const project = await env.DB.prepare(
-      "SELECT id, owner_id, title, genre, synopsis, status, created_at, updated_at FROM projects WHERE id = ?"
+      "SELECT id, owner_id, title, genre, synopsis, pen_name, copyright_text, foreword, author_bio, status, created_at, updated_at FROM projects WHERE id = ?"
     ).bind(id).first();
     if (!project || project.owner_id !== ownerId) throw new Error("CONFLICT");
     return json({ project, created: Boolean(inserted.meta?.changes) }, inserted.meta?.changes ? 201 : 200);
@@ -319,7 +323,7 @@ async function api(request, env, url) {
     const projectId = projectMatch[1];
     if (method === "GET") {
       const project = await env.DB.prepare(
-        "SELECT id, title, genre, synopsis, status, created_at, updated_at FROM projects WHERE id = ? AND owner_id = ?"
+        "SELECT id, title, genre, synopsis, pen_name, copyright_text, foreword, author_bio, status, created_at, updated_at FROM projects WHERE id = ? AND owner_id = ?"
       ).bind(projectId, ownerId).first();
       if (!project) throw new Error("NOT_FOUND");
       return json({ project });
@@ -333,6 +337,10 @@ async function api(request, env, url) {
       if (input.title !== undefined) { fields.push("title = ?"); values.push(requiredString(input.title, 160, "title")); }
       if (input.genre !== undefined) { fields.push("genre = ?"); values.push(optionalString(input.genre, 100, "genre")); }
       if (input.synopsis !== undefined) { fields.push("synopsis = ?"); values.push(optionalString(input.synopsis, 10000, "synopsis")); }
+      if (input.pen_name !== undefined) { fields.push("pen_name = ?"); values.push(optionalString(input.pen_name, 120, "pen_name")); }
+      if (input.copyright_text !== undefined) { fields.push("copyright_text = ?"); values.push(optionalString(input.copyright_text, 300, "copyright_text")); }
+      if (input.foreword !== undefined) { fields.push("foreword = ?"); values.push(optionalString(input.foreword, 10000, "foreword")); }
+      if (input.author_bio !== undefined) { fields.push("author_bio = ?"); values.push(optionalString(input.author_bio, 3000, "author_bio")); }
       if (input.status !== undefined) {
         if (!["active", "archived"].includes(input.status)) throw new Error("INVALID_STATUS");
         fields.push("status = ?"); values.push(input.status);
@@ -340,7 +348,7 @@ async function api(request, env, url) {
       if (!fields.length) throw new Error("INVALID_UPDATE");
       fields.push("updated_at = ?"); values.push(nowIso(), projectId, ownerId);
       const updated = await env.DB.prepare(
-        `UPDATE projects SET ${fields.join(", ")} WHERE id = ? AND owner_id = ? RETURNING id, title, genre, synopsis, status, updated_at`
+        `UPDATE projects SET ${fields.join(", ")} WHERE id = ? AND owner_id = ? RETURNING id, title, genre, synopsis, pen_name, copyright_text, foreword, author_bio, status, updated_at`
       ).bind(...values).first();
       return json({ project: updated });
     }
