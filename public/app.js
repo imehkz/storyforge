@@ -896,6 +896,98 @@ function showTab(tab, activeButton = null) {
   if (tab === "dashboard") renderDashboard();
 }
 
+function buildStoryAssistantContext() {
+  const localProjects = safeJSON(localStorage.getItem("sf_projects") || "[]", []);
+  const activeLocalId = localStorage.getItem("sf_active_project_id");
+  const active = cloud.ready
+    ? cloud.projects.find(item => item.id === cloud.activeProjectId) || null
+    : (Array.isArray(localProjects) ? localProjects.find(item => item.id === activeLocalId) || localProjects[0] : null);
+  if (!active) throw new Error("กรุณาเลือกหรือบันทึกนิยายก่อนคัดลอกบริบท");
+
+  const lines = [
+    "# STORYFORGE — บริบทนิยาย",
+    "ชื่อเรื่อง: " + (active.title || $("title")?.value || "ไม่ระบุ"),
+    "Project ID: " + (active.id || "Local"),
+    "แนวเรื่อง: " + (active.genre || "ไม่ระบุ"),
+    "",
+    "## เรื่องย่อและข้อมูลสำคัญ",
+    active.context || "ยังไม่มีข้อมูล",
+    ""
+  ];
+  const projectIsCurrentCloud = cloud.ready && active.id === cloud.activeProjectId;
+  if (projectIsCurrentCloud) {
+    const modules = cloud.modules || {};
+    const characters = modules.characters || [];
+    const relationships = modules.relationships || [];
+    const plots = modules["plot-threads"] || [];
+    const worlds = modules["world-lore"] || [];
+    const timeline = modules.timeline || [];
+    const notes = (modules.notes || []).filter(item => item.note_type !== "project_memory");
+    lines.push("## Character Vault");
+    if (!characters.length) lines.push("ยังไม่มีข้อมูลตัวละคร");
+    characters.forEach(character => {
+      let profile = {};
+      try { profile = typeof character.profile_json === "string" ? JSON.parse(character.profile_json || "{}") : (character.profile_json || {}); } catch {}
+      lines.push("- " + character.name + (character.role ? " — " + character.role : ""));
+      Object.entries(profile).forEach(([key, value]) => {
+        if (value && String(value).trim()) lines.push("  - " + key + ": " + String(value).trim());
+      });
+    });
+    lines.push("", "## ความสัมพันธ์");
+    if (!relationships.length) lines.push("ยังไม่มีข้อมูลความสัมพันธ์");
+    relationships.forEach(item => {
+      const from = characters.find(character => character.id === item.source_character_id)?.name || "ตัวละคร";
+      const to = characters.find(character => character.id === item.target_character_id)?.name || "ตัวละคร";
+      lines.push("- " + from + " — " + (item.relationship_type || "เกี่ยวข้อง") + " — " + to + (item.description ? ": " + item.description : ""));
+    });
+    lines.push("", "## เส้นเรื่อง");
+    if (!plots.length) lines.push("ยังไม่มีเส้นเรื่อง");
+    plots.forEach(item => lines.push("- " + item.title + " [" + (item.status || "ไม่ระบุสถานะ") + "]: " + (item.summary || "")));
+    lines.push("", "## World Building");
+    if (!worlds.length) lines.push("ยังไม่มีข้อมูลโลก");
+    worlds.forEach(item => lines.push("- [" + (item.category || "other") + "] " + item.title + ": " + (item.content || "")));
+    lines.push("", "## Timeline");
+    if (!timeline.length) lines.push("ยังไม่มีเหตุการณ์");
+    timeline.forEach(item => lines.push("- " + (item.story_time || "ไม่ระบุเวลา") + " — " + item.title + ": " + (item.description || "")));
+    lines.push("", "## บันทึกเนื้อเรื่อง");
+    if (!notes.length) lines.push("ยังไม่มีบันทึก");
+    notes.forEach(item => lines.push("- " + (item.title || "บันทึก") + ": " + (item.content || "")));
+    lines.push("", "## รายการบท");
+    (cloud.chapters || []).forEach((item, index) => lines.push((index + 1) + ". " + (item.title || "บทไม่มีชื่อ") + " (" + (Number(item.word_count) || 0) + " คำ)"));
+  } else {
+    lines.push("## ข้อมูลโมดูล");
+    lines.push("ยังไม่ได้เชื่อมต่อ Cloud ในโปรเจกต์ที่เลือก จึงแนบเฉพาะข้อมูลโครงการและต้นฉบับปัจจุบัน");
+  }
+
+  const chapterTitle = $("chapterTitle")?.value || "";
+  const manuscript = getManuscriptText().slice(0, 14000);
+  lines.push("", "## บทที่กำลังเปิด", chapterTitle || "ยังไม่มีชื่อบท", manuscript || "ยังไม่มีต้นฉบับ");
+  if (getManuscriptText().length > 14000) lines.push("[ตัดต้นฉบับส่วนเกินออกเพื่อให้คัดลอกได้สะดวก]");
+  const selectedMode = document.querySelector(".mode.active")?.dataset.mode || mode || "writer";
+  lines.push("", "## รูปแบบความช่วยเหลือที่ต้องการ", selectedMode);
+  const request = $("prompt")?.value?.trim();
+  lines.push("", "## คำสั่งจากผู้เขียน", request || "โปรดช่วยวิเคราะห์และให้คำแนะนำโดยยึดข้อมูล Canon ข้างต้น");
+  lines.push("", "ข้อกำหนด: ใช้ข้อมูลของนิยายนี้เท่านั้น หากข้อมูลไม่พอให้ถามก่อน อย่าสร้างข้อเท็จจริง Canon ใหม่เอง");
+  return lines.join("\n");
+}
+
+async function copyStoryText(value) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+  const field = document.createElement("textarea");
+  field.value = value;
+  field.setAttribute("readonly", "");
+  field.style.position = "fixed";
+  field.style.opacity = "0";
+  document.body.appendChild(field);
+  field.select();
+  const copied = document.execCommand("copy");
+  field.remove();
+  if (!copied) throw new Error("เบราว์เซอร์ไม่อนุญาตให้คัดลอกข้อความ");
+}
+
 function setupEvents() {
 
   // Auto save
@@ -1057,13 +1149,22 @@ function setupEvents() {
     }
   };
 
-  // AI Writer — deliberately disabled until per-user Copilot OAuth is implemented.
+  // AI provider remains disabled until a user-approved integration is configured.
   $("run").disabled = true;
-  $("run").title = "Copilot integration is not enabled in this private beta build";
+  $("run").title = "ยังไม่มีผู้ให้บริการ AI เชื่อมต่อในรุ่นทดสอบนี้";
   $("output").textContent =
-    "Copilot ยังไม่เปิดใช้งานในรุ่นทดสอบส่วนตัวนี้\n\n" +
-    "ระบบจะไม่เรียก OpenAI API หรือบริการ AI แบบคิดเงินแทนโดยอัตโนมัติ " +
-    "จนกว่าจะติดตั้ง GitHub OAuth, Copilot SDK และการแยกสิทธิ์ผู้ใช้ครบถ้วน";
+    "ผู้ช่วย AI ยังไม่เชื่อมต่อกับผู้ให้บริการในรุ่นทดสอบส่วนตัวนี้\n\n" +
+    "ระบบจะไม่เรียก API หรือบริการแบบคิดเงินโดยอัตโนมัติ";
+
+  $("copyStoryContext")?.addEventListener("click", async () => {
+    try {
+      const context = buildStoryAssistantContext();
+      await copyStoryText(context);
+      alert("คัดลอกบริบทของนิยายที่กำลังเลือกแล้วครับ นำไปวางในแชตผู้ช่วยที่ต้องการได้เลย");
+    } catch (error) {
+      alert("คัดลอกบริบทไม่สำเร็จ: " + error.message);
+    }
+  });
 
   // Copy AI output
   $("copy").onclick = () => {
