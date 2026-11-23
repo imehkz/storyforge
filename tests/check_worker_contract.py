@@ -250,6 +250,13 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('ไม่ซิงก์ข้ามอุปกรณ์', HTML)
         self.assertIn('.character-reference-gallery', CSS)
 
+    def test_character_vault_cleans_deleted_characters_and_guards_project_switch(self):
+        self.assertIn("deleteCharacterVaultForCharacter", APP)
+        self.assertIn('if (cloud.activeProjectId && cloud.activeProjectId !== project.id) resetCharacterForm()', APP)
+        self.assertIn("cloud.editingCharacterId !== characterId", APP)
+        self.assertIn("hydrateRelationshipPortraits(svg, characters, cloud.activeProjectId)", APP)
+        self.assertIn('image.setAttribute("href", canonical.dataUrl)', APP)
+
     def test_html_ids_are_unique(self):
         parser = IdCollector()
         parser.feed(HTML)
