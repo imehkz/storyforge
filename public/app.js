@@ -872,7 +872,7 @@ function validateCloudBackupData(backupProjects) {
         }
       }
     }
-    for (const collection of ["plot-threads", "world-lore", "timeline"]) {
+    for (const collection of ["plot-threads", "world-lore", "timeline", "notes"]) {
       for (const item of (entry.modules[collection] || [])) {
         let references;
         try { references = item.character_ids_json == null ? [] : JSON.parse(typeof item.character_ids_json === "string" ? item.character_ids_json : JSON.stringify(item.character_ids_json)); }
@@ -938,7 +938,7 @@ async function restoreCloudBackup(backupProjects) {
             "plot-threads": ["title", "summary", "status", "sort_order", "character_ids_json"],
             "world-lore": ["category", "title", "content", "sort_order", "character_ids_json"],
             timeline: ["title", "description", "story_time", "sort_order", "character_ids_json"],
-            notes: ["title", "content", "note_type", "pinned"]
+            notes: ["title", "content", "note_type", "pinned", "character_ids_json"]
           }[collection];
           for (const field of allowed) {
             if (item[field] !== undefined) payload[field] = field === "pinned" ? Boolean(item[field]) : item[field];
