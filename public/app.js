@@ -1106,6 +1106,10 @@ function compressIllustration(file) {
 function insertIllustrationAtCursor() {
   const editor = $("manuscriptEditor"), field = $("manuscriptBody");
   if (!editor || !pendingIllustrationData) return;
+  if ((field?.value || "").length + pendingIllustrationData.length + 1200 > 450000) {
+    $("illustrationStatus").textContent = "บทนี้มีข้อมูลใกล้ถึงขีดจำกัดการซิงก์แล้ว กรุณาใช้ภาพที่เล็กลงหรือลดจำนวนภาพก่อน";
+    return;
+  }
   if (illustrationProject() && cloud.ready && cloud.activeProjectId && illustrationProject().id !== cloud.activeProjectId) {
     $("illustrationStatus").textContent = "หยุดแทรกภาพ: นิยายที่เลือกไม่ตรงกับพื้นที่ทำงานปัจจุบัน";
     return;
@@ -1150,6 +1154,16 @@ function insertIllustrationAtCursor() {
   $("illustrationFile").value = "";
 }
 function setupIllustrationStudio() {
+  const editor = $("manuscriptEditor");
+  const rememberRange = () => {
+    const selection = window.getSelection();
+    if (editor && selection?.rangeCount && editor.contains(selection.anchorNode)) {
+      illustrationSavedRange = selection.getRangeAt(0).cloneRange();
+    }
+  };
+  editor?.addEventListener("mouseup", rememberRange);
+  editor?.addEventListener("keyup", rememberRange);
+  document.addEventListener("selectionchange", rememberRange);
   $("illustrationStyle")?.addEventListener("change", () => {
     const project = illustrationProject();
     if (project) localStorage.setItem(illustrationSettingsKey(project.id), JSON.stringify({
