@@ -30,7 +30,7 @@ let localDraftCalls = 0;
 let cloudSaveSchedules = 0;
 const save = new Function(
   "keys", "$", "localStorage", "storageKeyFor", "getProjectGenre", "renderDashboard",
-  "cloud", "storeLocalChapterDraft", "scheduleCloudSave",
+  "cloud", "activeChapterDraft", "storeLocalChapterDraft", "scheduleCloudSave",
   extractFunction("save") + "\nreturn save;"
 )(
   ["chapterTitle", "manuscriptBody"],
@@ -40,6 +40,7 @@ const save = new Function(
   () => "แฟนตาซี",
   () => {},
   { authenticated: true, ready: true, activeProjectId: "project-1", activeChapterId: "chapter-1", revision: 2 },
+  () => ({ title: elements.chapterTitle.value, body: elements.manuscriptBody.value, synopsis: "", writing_status: "draft", character_ids_json: "[]" }),
   () => { localDraftCalls++; return false; },
   () => { cloudSaveSchedules++; }
 );
