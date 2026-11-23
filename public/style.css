@@ -827,7 +827,7 @@ input::placeholder,textarea::placeholder{color:rgba(154,169,190,.66)}
 .relationship-node:focus rect { stroke:#fff; stroke-width:2.5; }
 @media(max-width:760px) {
  .writing-settings-grid,.genre-level-grid { grid-template-columns:1fr; }
- .genre-level { grid-template-columns:minmax(100px,1fr) minmax(80px,1.2fr) 42px; }
+ .genre-level { grid-template-columns:minmax(90px,1fr) 20px minmax(70px,1.6fr) 42px; }
  .relationship-graph-tools { align-items:flex-start; flex-direction:column; }
 }
 
