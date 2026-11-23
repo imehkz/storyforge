@@ -2355,6 +2355,46 @@ function renderTimelineView(items) {
   );
 }
 
+function selectedModuleCharacterIds(selectId) {
+  return Array.from($(selectId)?.selectedOptions || []).map(option => option.value).filter(Boolean);
+}
+
+function populateModuleCharacterSelectors() {
+  const characters = cloud.modules.characters || [];
+  for (const id of ["plotCharacters", "worldCharacters", "timelineCharacters"]) {
+    const select = $(id);
+    if (!select) continue;
+    const selected = new Set(Array.from(select.selectedOptions || []).map(option => option.value));
+    select.innerHTML = characters.map(character =>
+      '<option value="' + escapeHtml(character.id) + '">' + escapeHtml(character.name) + '</option>'
+    ).join("");
+    Array.from(select.options).forEach(option => { option.selected = selected.has(option.value); });
+    select.disabled = !characters.length;
+  }
+}
+
+function characterReferenceNames(item) {
+  let ids = [];
+  try { ids = JSON.parse(item.character_ids_json || "[]"); } catch {}
+  return ids.map(id => (cloud.modules.characters || []).find(character => character.id === id)?.name).filter(Boolean);
+}
+
+function promptCharacterReferences(currentIds) {
+  const characters = cloud.modules.characters || [];
+  if (!characters.length) return [];
+  const menu = characters.map((character, index) => (index + 1) + ". " + character.name).join("\\n");
+  const current = (currentIds || []).map(id => characters.findIndex(character => character.id === id) + 1).filter(n => n > 0).join(", ");
+  const answer = prompt("เลือกตัวละครที่เกี่ยวข้อง ใส่หมายเลขคั่นด้วยจุลภาค (เว้นว่าง = ไม่เลือก):\\n" + menu, current);
+  if (answer === null) return null;
+  if (!answer.trim()) return [];
+  const indexes = answer.split(",").map(value => Number(value.trim()) - 1);
+  if (indexes.some(index => !Number.isInteger(index) || index < 0 || index >= characters.length) || new Set(indexes).size !== indexes.length) {
+    alert("หมายเลขตัวละครไม่ถูกต้อง");
+    return null;
+  }
+  return indexes.map(index => characters[index].id);
+}
+
 function renderModuleLists() {
   const characters = cloud.modules.characters || [];
   const relationships = cloud.modules.relationships || [];
@@ -2382,13 +2422,14 @@ function renderModuleLists() {
   }, item => [item.relationship_type, item.description].filter(Boolean).join(" · "));
   render("plotList", plots, "plot-threads", item => item.title, item => {
     const labels = { planned: "วางแผน", in_progress: "กำลังดำเนิน", completed: "เสร็จแล้ว", paused: "พักไว้" };
-    return (labels[item.status] || item.status) + (item.summary ? " · " + item.summary : "");
+    return (labels[item.status] || item.status) + (item.summary ? " · " + item.summary : "") + (characterReferenceNames(item).length ? " · ตัวละคร: " + characterReferenceNames(item).join(", ") : "");
   });
-  render("worldList", worlds, "world-lore", item => item.title, item => [item.category, item.content].filter(Boolean).join(" · "));
-  render("timelineList", timeline, "timeline", item => item.title, item => [item.story_time, item.description].filter(Boolean).join(" · "));
+  render("worldList", worlds, "world-lore", item => item.title, item => [item.category, item.content, characterReferenceNames(item).length ? "ตัวละคร: " + characterReferenceNames(item).join(", ") : ""].filter(Boolean).join(" · "));
+  render("timelineList", timeline, "timeline", item => item.title, item => [item.story_time, item.description, characterReferenceNames(item).length ? "ตัวละคร: " + characterReferenceNames(item).join(", ") : ""].filter(Boolean).join(" · "));
   renderPlotBoard(plots);
   renderTimelineView(timeline);
   render("storyNoteList", notes.filter(item => item.note_type !== "project_memory"), "notes", item => item.title || "บันทึกไม่มีชื่อ", item => item.content);
+  populateModuleCharacterSelectors();
   renderRelationshipOptions();
   renderRelationshipGraph();
   document.querySelectorAll("[data-module-delete]").forEach(button => button.addEventListener("click", () => deleteModuleItem(button.dataset.moduleDelete, button.dataset.moduleId)));
@@ -2695,7 +2736,9 @@ async function editModuleItem(collection, itemId) {
     if (title === null) return;
     const summary = prompt("เรื่องย่อ", item.summary || "");
     if (summary === null) return;
-    payload = { title, summary };
+    const character_ids = promptCharacterReferences(JSON.parse(item.character_ids_json || "[]"));
+    if (character_ids === null) return;
+    payload = { title, summary, character_ids_json: character_ids };
   } else if (collection === "world-lore") {
     const category = prompt("หมวดหมู่ (place / history / rule / culture / faction / other)", item.category || "other");
     if (category === null) return;
@@ -2703,7 +2746,9 @@ async function editModuleItem(collection, itemId) {
     if (title === null) return;
     const content = prompt("รายละเอียด", item.content || "");
     if (content === null) return;
-    payload = { category, title, content };
+    const character_ids = promptCharacterReferences(JSON.parse(item.character_ids_json || "[]"));
+    if (character_ids === null) return;
+    payload = { category, title, content, character_ids_json: character_ids };
   } else if (collection === "timeline") {
     const title = prompt("ชื่อเหตุการณ์", item.title);
     if (title === null) return;
@@ -2711,7 +2756,9 @@ async function editModuleItem(collection, itemId) {
     if (story_time === null) return;
     const description = prompt("รายละเอียด", item.description || "");
     if (description === null) return;
-    payload = { title, story_time, description };
+    const character_ids = promptCharacterReferences(JSON.parse(item.character_ids_json || "[]"));
+    if (character_ids === null) return;
+    payload = { title, story_time, description, character_ids_json: character_ids };
   } else if (collection === "notes") {
     const title = prompt("หัวข้อ", item.title || "");
     if (title === null) return;
@@ -2767,19 +2814,19 @@ function setupModuleEvents() {
   $("addPlot")?.addEventListener("click", () => {
     const title = $("plotTitle").value.trim();
     if (!title) return alert("กรุณาระบุชื่อเส้นเรื่อง");
-    createModuleItem("plot-threads", { title, summary: $("plotSummary").value, status: $("plotStatus").value, sort_order: cloud.modules["plot-threads"].length })
+    createModuleItem("plot-threads", { title, summary: $("plotSummary").value, status: $("plotStatus").value, character_ids_json: selectedModuleCharacterIds("plotCharacters"), sort_order: cloud.modules["plot-threads"].length })
       .then(ok => { if (ok) { $("plotTitle").value = ""; $("plotSummary").value = ""; } });
   });
   $("addWorld")?.addEventListener("click", () => {
     const title = $("worldTitle").value.trim();
     if (!title) return alert("กรุณาระบุชื่อข้อมูลโลก");
-    createModuleItem("world-lore", { category: $("worldCategory").value, title, content: $("worldContent").value, sort_order: cloud.modules["world-lore"].length })
+    createModuleItem("world-lore", { category: $("worldCategory").value, title, content: $("worldContent").value, character_ids_json: selectedModuleCharacterIds("worldCharacters"), sort_order: cloud.modules["world-lore"].length })
       .then(ok => { if (ok) { $("worldTitle").value = ""; $("worldContent").value = ""; } });
   });
   $("addTimeline")?.addEventListener("click", () => {
     const title = $("timelineTitle").value.trim();
     if (!title) return alert("กรุณาระบุชื่อเหตุการณ์");
-    createModuleItem("timeline", { title, story_time: $("timelineTime").value, description: $("timelineDescription").value, sort_order: cloud.modules.timeline.length })
+    createModuleItem("timeline", { title, story_time: $("timelineTime").value, description: $("timelineDescription").value, character_ids_json: selectedModuleCharacterIds("timelineCharacters"), sort_order: cloud.modules.timeline.length })
       .then(ok => { if (ok) { $("timelineTitle").value = ""; $("timelineTime").value = ""; $("timelineDescription").value = ""; } });
   });
   $("addStoryNote")?.addEventListener("click", () => {
