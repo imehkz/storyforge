@@ -1138,3 +1138,59 @@ body.writing-focus-mode #manuscript .editor-footer { max-width: 1000px; margin: 
   .manuscript-topbar select { grid-column:1/-1; }
   .studio-format-toolbar #toggleWritingFocus { margin-left:0; }
 }
+
+
+/* STORYFORGE Novel Studio — tablet-first three-column fidelity pass */
+@media (min-width: 981px) and (max-width: 1280px) {
+  #manuscript .content-wrap { padding-left: clamp(14px, 2vw, 26px); padding-right: clamp(14px, 2vw, 26px); }
+  #manuscript .manuscript-layout {
+    grid-template-columns: minmax(150px, .72fr) minmax(0, 2.1fr) minmax(205px, .96fr);
+    gap: 10px;
+  }
+  #manuscript .chapter-sidebar { padding: 12px; }
+  #manuscript .studio-insight-rail {
+    grid-column: auto;
+    grid-template-columns: minmax(0, 1fr);
+    position: sticky;
+    top: 12px;
+    gap: 10px;
+  }
+  #manuscript .studio-rail-card { padding: 13px; }
+  #manuscript .studio-rail-card h2 { font-size: 18px; }
+  #manuscript .studio-rail-card p,
+  #manuscript .studio-rail-card small { font-size: 12px; }
+  #manuscript .studio-rail-link { gap: 6px; padding: 9px 0; }
+  #manuscript .studio-rail-link b { font-size: 12px; }
+  #manuscript .studio-rail-link small { font-size: 10px; }
+  #manuscript .manuscript-card.studio-paper-card { padding: 14px; }
+  #manuscript .manuscript-editor-surface { min-height: 68vh; padding: 28px 24px; font-size: 17px; }
+  #manuscript .chapter-meta-grid { grid-template-columns: minmax(115px, .55fr) minmax(0, 1fr); gap: 8px; }
+}
+@media (min-width: 1281px) {
+  #manuscript .manuscript-layout {
+    grid-template-columns: minmax(190px, 220px) minmax(420px, 1fr) minmax(245px, 285px);
+    gap: 16px;
+  }
+  #manuscript .studio-insight-rail { grid-column: auto; }
+}
+@media (max-width: 980px) {
+  #manuscript .manuscript-layout { grid-template-columns: minmax(0, 1fr); }
+  #manuscript .studio-insight-rail {
+    grid-column: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    position: static;
+  }
+  #manuscript .chapter-sidebar { position: static; max-height: none; }
+  #manuscript .chapter-list { max-height: 240px; }
+}
+@media (max-width: 620px) {
+  #manuscript .studio-insight-rail { grid-template-columns: minmax(0, 1fr); }
+  #manuscript .manuscript-page-intro { gap: 10px; }
+  #manuscript .manuscript-page-intro h1 { font-size: 25px; }
+  #manuscript .studio-header-actions { justify-content: flex-start; }
+  #manuscript .chapter-list { display: flex; overflow-x: auto; max-height: none; }
+  #manuscript .chapter-list-item { flex: 0 0 170px; }
+  #manuscript .manuscript-editor-surface { min-height: 58vh; padding: 22px 17px; font-size: 16px; line-height: 1.9; }
+  #manuscript .manuscript-card.studio-paper-card { padding: 12px; }
+  #manuscript .manuscript-format-toolbar.studio-format-toolbar { flex-wrap: nowrap; }
+}
