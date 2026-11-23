@@ -53,6 +53,7 @@ A direct attempt to create a relationship in Project A using Project B's charact
 - [x] Staging Worker uploaded and its D1 binding verified.
 - [x] Staging Worker deployment reports 100% traffic to its own version.
 - [x] Staging workers.dev subdomain enabled; production subdomain and routing untouched.
+- [x] Health endpoint now reports `authConfigured` as a boolean only (never returns Client ID, Client Secret, or owner ID); staging deployment includes this readiness signal.
 - [x] GitHub Actions live HTTP smoke test passed on commit 8c7dab2769c2731d5950bdb16c3932fbe02b82ab: /api/health returned 200 with D1 ready; unauthenticated /api/projects returned 401 UNAUTHENTICATED; /, /app.js, and /style.css returned 200 with expected content types.
 
 ## Still not verified
