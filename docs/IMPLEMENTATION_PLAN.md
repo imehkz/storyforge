@@ -304,4 +304,5 @@ No hosting resources or secrets have been provisioned, and no production deploym
 - The Worker validates every referenced character against the current project on create and update; empty references remain valid and legacy rows default to an empty array.
 - The Plot, World, and Timeline forms allow selecting multiple characters from the active novel, and list views display the linked character names.
 - Editing these records preserves the current links unless the user changes the selected character list.
+- Deleting a character removes its ID from plot, world, and timeline references in the same D1 batch as the character deletion, preventing stale links in future backups.
 - This establishes explicit character-to-canon references; automatic semantic linking from manuscript prose and cross-reference navigation remain future work.
