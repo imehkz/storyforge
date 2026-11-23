@@ -183,6 +183,7 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("profile_json: profile", APP)
 
     def test_novel_genres_are_explicitly_multi_select_and_project_scoped(self):
+        self.assertIn('class="genre-level"><label for="genreLevel0"', HTML)
         self.assertIn("data-genre-enabled", HTML)
         self.assertIn("selectedGenres", APP)
         self.assertIn('writingSettingsKey()', APP)
