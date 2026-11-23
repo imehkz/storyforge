@@ -21,9 +21,9 @@ This section supersedes earlier historical status statements below where they co
 - The Cloudflare Worker is deployed at `https://storyforge.jastsadakorn-n.workers.dev/` (active version `22501245-0305-46a4-9c80-e32a947f7cea`, 100% traffic; deployment `7daedc5c-4433-4cac-bcf0-58552b9c66de`, created 22 November 2026) with the `storyforge` D1 binding. The account, D1 database, GitHub OAuth configuration, owner allowlist, and Worker secrets have been provisioned.
 - The Worker source implements owner-only GitHub OAuth, hashed sessions, CSRF/origin validation, logout revocation, project/chapter APIs, snapshots, and project-scoped module CRUD.
 - The browser frontend is connected to authenticated Cloud APIs for projects, chapters, autosave/revisions, snapshots, local recovery/import, and project-scoped studio modules.
-- Backup format v2 includes device-local data plus Cloud projects, chapters, and all six studio module collections. Snapshot history is excluded and explicitly disclosed. Restore preflights Cloud data, preserves stable IDs, and merges rather than deleting existing Cloud data.
-- Latest verified branch: `feature/storyforge-studio-80`, commit `863164137e60bcc4251ba3de8879e7cb19fa0255`. Draft PR #1 targets `feature/character-studio`, not `main`.
-- GitHub Actions run `45116539453` passed on commit `86316413`. Checks cover JavaScript syntax/export smoke tests, D1 schema validation, and Worker security-contract checks. These are static/source and SQLite checks, not live Worker/D1 or browser end-to-end tests.
+- Backup format v4 includes device-local data plus Cloud projects, chapters, all six studio module collections, the character reference vault, and the project-scoped illustration library. Snapshot history is excluded and explicitly disclosed. Restore preflights Cloud data and image-library records, preserves stable IDs, and merges rather than deleting existing Cloud data. Snapshot history is excluded and explicitly disclosed. Restore preflights Cloud data, preserves stable IDs, and merges rather than deleting existing Cloud data.
+- Latest implementation branch: `feature/storyforge-studio-80`, code commit `79fde86e584ce0940aff739e05b2aaecfb9bf381`. The Draft PR remains open and targets `feature/character-studio`, not `main`. Draft PR #1 targets `feature/character-studio`, not `main`.
+- GitHub Actions passed on the previous export milestone. The latest illustration-library changes are being checked by the current workflow. CI checks cover JavaScript syntax/export smoke tests, D1 schema validation, and Worker security-contract checks. These are static/source and SQLite checks, not live Worker/D1 or browser end-to-end tests.
 - The deployed Worker is an earlier build; the latest branch changes have not been deployed. No merge to `main` or new deployment is authorized.
 - AI is intentionally disabled. No AI provider is selected or approved; GitHub identity OAuth is only for sign-in.
 
@@ -35,6 +35,15 @@ This section supersedes earlier historical status statements below where they co
 - Added whole-novel print-to-PDF with a table of contents and chapter page breaks; browser print is still used and the user chooses Save as PDF.
 - Added export safety checks and structural tests for project isolation and document size limits.
 - The latest GitHub Actions run passed. This does not replace browser/device or live Worker/D1 testing.
+
+## Latest implementation update — 23 November 2026 (continued)
+
+- Added a device-local Illustration Library backed by IndexedDB, separated by Project ID. It supports saving a compressed illustration, browsing the current novel's images, selecting an image to insert into the manuscript, and deleting a library entry without deleting any image already embedded in a chapter.
+- Upgraded the local IndexedDB schema from version 1 to version 2 without deleting the existing character-reference store or its records.
+- Upgraded Backup/Restore to format v4. It includes the project-scoped illustration library, validates image data and Project IDs before restore, and restores entries additively. Backup still has an overall 40 MB limit; the illustration library has a 12 MB aggregate limit and 100-image per-project limit.
+- The illustration library is stored on the current device only; it is not cloud-synced. Images embedded in manuscript chapters continue to travel with the chapter data. Cross-device library sync and a cloud asset store remain future work.
+- Added source-contract tests for project isolation, IndexedDB migration, library controls, and Backup/Restore v4. GitHub Actions passed on commit `282bca29a96051a5ebc81d06f731838264454a33`; a small follow-up disables the library-save control when image compression fails and is undergoing CI.
+- No production deployment, merge, paid service activation, or AI provider connection was performed.
 
 ## MVP acceptance criteria
 
