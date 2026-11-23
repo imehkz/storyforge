@@ -457,6 +457,10 @@ async function api(request, env, url) {
       if (collection === "relationships") await validateRelationshipEndpoints(values.source_character_id, values.target_character_id);
       if (values.character_ids_json !== undefined) values.character_ids_json = await validateCharacterReferences(values.character_ids_json);
       if (["plot-threads", "notes"].includes(collection) && values.chapter_ids_json !== undefined) values.chapter_ids_json = await validateChapterReferences(values.chapter_ids_json);
+      if (collection === "notes" && values.note_type === "scene") {
+        if (!["setup", "conflict", "turning_point", "climax", "resolution", "other"].includes(values.scene_type || "other")) throw new Error("INVALID_SCENE_TYPE");
+        if (!["planned", "drafting", "written", "revised"].includes(values.scene_status || "planned")) throw new Error("INVALID_SCENE_STATUS");
+      }
       const clientId = input.clientId;
       if (clientId !== undefined && (typeof clientId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientId))) {
         throw new Error("INVALID_CLIENTID");
@@ -482,6 +486,14 @@ async function api(request, env, url) {
       }
       if (["plot-threads", "notes"].includes(collection) && values.chapter_ids_json !== undefined) {
         values.chapter_ids_json = await validateChapterReferences(values.chapter_ids_json);
+      }
+      if (collection === "notes" && values.note_type === "scene") {
+        const existingScene = await env.DB.prepare("SELECT note_type, scene_type, scene_status FROM story_notes WHERE id = ? AND project_id = ?").bind(itemId, projectId).first();
+        if (!existingScene) throw new Error("NOT_FOUND");
+        const type = values.scene_type ?? existingScene.scene_type;
+        const status = values.scene_status ?? existingScene.scene_status;
+        if (!["setup", "conflict", "turning_point", "climax", "resolution", "other"].includes(type)) throw new Error("INVALID_SCENE_TYPE");
+        if (!["planned", "drafting", "written", "revised"].includes(status)) throw new Error("INVALID_SCENE_STATUS");
       }
       if (["plot-threads", "world-lore", "timeline", "notes"].includes(collection) && values.character_ids_json !== undefined) {
         const existing = await env.DB.prepare(
