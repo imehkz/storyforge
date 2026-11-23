@@ -322,3 +322,11 @@ No hosting resources or secrets have been provisioned, and no production deploym
 - Selected character appearance details (face, skin, eyes, hair, build, clothing, accessories, and other stored attributes) are added to the editable prompt.
 - Character selection is saved per project on the current device. The prompt asks the image tool to preserve each character's traits and avoid mixing designs.
 - This remains prompt preparation only; no image-generation provider or paid API is connected.
+
+
+### Distraction-free writing workspace — 23 November 2026
+
+- Added a one-tap focus mode to Manuscript Studio. It hides the global sidebar, top navigation, chapter list, and secondary writing tools while keeping the formatting toolbar, editor, word count, and save feedback available.
+- The focus-mode toggle remains inside the editor toolbar; Escape exits focus mode. The editor's existing local recovery and Cloud autosave flows remain unchanged.
+- Added a source-contract regression test for the focus toggle, keyboard exit, and retained editor controls.
+- This is a writing-comfort improvement, not a substitute for Android tablet browser QA or a real save/reload/restore test.
