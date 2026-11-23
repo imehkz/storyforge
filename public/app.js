@@ -817,6 +817,8 @@ function validateCloudBackupData(backupProjects) {
       if (!chapter || !UUID_RE.test(chapter.id || "") || chapterIds.has(chapter.id) ||
           typeof chapter.title !== "string" || chapter.title.length > 240 ||
           typeof chapter.body !== "string" || chapter.body.length > 500000 ||
+          (chapter.synopsis != null && (typeof chapter.synopsis !== "string" || chapter.synopsis.length > 3000)) ||
+          (chapter.writing_status != null && !["planned", "draft", "revised", "final"].includes(chapter.writing_status)) ||
           (chapter.sort_order != null && (!Number.isInteger(chapter.sort_order) || chapter.sort_order < 0 || chapter.sort_order > 1000000)) ||
           (chapter.word_count != null && (!Number.isInteger(chapter.word_count) || chapter.word_count < 0 || chapter.word_count > 10000000 ||
             chapter.word_count !== countWords(chapter.body)))) {
@@ -1011,6 +1013,8 @@ async function restoreCloudBackup(backupProjects) {
             clientId: chapter.id,
             title: chapter.title || "",
             body: chapter.body || "",
+            synopsis: chapter.synopsis || "",
+            writing_status: chapter.writing_status || "draft",
             sortOrder: Number.isInteger(chapter.sort_order) ? chapter.sort_order : 0,
             wordCount: Number.isInteger(chapter.word_count) ? chapter.word_count : countWords(chapter.body || ""),
             character_ids_json: chapter.character_ids_json || "[]"
@@ -1161,6 +1165,15 @@ function updateWordGoal(knownWordCount) {
   if ($("wordGoalProgress")) $("wordGoalProgress").style.width = Math.min(100, (words / goal) * 100) + "%";
 }
 
+function activeChapterDraft() {
+  return {
+    title: $("chapterTitle")?.value || "",
+    body: $("manuscriptBody")?.value || "",
+    synopsis: $("chapterSynopsis")?.value || "",
+    writing_status: $("chapterStatus")?.value || "draft",
+    character_ids_json: JSON.stringify(Array.from($("chapterCharacters")?.selectedOptions || []).map(option => option.value).filter(Boolean))
+  };
+}
 function save(changedKey = "") {
   let localStorageReady = true;
   keys.forEach(key => {
@@ -1177,9 +1190,7 @@ function save(changedKey = "") {
   renderDashboard();
   if (cloud.authenticated && cloud.ready && cloud.activeProjectId && cloud.activeChapterId &&
       ["chapterTitle", "manuscriptBody"].includes(changedKey)) {
-    storeLocalChapterDraft(cloud.activeChapterId, {
-      title: $("chapterTitle").value, body: $("manuscriptBody").value
-    }, cloud.revision);
+    storeLocalChapterDraft(cloud.activeChapterId, activeChapterDraft(), cloud.revision);
     scheduleCloudSave();
   }
 }
@@ -3443,7 +3454,7 @@ function renderChapterSelect() {
       list.innerHTML = '<p class="muted-note">ยังไม่มีบท · กด “เพิ่มบทใหม่” เพื่อเริ่มเขียน</p>';
     } else {
       list.innerHTML = cloud.chapters.map((item, index) =>
-        `<button type="button" class="chapter-list-item ${item.id === cloud.activeChapterId ? "active" : ""}" data-chapter-item="${escapeHtml(item.id)}"><span>${String(index + 1).padStart(2, "0")}</span><div><b>${escapeHtml(item.title || "บทไม่มีชื่อ")}</b><small>Revision ${Number(item.revision) || 1} · ${(Number(item.word_count) || 0).toLocaleString("th-TH")} คำ</small></div></button>`
+        `<button type="button" class="chapter-list-item ${item.id === cloud.activeChapterId ? "active" : ""}" data-chapter-item="${escapeHtml(item.id)}"><span>${String(index + 1).padStart(2, "0")}</span><div><b>${escapeHtml(item.title || "บทไม่มีชื่อ")}</b><small>${({ planned: "วางแผน", draft: "ฉบับร่าง", revised: "ปรับแก้แล้ว", final: "ฉบับสมบูรณ์" })[item.writing_status || "draft"]} · Revision ${Number(item.revision) || 1} · ${(Number(item.word_count) || 0).toLocaleString("th-TH")} คำ</small></div></button>`
       ).join("");
       list.querySelectorAll("[data-chapter-item]").forEach(button =>
         button.addEventListener("click", () => selectCloudChapter(button.dataset.chapterItem))
@@ -3486,10 +3497,14 @@ async function selectCloudChapter(chapterId) {
   cloud.chapters = cloud.chapters.map(chapter => chapter.id === fullChapter.id ? fullChapter : chapter);
   $("chapterTitle").value = fullChapter.title || "";
   $("manuscriptBody").value = fullChapter.body || "";
+  $("chapterSynopsis").value = fullChapter.synopsis || "";
+  $("chapterStatus").value = fullChapter.writing_status || "draft";
   renderChapterCharacterReferences();
   const localDraft = safeJSON(localStorage.getItem(localChapterDraftKey(item.id)) || "null", null);
   const hasRecoverableDraft = Boolean(localDraft &&
     (localDraft.title !== (fullChapter.title || "") || localDraft.body !== (fullChapter.body || "") ||
+      (localDraft.synopsis || "") !== (fullChapter.synopsis || "") ||
+      (localDraft.writing_status || "draft") !== (fullChapter.writing_status || "draft") ||
       JSON.stringify(chapterCharacterIds({ character_ids_json: localDraft.character_ids_json })) !== JSON.stringify(chapterCharacterIds(fullChapter))));
   if ($("recoverLocalDraft")) {
     $("recoverLocalDraft").hidden = !hasRecoverableDraft;
@@ -3516,12 +3531,11 @@ async function saveCloudChapter() {
   const chapterId = cloud.activeChapterId;
   const expectedRevision = cloud.revision;
   const draft = {
-    title: $("chapterTitle").value,
-    body: $("manuscriptBody").value,
-    character_ids_json: JSON.stringify(Array.from($("chapterCharacters")?.selectedOptions || []).map(option => option.value).filter(Boolean))
+    ...activeChapterDraft()
   };
   const lastSaved = cloud.chapters.find(item => item.id === chapterId);
   if (lastSaved && lastSaved.title === draft.title && lastSaved.body === draft.body &&
+      (lastSaved.synopsis || "") === draft.synopsis && (lastSaved.writing_status || "draft") === draft.writing_status &&
       JSON.stringify(chapterCharacterIds(lastSaved)) === draft.character_ids_json) return true;
   cloud.saving = true;
   cloud.savePromise = (async () => {
@@ -3533,7 +3547,7 @@ async function saveCloudChapter() {
       if (cloud.activeChapterId !== chapterId) return true;
       cloud.revision = result.chapter.revision;
       cloud.chapters = cloud.chapters.map(item => item.id === chapterId ? result.chapter : item);
-      storeLocalChapterDraft(chapterId, { title: result.chapter.title, body: result.chapter.body, character_ids_json: result.chapter.character_ids_json || "[]" }, result.chapter.revision);
+      storeLocalChapterDraft(chapterId, { title: result.chapter.title, body: result.chapter.body, synopsis: result.chapter.synopsis || "", writing_status: result.chapter.writing_status || "draft", character_ids_json: result.chapter.character_ids_json || "[]" }, result.chapter.revision);
       renderChapterCharacterReferences();
       if ($("recoverLocalDraft")) $("recoverLocalDraft").hidden = true;
       renderChapterSelect();
@@ -3557,6 +3571,7 @@ async function saveCloudChapter() {
       cloud.savePromise = null;
       if (cloud.activeChapterId === chapterId &&
           ($("chapterTitle").value !== draft.title || $("manuscriptBody").value !== draft.body ||
+          $("chapterSynopsis").value !== draft.synopsis || $("chapterStatus").value !== draft.writing_status ||
           JSON.stringify(Array.from($("chapterCharacters")?.selectedOptions || []).map(option => option.value).filter(Boolean)) !== draft.character_ids_json)) {
         scheduleCloudSave();
       }
@@ -3581,6 +3596,8 @@ async function createCloudChapter() {
       body: JSON.stringify({
         title: "บทใหม่",
         body: "",
+        synopsis: "",
+        writing_status: "planned",
         wordCount: 0,
         sortOrder: cloud.chapters.reduce((max, item) => Math.max(max, item.sort_order || 0), -1) + 1
       })
@@ -3604,6 +3621,8 @@ async function recoverLocalChapterDraft() {
     cloud.revision = latest.chapter.revision;
     $("chapterTitle").value = draft.title || "";
     $("manuscriptBody").value = draft.body || "";
+    $("chapterSynopsis").value = draft.synopsis || "";
+    $("chapterStatus").value = draft.writing_status || "draft";
     const selectedCharacterIds = new Set(Array.isArray(draft.character_ids_json) ? draft.character_ids_json : chapterCharacterIds({ character_ids_json: draft.character_ids_json }));
     Array.from($("chapterCharacters")?.options || []).forEach(option => { option.selected = selectedCharacterIds.has(option.value); });
     if ($("recoverLocalDraft")) $("recoverLocalDraft").hidden = true;
@@ -3927,6 +3946,14 @@ function setupCloudEvents() {
   $("deleteChapter")?.addEventListener("click", deleteActiveChapter);
   $("chapterSelect")?.addEventListener("change", event => selectCloudChapter(event.target.value));
   $("chapterCharacters")?.addEventListener("change", scheduleCloudSave);
+  $("chapterSynopsis")?.addEventListener("input", () => {
+    if (cloud.activeChapterId) storeLocalChapterDraft(cloud.activeChapterId, activeChapterDraft(), cloud.revision);
+    scheduleCloudSave();
+  });
+  $("chapterStatus")?.addEventListener("change", () => {
+    if (cloud.activeChapterId) storeLocalChapterDraft(cloud.activeChapterId, activeChapterDraft(), cloud.revision);
+    scheduleCloudSave();
+  });
   $("runContinuityCheck")?.addEventListener("click", runStoryContinuityCheck);
   $("chapterHistoryButton")?.addEventListener("click", showChapterHistory);
   $("chapterHistoryInline")?.addEventListener("click", showChapterHistory);
