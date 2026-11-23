@@ -48,6 +48,16 @@ assert.ok(app.includes('"newChapter", "studioContinuityShortcut"'),
 assert.ok(app.includes('"chapterHistoryInline", "studioHistoryShortcut"'),
   "history shortcut must be hidden when no chapter is active");
 
+const recoveryStart = app.indexOf("async function recoverLocalChapterDraft()");
+const recoveryEnd = app.indexOf("\nasync function moveActiveChapter", recoveryStart);
+assert.ok(recoveryStart >= 0 && recoveryEnd > recoveryStart,
+  "local chapter recovery handler must remain discoverable");
+const recoveryHandler = app.slice(recoveryStart, recoveryEnd);
+assert.match(recoveryHandler, /const chapterId = cloud\\.activeChapterId;[\\s\\S]*?await cloudApi\\([\\s\\S]*?if \\(cloud\\.activeChapterId !== chapterId\\) return;/,
+  "recovery must abort after an async fetch if the user switched chapters");
+assert.match(recoveryHandler, /latest\\.chapter\\.id !== chapterId/,
+  "recovery must verify that Cloud returned the requested chapter");
+
 assert.match(css, /@media \(min-width: 981px\) and \(max-width: 1280px\)[\s\S]*?#manuscript \.manuscript-layout\s*\{\s*grid-template-columns:\s*minmax\(150px, \.72fr\) minmax\(0, 2\.1fr\) minmax\(205px, \.96fr\)/,
   "tablet workspace must retain chapter, manuscript, and insight columns");
 assert.match(css, /@media \(min-width: 1281px\)[\s\S]*?#manuscript \.manuscript-layout\s*\{\s*grid-template-columns:\s*minmax\(190px, 220px\) minmax\(420px, 1fr\) minmax\(245px, 285px\)/,
