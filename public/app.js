@@ -519,6 +519,9 @@ async function exportEntireNovelPdf() {
     if (totalSize > 12 * 1024 * 1024) throw new Error("ต้นฉบับทั้งเล่มมีขนาดใหญ่เกินขีดจำกัดการจัดหน้า 12 MB กรุณาแบ่งส่งออกเป็นส่วน");
     const printNode = $("printManuscriptText");
     if (!printNode) throw new Error("ไม่พบพื้นที่จัดหน้า PDF");
+    const toc = '<section class="print-book-toc"><h2>สารบัญ</h2><ol>' + full.map((chapter, index) =>
+      '<li>' + escapeHtml("บทที่ " + (index + 1) + " — " + (chapter.title || "บทไม่มีชื่อ")) + '</li>'
+    ).join("") + '</ol></section>';
     const sections = full.map((chapter, index) => {
       const body = sanitizeManuscriptHtml(chapter.body || "");
       return '<section class="print-book-chapter"><h2 class="print-chapter-title">' +
@@ -526,7 +529,7 @@ async function exportEntireNovelPdf() {
         '</h2><div class="print-book-body">' + body + '</div></section>';
     }).join("");
     printNode.innerHTML = '<h1 class="print-book-title">' + escapeHtml(project.title || "ต้นฉบับนิยาย") +
-      '</h1><p class="print-book-meta">จำนวน ' + full.length + ' บท</p>' + sections;
+      '</h1><p class="print-book-meta">จำนวน ' + full.length + ' บท</p>' + toc + sections;
     document.body.classList.add("print-manuscript");
     const cleanup = () => {
       document.body.classList.remove("print-manuscript");
