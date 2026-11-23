@@ -222,15 +222,16 @@ class WorkerContractTests(unittest.TestCase):
 
     def test_plot_world_and_timeline_character_references_are_project_scoped(self):
         module_route = WORKER[WORKER.index("const moduleMatch"):WORKER.index("const chaptersMatch")]
-        self.assertGreaterEqual(module_route.count('character_ids_json: ["json_array", 8000]'), 3)
+        self.assertGreaterEqual(module_route.count('character_ids_json: ["json_array", 8000]'), 4)
         self.assertIn("const validateCharacterReferences = async (raw)", module_route)
         self.assertIn('"SELECT id FROM characters WHERE project_id = ? AND id IN (" + placeholders + ")"', module_route)
         self.assertIn("await validateCharacterReferences(values.character_ids_json)", module_route)
-        for control in ("plotCharacters", "worldCharacters", "timelineCharacters"):
+        for control in ("plotCharacters", "worldCharacters", "timelineCharacters", "notesCharacters"):
             self.assertIn(control, HTML)
             self.assertIn(control, APP)
         self.assertIn("promptCharacterReferences", APP)
         self.assertIn("characterReferenceNames", APP)
+        self.assertIn('notes: ["title", "content", "note_type", "pinned", "character_ids_json"]', APP)
 
     def test_canonical_character_references_survive_backup_and_restore(self):
         restore = APP[APP.index("async function restoreCloudBackup"):APP.index("function restoreFromFile")]
@@ -254,6 +255,7 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("json_group_array(value)", module_route)
         self.assertIn("const results = await env.DB.batch(statements)", module_route)
         self.assertIn("referencesUpdated: true", module_route)
+        self.assertIn('"story_notes"', module_route)
 
     def test_relationship_edit_can_reassign_character_endpoints(self):
         self.assertIn("characters[sourceIndex].id", APP)
