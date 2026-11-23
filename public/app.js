@@ -1991,6 +1991,121 @@ function characterProfileFromForm() {
   };
 }
 
+// ==========================================
+// CHARACTER REFERENCE VAULT — IndexedDB, isolated by project + character
+// ==========================================
+const CHARACTER_VAULT_DB = "storyforge_character_vault_v1";
+const CHARACTER_VAULT_STORE = "references";
+function openCharacterVault() {
+  return new Promise((resolve, reject) => {
+    if (!("indexedDB" in window)) return reject(new Error("อุปกรณ์นี้ไม่รองรับคลังภาพ IndexedDB"));
+    const request = indexedDB.open(CHARACTER_VAULT_DB, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(CHARACTER_VAULT_STORE)) {
+        const store = db.createObjectStore(CHARACTER_VAULT_STORE, { keyPath: "id" });
+        store.createIndex("projectCharacter", ["projectId", "characterId"], { unique: false });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error("เปิดคลังภาพไม่สำเร็จ"));
+  });
+}
+async function characterVaultRecords(projectId, characterId) {
+  const db = await openCharacterVault();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(CHARACTER_VAULT_STORE, "readonly");
+    const request = tx.objectStore(CHARACTER_VAULT_STORE).index("projectCharacter").getAll([projectId, characterId]);
+    request.onsuccess = () => { db.close(); resolve((request.result || []).sort((x,y) => x.createdAt - y.createdAt)); };
+    request.onerror = () => { db.close(); reject(request.error); };
+  });
+}
+async function saveCharacterVaultRecord(record) {
+  const db = await openCharacterVault();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(CHARACTER_VAULT_STORE, "readwrite");
+    tx.objectStore(CHARACTER_VAULT_STORE).put(record);
+    tx.oncomplete = () => { db.close(); resolve(record); };
+    tx.onerror = () => { db.close(); reject(tx.error || new Error("บันทึกภาพไม่สำเร็จ")); };
+  });
+}
+async function deleteCharacterVaultRecord(id) {
+  const db = await openCharacterVault();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(CHARACTER_VAULT_STORE, "readwrite");
+    tx.objectStore(CHARACTER_VAULT_STORE).delete(id);
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
+}
+async function renderCharacterVault() {
+  const target = $("characterReferenceGallery");
+  const projectId = cloud.activeProjectId;
+  const characterId = cloud.editingCharacterId;
+  if (!target) return;
+  if (!projectId || !characterId) {
+    target.innerHTML = '<p class="muted-note">บันทึกตัวละครก่อนเพื่อเปิดคลังภาพอ้างอิง</p>';
+    $("characterReferenceFile").disabled = true;
+    return;
+  }
+  $("characterReferenceFile").disabled = false;
+  try {
+    const records = await characterVaultRecords(projectId, characterId);
+    target.innerHTML = records.length ? records.map(record => `
+      <article class="character-reference-card" data-reference-id="${escapeHtml(record.id)}">
+        <img src="${record.dataUrl}" alt="${escapeHtml(record.label || "ภาพอ้างอิงตัวละคร")}" loading="lazy">
+        <div class="character-reference-meta"><b>${escapeHtml(record.label || "ภาพอ้างอิง")}</b><small>${escapeHtml(record.note || "ไม่มีหมายเหตุ")}</small><small>เวอร์ชัน ${record.version} · ${new Date(record.createdAt).toLocaleDateString("th-TH")}</small></div>
+        <div class="module-actions">
+          ${record.canonical ? '<span class="canonical-mark">ภาพ Canon</span>' : '<button type="button" class="outline-button compact" data-reference-canonical="' + escapeHtml(record.id) + '">ตั้งเป็น Canon</button>'}
+          <button type="button" class="outline-button compact" data-reference-delete="${escapeHtml(record.id)}">ลบ</button>
+        </div>
+      </article>`).join("") : '<p class="muted-note">ยังไม่มีภาพอ้างอิง เพิ่มภาพต้นแบบเพื่อเก็บรายละเอียดรูปลักษณ์ให้คงที่</p>';
+    target.querySelectorAll("[data-reference-canonical]").forEach(button => button.addEventListener("click", async () => {
+      const all = await characterVaultRecords(projectId, characterId);
+      await Promise.all(all.map(item => saveCharacterVaultRecord({ ...item, canonical: item.id === button.dataset.referenceCanonical })));
+      await renderCharacterVault();
+    }));
+    target.querySelectorAll("[data-reference-delete]").forEach(button => button.addEventListener("click", async () => {
+      if (!confirm("ลบภาพอ้างอิงเวอร์ชันนี้หรือไม่?")) return;
+      await deleteCharacterVaultRecord(button.dataset.referenceDelete);
+      await renderCharacterVault();
+    }));
+  } catch (error) {
+    target.innerHTML = '<p class="muted-note">เปิดคลังภาพไม่สำเร็จ: ' + escapeHtml(error.message) + '</p>';
+  }
+}
+async function addCharacterReference(file) {
+  if (!cloud.activeProjectId || !cloud.editingCharacterId) throw new Error("กรุณาบันทึกและเลือกตัวละครก่อน");
+  const current = await characterVaultRecords(cloud.activeProjectId, cloud.editingCharacterId);
+  if (current.length >= 8) throw new Error("ตัวละครหนึ่งตัวเก็บภาพอ้างอิงได้สูงสุด 8 เวอร์ชัน");
+  const dataUrl = await compressIllustration(file);
+  const version = current.reduce((max, item) => Math.max(max, Number(item.version) || 0), 0) + 1;
+  const record = {
+    id: "ref_" + crypto.randomUUID(),
+    projectId: cloud.activeProjectId,
+    characterId: cloud.editingCharacterId,
+    dataUrl,
+    label: $("characterReferenceLabel").value.trim() || ("Reference " + version),
+    note: $("characterReferenceNote").value.trim(),
+    version,
+    canonical: current.length === 0,
+    createdAt: Date.now()
+  };
+  await saveCharacterVaultRecord(record);
+  $("characterVaultStatus").textContent = "บันทึกภาพอ้างอิงเวอร์ชัน " + version + " แล้ว";
+  $("characterReferenceFile").value = "";
+  await renderCharacterVault();
+}
+function setupCharacterVault() {
+  $("characterReferenceFile")?.addEventListener("change", async event => {
+    try {
+      $("characterVaultStatus").textContent = "กำลังย่อและบันทึกภาพ...";
+      await addCharacterReference(event.target.files?.[0]);
+    } catch (error) { $("characterVaultStatus").textContent = error.message; }
+  });
+  renderCharacterVault();
+}
+
 function resetCharacterForm() {
   cloud.editingCharacterId = "";
   $("characterName").value = "";
@@ -1998,6 +2113,8 @@ function resetCharacterForm() {
   CHARACTER_PROFILE_FIELDS.forEach(id => { if ($(id)) $(id).value = ""; });
   $("addCharacter").textContent = "บันทึกตัวละคร";
   $("cancelCharacterEdit").hidden = true;
+  if ($("characterReferenceFile")) $("characterReferenceFile").disabled = true;
+  if ($("characterReferenceGallery")) $("characterReferenceGallery").innerHTML = '<p class="muted-note">บันทึกตัวละครก่อนเพื่อเปิดคลังภาพอ้างอิง</p>';
 }
 
 function startEditCharacter(item) {
@@ -2027,6 +2144,7 @@ function startEditCharacter(item) {
   $("addCharacter").textContent = "บันทึกการแก้ไข";
   $("cancelCharacterEdit").hidden = false;
   $("characterName").focus();
+  setupCharacterVault();
 }
 
 async function saveCharacter() {
@@ -2054,7 +2172,7 @@ async function saveCharacter() {
     } catch (error) { alert("แก้ไขตัวละครไม่สำเร็จ: " + error.message); }
   } else {
     const ok = await createModuleItem("characters", payload);
-    if (ok) resetCharacterForm();
+    if (ok) { resetCharacterForm(); const created = (cloud.modules.characters || []).find(item => item.name === name); if (created) startEditCharacter(created); }
   }
 }
 
@@ -3178,6 +3296,7 @@ function init() {
   updateWordGoal();
   setupCloudEvents();
   setupModuleEvents();
+  setupCharacterVault();
   setupCoverStudio();
   setupIllustrationStudio();
   refreshAuthStatus();
