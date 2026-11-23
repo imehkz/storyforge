@@ -237,6 +237,19 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("function exportManuscriptPdf()", APP)
         self.assertIn("sanitizeManuscriptHtml(editor.innerHTML)", APP)
 
+    def test_character_reference_vault_is_project_and_character_scoped(self):
+        for fragment in ('id="characterVaultPanel"', 'id="characterReferenceFile"',
+                         'id="characterReferenceGallery"', 'id="characterVaultStatus"'):
+            self.assertIn(fragment, HTML)
+        self.assertIn('const CHARACTER_VAULT_DB = "storyforge_character_vault_v1"', APP)
+        self.assertIn('index("projectCharacter")', APP)
+        self.assertIn('function addCharacterReference(file)', APP)
+        self.assertIn('current.length >= 8', APP)
+        self.assertIn('record.canonical', APP)
+        self.assertIn('setupCharacterVault();', APP)
+        self.assertIn('ไม่ซิงก์ข้ามอุปกรณ์', HTML)
+        self.assertIn('.character-reference-gallery', CSS)
+
     def test_html_ids_are_unique(self):
         parser = IdCollector()
         parser.feed(HTML)
