@@ -2394,6 +2394,7 @@ async function runStoryContinuityCheck() {
       }
       if (failures.some(message => message.startsWith("ถึงขีดจำกัด"))) break;
     }
+    if (cloud.activeProjectId !== projectId) throw new Error("โครงการที่เลือกเปลี่ยนไประหว่างตรวจ");
     const findings = analyzeStoryContinuity({
       chapters,
       characters: cloud.modules.characters || [],
@@ -3149,6 +3150,7 @@ function setupModuleEvents() {
 
 function renderChapterSelect() {
   const canManageChapters = cloud.ready && Boolean(cloud.activeProjectId);
+  if ($("continuityPanel")) $("continuityPanel").hidden = !canManageChapters;
   ["chapterSelect", "chapterSelectLabel", "newChapter"].forEach(id => {
     if ($(id)) $(id).hidden = !canManageChapters;
   });
