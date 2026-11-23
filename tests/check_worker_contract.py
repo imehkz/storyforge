@@ -143,6 +143,8 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('characterIds: Array.from($("illustrationCharacters")?.selectedOptions || []).map(option => option.value)', APP)
         self.assertIn("Selected characters from this project only:", APP)
         self.assertIn("Character consistency: preserve each selected character", APP)
+        self.assertIn("Selected characters from this project only:", APP)
+        self.assertIn("preserve the canonical appearance", APP)
         for field in ("profile.eyes", "profile.hair", "profile.clothing", "profile.accessories"):
             self.assertIn(field, APP)
 
