@@ -71,6 +71,35 @@ class D1SchemaTests(unittest.TestCase):
                 "INSERT INTO relationships(id, project_id, source_character_id, target_character_id) VALUES ('r1','p1','a','b')"
             )
 
+    def test_chapter_snapshot_retention_keeps_latest_100(self):
+        self.seed_project()
+        self.db.execute(
+            "INSERT INTO chapters(id, project_id, title) VALUES ('c1','p1','Chapter')"
+        )
+        self.db.executemany(
+            "INSERT INTO snapshots(id, project_id, resource_type, resource_id, content_json, created_at) "
+            "VALUES (?, 'p1', 'chapter', 'c1', '{}', ?)",
+            [
+                (f"s{i:03d}", f"2026-12-01T00:00:00.{i:03d}Z")
+                for i in range(105)
+            ],
+        )
+        self.db.execute(
+            "DELETE FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? "
+            "AND project_id = (SELECT project_id FROM chapters WHERE id = ?) "
+            "AND id NOT IN (SELECT id FROM snapshots WHERE resource_type = 'chapter' "
+            "AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ?) "
+            "ORDER BY created_at DESC, id DESC LIMIT 100)",
+            ("c1", "c1", "c1", "c1"),
+        )
+        rows = self.db.execute(
+            "SELECT id FROM snapshots WHERE resource_type='chapter' AND resource_id='c1' "
+            "ORDER BY created_at, id"
+        ).fetchall()
+        self.assertEqual(len(rows), 100)
+        self.assertEqual(rows[0][0], "s005")
+        self.assertEqual(rows[-1][0], "s104")
+
     def test_project_delete_cascades_to_children(self):
         self.seed_project()
         self.db.execute(
