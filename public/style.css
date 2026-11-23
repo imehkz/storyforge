@@ -1467,3 +1467,232 @@ button, input, select, textarea { accent-color: var(--gold); }
   #manuscript .manuscript-editor-surface { min-height: 58vh; padding: 22px 17px; }
   #characters .character-vault-panel { padding: 12px; }
 }
+
+
+/* STORYFORGE Figma New Look — Plot, Worldbuilding, Timeline and Notes */
+#plot .two-column,
+#world .two-column,
+#timeline .two-column,
+#notes > .two-column {
+  align-items: start;
+  gap: 16px;
+}
+#plot .form-card,
+#world .form-card,
+#timeline .form-card,
+#notes .form-card,
+#notes .scene-tracker-card,
+#projects .form-card,
+#projects .collection-card {
+  background: linear-gradient(155deg,#142238 0%,#101a2b 100%);
+  border: 1px solid rgba(197,161,91,.28);
+  border-radius: 4px;
+  box-shadow: 0 10px 26px rgba(0,0,0,.16);
+}
+#plot .form-card,
+#world .form-card,
+#timeline .form-card,
+#notes .form-card,
+#projects .form-card { padding: clamp(16px,2vw,24px); }
+#plot .collection-card,
+#world .collection-card,
+#timeline .collection-card,
+#projects .collection-card { padding: clamp(16px,2vw,22px); }
+#plot .form-card h2,
+#world .form-card h2,
+#timeline .form-card h2,
+#notes .form-card h2,
+#projects .form-card h2,
+#plot .collection-card h2,
+#world .collection-card h2,
+#timeline .collection-card h2,
+#projects .collection-card h2 {
+  color: var(--parchment);
+  font: 500 20px/1.45 var(--serif);
+  padding-bottom: 11px;
+  margin-bottom: 15px;
+  border-bottom: 1px solid rgba(197,161,91,.22);
+}
+#plot .form-card label,
+#world .form-card label,
+#timeline .form-card label,
+#notes .form-card label,
+#projects .form-card label {
+  color: #d9c9a9;
+  font-size: 13px;
+  font-weight: 600;
+}
+#plot .form-card input,
+#plot .form-card textarea,
+#plot .form-card select,
+#world .form-card input,
+#world .form-card textarea,
+#world .form-card select,
+#timeline .form-card input,
+#timeline .form-card textarea,
+#timeline .form-card select,
+#notes .form-card input,
+#notes .form-card textarea,
+#notes .form-card select,
+#projects .form-card input,
+#projects .form-card textarea,
+#projects .form-card select {
+  border-color: rgba(197,161,91,.25);
+  background: rgba(5,12,23,.52);
+  border-radius: 3px;
+}
+#plot .form-card input:focus,
+#plot .form-card textarea:focus,
+#plot .form-card select:focus,
+#world .form-card input:focus,
+#world .form-card textarea:focus,
+#world .form-card select:focus,
+#timeline .form-card input:focus,
+#timeline .form-card textarea:focus,
+#timeline .form-card select:focus,
+#notes .form-card input:focus,
+#notes .form-card textarea:focus,
+#notes .form-card select:focus,
+#projects .form-card input:focus,
+#projects .form-card textarea:focus,
+#projects .form-card select:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(197,161,91,.12);
+}
+#plot .form-card select[multiple],
+#timeline .form-card select[multiple],
+#notes .form-card select[multiple] {
+  min-height: 116px;
+  padding: 8px;
+}
+#plot .form-hint,
+#world .form-hint,
+#timeline .form-hint,
+#notes .form-hint,
+#projects .form-hint { color: #9eacbf; line-height: 1.65; }
+#plot .plot-board,
+#world .module-list,
+#timeline .timeline-view,
+#notes .module-list,
+#notes .scene-tracker-list,
+#projects .project-list { margin-top: 12px; }
+#plot .plot-board {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 12px;
+}
+#plot .module-list .module-item,
+#world .module-list .module-item,
+#timeline .module-list .module-item,
+#notes .module-list .module-item,
+#projects .project-list .module-item {
+  border: 1px solid rgba(197,161,91,.22);
+  border-radius: 4px;
+  background: rgba(6,13,24,.48);
+  padding: 13px 14px;
+}
+#plot .module-item b,
+#world .module-item b,
+#timeline .module-item b,
+#notes .module-item b,
+#projects .project-list .module-item b { color: var(--parchment); }
+#plot .module-item small,
+#world .module-item small,
+#timeline .module-item small,
+#notes .module-item small,
+#projects .project-list .module-item small { color: #9eacbf; line-height: 1.6; }
+#plot .plot-board > *,
+#timeline .timeline-view > * {
+  min-width: 0;
+}
+#timeline .timeline-view {
+  border-left: 1px solid rgba(197,161,91,.5);
+  margin-left: 10px;
+  padding-left: 18px;
+}
+#timeline .timeline-view > * {
+  position: relative;
+  margin-bottom: 14px;
+}
+#timeline .timeline-view > *:before {
+  content: "";
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: 2px solid #111c2e;
+  left: -24px;
+  top: 8px;
+  box-shadow: 0 0 0 1px rgba(197,161,91,.45);
+}
+#notes .scene-tracker-card {
+  margin-top: 18px;
+  padding: clamp(16px,2vw,24px);
+}
+#notes .scene-tracker-card .section-heading h2 {
+  color: var(--parchment);
+  font: 500 21px/1.45 var(--serif);
+}
+#notes .scene-tracker-card .section-heading p { color: #9eacbf; }
+#notes .scene-tracker-form {
+  gap: 13px;
+  padding: 15px;
+  border: 1px solid rgba(197,161,91,.2);
+  background: rgba(6,13,24,.34);
+}
+#notes .scene-tracker-form label { color: #d9c9a9; font-size: 13px; }
+#notes .scene-tracker-form input,
+#notes .scene-tracker-form select,
+#notes .scene-tracker-form textarea {
+  background: rgba(5,12,23,.55);
+  border-color: rgba(197,161,91,.25);
+}
+#notes .scene-tracker-list { display: grid; gap: 10px; }
+#projects .writing-settings {
+  border-color: rgba(197,161,91,.23);
+  background: rgba(6,13,24,.34);
+  border-radius: 3px;
+}
+#projects .writing-settings summary {
+  color: var(--parchment);
+  padding: 12px 14px;
+}
+#projects .writing-settings summary span { color: #9eacbf; }
+#projects .writing-settings-grid { padding: 12px 14px 16px; }
+#projects .genre-level {
+  border: 1px solid rgba(197,161,91,.18);
+  background: rgba(6,13,24,.32);
+  border-radius: 3px;
+  padding: 10px;
+}
+#projects .genre-level label { color: #d9c9a9; }
+#projects .project-list { display: grid; gap: 10px; }
+@media (min-width: 1100px) {
+  #plot .form-card,
+  #world .form-card,
+  #timeline .form-card { position: sticky; top: 78px; }
+  #notes > .two-column .form-card { min-width: 0; }
+}
+@media (max-width: 980px) {
+  #plot .two-column,
+  #world .two-column,
+  #timeline .two-column,
+  #notes > .two-column { grid-template-columns: minmax(0,1fr); }
+  #plot .form-card,
+  #world .form-card,
+  #timeline .form-card { position: static; }
+  #plot .plot-board { grid-template-columns: minmax(0,1fr); }
+  #notes .scene-tracker-form { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-width: 620px) {
+  #plot .form-card,
+  #world .form-card,
+  #timeline .form-card,
+  #notes .form-card,
+  #notes .scene-tracker-card,
+  #projects .form-card,
+  #projects .collection-card { padding: 14px; }
+  #notes .scene-tracker-form { padding: 11px; }
+  #timeline .timeline-view { padding-left: 15px; }
+}
