@@ -59,7 +59,7 @@ const validPlotBackup = [{
   modules: {
     characters: [], relationships: [],
     "plot-threads": [{ id: "33333333-3333-4333-8333-333333333333", title: "Main", chapter_ids_json: '["22222222-2222-4222-8222-222222222222"]' }],
-    "world-lore": [], timeline: [], notes: []
+    "world-lore": [], timeline: [], notes: [{ id: "55555555-5555-4555-8555-555555555555", title: "ฉากเปิด", note_type: "scene", scene_type: "setup", scene_status: "planned", chapter_ids_json: '["22222222-2222-4222-8222-222222222222"]' }]
   }
 }];
 assert.equal(backupValidator(validPlotBackup), true, "plot chapter references in a backup are accepted");
@@ -86,7 +86,7 @@ const makeRestore = (projectCreated, calls, failSecondChapter = true) => new Fun
       if (failSecondChapter && chapterCreates === 2) throw new Error("simulated chapter failure");
       return { created: true };
     }
-    if (path.includes("/plot-threads") && options.method === "POST") return { created: true };
+    if ((path.includes("/plot-threads") || path.includes("/notes")) && options.method === "POST") return { created: true };
     return { ok: true };
   },
   () => 0
@@ -107,6 +107,9 @@ const lastChapterCreate = successCalls.reduce((last, call, index) =>
 const plotLinkPatch = successCalls.findIndex(call =>
   call.path.endsWith("/plot-threads/55555555-5555-4555-8555-555555555555") && call.method === "PATCH");
 assert.ok(plotLinkPatch > lastChapterCreate, "plot-to-chapter links are restored only after chapters exist");
+const sceneLinkPatch = successCalls.findIndex(call =>
+  call.path.endsWith("/notes/55555555-5555-4555-8555-555555555555") && call.method === "PATCH");
+assert.ok(sceneLinkPatch > lastChapterCreate, "scene-to-chapter links are restored only after chapters exist");
 console.log("Cloud restore plot-link ordering tests passed.");
 const newProjectCalls = [];
 await assert.rejects(() => makeRestore(true, newProjectCalls)([restoreProject]), /simulated chapter failure/);
