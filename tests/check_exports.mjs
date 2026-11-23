@@ -94,6 +94,8 @@ assert.ok(epubFiles.get("OEBPS/chapter.xhtml").includes("บททดสอบ &
 
 assert.ok(source.includes("function exportManuscriptPdf"));
 assert.ok(source.includes("async function exportEntireNovelTxt()"), "whole-novel TXT export is implemented");
+assert.ok(source.includes("async function exportEntireNovelDocx()"), "whole-novel DOCX export is implemented");
+assert.ok(source.includes("function exportManuscriptDocx(chapters = null, projectTitle = null)"), "DOCX export supports a multi-chapter document");
 assert.ok(source.includes("async function exportEntireNovelPdf()"), "whole-novel print-to-PDF flow is implemented");
 assert.ok(source.includes("totalSize > 12 * 1024 * 1024"), "whole-novel PDF export has a memory safety cap");
 assert.ok(source.includes("print-book-toc"), "whole-novel PDF includes a table of contents");
