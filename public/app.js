@@ -3616,7 +3616,16 @@ async function saveCloudChapter() {
       if (cloud.activeChapterId !== chapterId) return true;
       cloud.revision = result.chapter.revision;
       cloud.chapters = cloud.chapters.map(item => item.id === chapterId ? result.chapter : item);
-      storeLocalChapterDraft(chapterId, { title: result.chapter.title, body: result.chapter.body, synopsis: result.chapter.synopsis || "", writing_status: result.chapter.writing_status || "draft", character_ids_json: result.chapter.character_ids_json || "[]" }, result.chapter.revision);
+      // A user can keep typing while this PATCH is in flight. Preserve that
+      // newer local recovery draft instead of replacing it with the older payload.
+      const currentDraft = activeChapterDraft();
+      const saveStillCurrent = currentDraft.title === draft.title &&
+        currentDraft.body === draft.body && currentDraft.synopsis === draft.synopsis &&
+        currentDraft.writing_status === draft.writing_status &&
+        currentDraft.character_ids_json === draft.character_ids_json;
+      if (saveStillCurrent) {
+        storeLocalChapterDraft(chapterId, { title: result.chapter.title, body: result.chapter.body, synopsis: result.chapter.synopsis || "", writing_status: result.chapter.writing_status || "draft", character_ids_json: result.chapter.character_ids_json || "[]" }, result.chapter.revision);
+      }
       renderChapterCharacterReferences();
       if ($("recoverLocalDraft")) $("recoverLocalDraft").hidden = true;
       renderChapterSelect();
