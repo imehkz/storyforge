@@ -42,4 +42,9 @@ for (const selector of [
 assert.ok(app.includes("panel.hidden = false"), "continuity shortcut must reveal its panel");
 assert.ok(app.includes('$("chapterHistoryButton")?.click()'),
   "history shortcut must activate the existing chapter history control");
+
+assert.ok(app.includes('"newChapter", "studioContinuityShortcut"'),
+  "continuity shortcut must be hidden when no Cloud project is active");
+assert.ok(app.includes('"chapterHistoryInline", "studioHistoryShortcut"'),
+  "history shortcut must be hidden when no chapter is active");
 console.log("Novel Studio contract tests passed: shortcut targets, editor controls, hidden storage field, and save handlers are wired.");
