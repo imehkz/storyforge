@@ -61,6 +61,21 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("projects.owner_id = ?", WORKER)
         self.assertIn("project_id = ?", WORKER)
 
+    def test_project_publication_metadata_is_owner_scoped_and_exported(self):
+        project_route = WORKER[WORKER.index('if (path === "/api/projects"'):WORKER.index("const moduleMatch")]
+        self.assertIn("pen_name", project_route)
+        self.assertIn("copyright_text", project_route)
+        self.assertIn("foreword", project_route)
+        self.assertIn("author_bio", project_route)
+        self.assertIn('id="penName"', HTML)
+        self.assertIn('id="copyrightText"', HTML)
+        self.assertIn('id="foreword"', HTML)
+        self.assertIn('id="authorBio"', HTML)
+        self.assertIn("publicationFrontMatter", APP)
+        self.assertIn("publicationBackMatter", APP)
+        self.assertIn("dc:rights", APP)
+
+
     def test_local_import_uses_stable_client_ids(self):
         self.assertIn("INSERT OR IGNORE INTO projects", WORKER)
         self.assertIn("INSERT OR IGNORE INTO chapters", WORKER)
