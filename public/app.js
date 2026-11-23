@@ -3037,7 +3037,7 @@ function setupManuscriptEditor() {
     set(value) {
       descriptor.set.call(field, value ?? "");
       const stored = String(value || "");
-      const looksLikeMarkup = /<(p|div|br|strong|b|em|i|u|h[1-3]|blockquote|ul|ol|li|span|figure|figcaption|img)\\b/i.test(stored);
+      const looksLikeMarkup = /<(p|div|br|strong|b|em|i|u|h[1-3]|blockquote|ul|ol|li|span|figure|figcaption|img)\b/i.test(stored);
       if (looksLikeMarkup) editor.innerHTML = sanitizeManuscriptHtml(stored);
       else editor.innerHTML = stored
         ? stored.split(/\r?\n/).map(line => "<p>" + escapeHtml(line) + "</p>").join("")
