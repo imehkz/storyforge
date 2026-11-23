@@ -12,6 +12,7 @@ Scope: validate the private beta only after an isolated staging Worker and D1 da
 - [x] Apply migrations 0001–0012 to the new staging D1 database in order and verify key tables/columns plus foreign-key integrity. Do not reuse the production D1 database for staging; see docs/STAGING_VERIFICATION_2026-11-23.md.
 - [x] Serve the frontend index.html, app.js, and style.css from the staging Worker using an isolated static fallback.
 - [x] GitHub Actions live HTTP smoke test: staging D1 health returns 200, unauthenticated project API returns 401, and the homepage/JS/CSS assets return 200.
+- [x] OAuth readiness and fail-closed checks: `authConfigured` is boolean; unconfigured `/api/session` and `/auth/login` return `503 AUTH_NOT_CONFIGURED`; configured behavior is checked for correct GitHub redirect and callback URL.
 - [ ] Confirm staging can be destroyed/recreated without affecting production.
 - [ ] Confirm no OpenAI API key or image provider is configured unless billing and privacy have been explicitly approved.
 
@@ -60,7 +61,7 @@ Scope: validate the private beta only after an isolated staging Worker and D1 da
 
 The following remain release blockers until evidenced as passed:
 
-1. The isolated staging D1 and Worker now exist; migrations 0001–0012, schema checks, database-level project-isolation checks, and basic live HTTP smoke tests passed. The branch frontend files are embedded in the staging Worker. The staging site is not yet authenticated: separate OAuth/secrets, authenticated API tests, and browser/device validation remain outstanding.
+1. The isolated staging D1 and Worker now exist; migrations 0001–0012, schema checks, database-level project-isolation checks, and basic live HTTP smoke tests passed. The branch frontend files are embedded in the staging Worker. The staging site is not yet authenticated: separate OAuth/secrets and successful authenticated-owner/non-owner API tests, plus browser/device validation, remain outstanding.
 2. The existing production `storyforge` D1 database still has only migrations 0001–0003 applied; branch migrations 0004–0012 remain unapplied there. The active production Worker still runs an earlier build. Staging has its own D1 and API-only Worker. Do not apply branch migrations or deploy this branch to the production Worker.
 3. No real Android tablet/browser E2E run has been performed.
 4. Independent encrypted off-site D1 backup and restore drill is not evidenced.
