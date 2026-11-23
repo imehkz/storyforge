@@ -10,8 +10,8 @@ Production deployment: **not authorized**
 - Thai is the primary UI language. Preserve the Dark Fantasy Literature / Ancient Royal Library visual direction.
 - Brand colors: Midnight Navy `#101827`, Antique Gold `#C5A15B`, Old Parchment `#E8D8B8`, Dark Mahogany `#382D29`.
 - Never expose secrets in browser code, local storage, repository files, or chat.
-- Do not use OpenAI API keys or silently fall back to a paid provider.
-- Do not integrate GitHub Copilot. Keep AI disabled until the owner explicitly approves a provider, its privacy terms, and any cost.
+- Never expose OpenAI API keys in browser code, local storage, repository files, or chat.
+- OpenAI (ChatGPT) is the selected intended provider for the single-owner workflow; GitHub Copilot is excluded. Keep API calls disabled until API billing, privacy/retention terms, and server-side secret configuration are explicitly approved.
 - No paid service, billing activation, production deployment, or merge to `main` without explicit approval.
 
 ## Verified current state — 23 November 2026
@@ -25,7 +25,14 @@ This section supersedes earlier historical status statements below where they co
 - Latest implementation branch: `feature/storyforge-studio-80`, code commit `a3672c5399c4ef4d42e404d3c1c9069563d22c20`. The Draft PR remains open and targets `feature/character-studio`, not `main`. Draft PR #1 targets `feature/character-studio`, not `main`.
 - GitHub Actions passed on the previous export milestone. The latest illustration-library changes are being checked by the current workflow. CI checks cover JavaScript syntax/export smoke tests, D1 schema validation, and Worker security-contract checks. These are static/source and SQLite checks, not live Worker/D1 or browser end-to-end tests.
 - The deployed Worker is an earlier build; the latest branch changes have not been deployed. No merge to `main` or new deployment is authorized.
-- AI is intentionally disabled. No AI provider is selected or approved; GitHub identity OAuth is only for sign-in.
+- OpenAI (ChatGPT) is selected as the intended AI provider. The assistant UI now identifies this choice and supports copying the active novel context for manual use in ChatGPT. Direct API integration remains disabled: ChatGPT Plus does not include API usage, and no API billing or key configuration has been approved. GitHub identity OAuth is only for sign-in.
+
+## Latest AI provider update — 23 November 2026
+
+- Set OpenAI (ChatGPT) as the intended StoryForge AI provider and removed Copilot as a possible integration path.
+- Updated the assistant UI to explain that the API is not connected, and that the user can copy the active novel context into ChatGPT manually.
+- Kept the AI run action disabled. No API key, external request, billing, or paid service was configured or activated.
+- Next gated step: after explicit owner approval of API spending and privacy/retention terms, configure an OpenAI API key as a Cloudflare Worker secret and implement authenticated, project-scoped requests with prompt preview and explicit confirmation.
 
 ## Latest implementation update — 23 November 2026
 
@@ -104,7 +111,7 @@ Create a novel → add a chapter → write text → save → sign out/in → res
 - Live Worker/D1 integration and browser/device end-to-end tests remain outstanding, including Android tablet validation.
 - Independent encrypted off-site D1 backup and a full restore drill remain outstanding.
 - Character Reference Vault is device-local IndexedDB; Cloud image storage and cross-device synchronization are not implemented.
-- AI text/image generation remains disabled. GitHub Copilot is explicitly excluded; an alternative provider requires owner approval and a cost/privacy review.
+- AI text/image generation remains disabled. OpenAI (ChatGPT) is the intended provider; direct API use still requires explicit cost/privacy approval and server-side secret configuration. GitHub Copilot is explicitly excluded.
 - Whole-novel TXT, DOCX, EPUB, and print-to-PDF export controls have now been added on the test branch. They still require real-browser verification with multi-chapter Thai text and embedded images.
 - Book-cover artwork generation, version history, approved cover assets, and full illustration library remain incomplete.
 
