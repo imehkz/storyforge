@@ -2242,9 +2242,182 @@ function chapterCharacterIds(chapter = null) {
   } catch { return []; }
 }
 
+function analyzeStoryContinuity({ chapters = [], characters = [], timeline = [], plotThreads = [] } = {}) {
+  const findings = [];
+  const add = (kind, title, detail, chapterId = "") => findings.push({ kind, title, detail, chapterId });
+  const normalize = value => String(value || "").normalize("NFC").toLocaleLowerCase("th-TH").replace(/[\\s\\u00a0]+/g, "");
+  const characterById = new Map(characters.map(character => [character.id, character]));
+  const chapterCanonIds = new Set();
+  const normalizedTitles = new Map();
+
+  for (const chapter of chapters) {
+    const title = String(chapter.title || "").trim();
+    const titleKey = normalize(title);
+    if (!title) add("review", "บทไม่มีชื่อ", "เพิ่มชื่อบทเพื่อให้ค้นหาและอ้างอิงได้ง่าย", chapter.id);
+    else if (normalizedTitles.has(titleKey)) {
+      add("review", "ชื่อบทซ้ำ", "ชื่อบทนี้ซ้ำกับ “" + normalizedTitles.get(titleKey) + "”", chapter.id);
+    } else normalizedTitles.set(titleKey, title);
+
+    const body = normalize(chapter.text || chapter.body || "");
+    if (!body) add("review", "บทไม่มีเนื้อหา", "บทนี้ยังไม่มีข้อความให้ตรวจความต่อเนื่อง", chapter.id);
+    let ids = [];
+    try { ids = JSON.parse(chapter.character_ids_json || "[]"); } catch {}
+    if (!Array.isArray(ids)) ids = [];
+    ids.forEach(id => chapterCanonIds.add(id));
+
+    for (const id of ids) {
+      const character = characterById.get(id);
+      if (!character) continue;
+      let profile = {};
+      try { profile = JSON.parse(character.profile_json || "{}"); } catch {}
+      const names = [character.name, profile.nickname].filter(name => String(name || "").trim().length >= 2);
+      if (body && names.length && !names.some(name => body.includes(normalize(name)))) {
+        add("hint", "ตรวจการปรากฏของตัวละคร", "Canon ระบุ “" + character.name + "” แต่ไม่พบชื่อหรือชื่อเล่นในข้อความบทนี้ อาจใช้สรรพนามหรือชื่อเรียกอื่นอยู่แล้ว", chapter.id);
+      }
+    }
+
+    for (const character of characters) {
+      const name = String(character.name || "").trim();
+      if (name.length < 2 || !body.includes(normalize(name)) || ids.includes(character.id)) continue;
+      add("hint", "ตรวจ Canon ตัวละคร", "พบชื่อ “" + name + "” ในเนื้อหา แต่ยังไม่ได้เชื่อมตัวละครนี้กับ Canon ของบท", chapter.id);
+    }
+  }
+
+  const orderedTimeline = [...timeline].sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0));
+  const parseDate = value => {
+    const raw = String(value || "").trim();
+    let match = raw.match(/^(\\d{4})[-/.](\\d{1,2})[-/.](\\d{1,2})$/);
+    let year, month, day;
+    if (match) [, year, month, day] = match.map(Number);
+    else {
+      match = raw.match(/^(\\d{1,2})[-/.](\\d{1,2})[-/.](\\d{4})$/);
+      if (!match) return null;
+      [, day, month, year] = match.map(Number);
+    }
+    if (year > 2400) year -= 543;
+    if (year < 1 || month < 1 || month > 12 || day < 1 || day > 31) return null;
+    const stamp = Date.UTC(year, month - 1, day);
+    const date = new Date(stamp);
+    return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day ? stamp : null;
+  };
+  let previous = null;
+  for (const event of orderedTimeline) {
+    const date = parseDate(event.story_time);
+    if (date === null) continue;
+    if (previous && date < previous.date) {
+      add("review", "ลำดับ Timeline อาจไม่ตรงวันที่", "“" + event.title + "” ระบุวันที่ " + event.story_time + " แต่เรียงอยู่หลังเหตุการณ์ “" + previous.title + "” (" + previous.storyTime + ")");
+    }
+    previous = { date, title: event.title, storyTime: event.story_time };
+  }
+
+  for (const plot of plotThreads) {
+    let ids = [];
+    try { ids = JSON.parse(plot.character_ids_json || "[]"); } catch {}
+    if (!Array.isArray(ids) || !ids.length) continue;
+    const linked = ids.filter(id => characterById.has(id));
+    if (linked.length && !linked.some(id => chapterCanonIds.has(id)) && plot.status !== "completed") {
+      add("hint", "เส้นเรื่องยังไม่เชื่อมกับบท", "พล็อต “" + plot.title + "” มีตัวละครอ้างอิง แต่ยังไม่พบตัวละครเหล่านี้ใน Canon ของบทใด");
+    }
+  }
+  return findings;
+}
+
+function renderContinuityResults(findings, meta = {}) {
+  const target = $("continuityResults");
+  const hint = $("continuityHint");
+  if (!target || !hint) return;
+  const reviewCount = findings.filter(item => item.kind === "review").length;
+  const hintCount = findings.length - reviewCount;
+  hint.textContent = (meta.scanned || 0).toLocaleString("th-TH") + " จาก " + (meta.total || 0).toLocaleString("th-TH") +
+    " บท · พบรายการที่ควรตรวจ " + reviewCount.toLocaleString("th-TH") + " รายการ และข้อเสนอแนะ " + hintCount.toLocaleString("th-TH") + " รายการ" +
+    (meta.partial ? " · ตรวจไม่ครบทุกบท: " + meta.partial : "") +
+    " · ผลตรวจเป็นตัวช่วยสังเกต ไม่ใช่การยืนยันว่ามีข้อผิดพลาด";
+  if (!findings.length) {
+    target.innerHTML = '<p class="continuity-empty">ไม่พบสัญญาณที่ต้องตรวจจากกฎเบื้องต้นในข้อมูลที่สแกน</p>';
+    return;
+  }
+  target.innerHTML = findings.slice(0, 80).map(item =>
+    '<article class="continuity-item ' + (item.kind === "review" ? "needs-review" : "suggestion") + '">' +
+      '<span>' + (item.kind === "review" ? "ควรตรวจทาน" : "ข้อเสนอแนะ") + '</span>' +
+      '<div><b>' + escapeHtml(item.title) + '</b><p>' + escapeHtml(item.detail) + '</p></div>' +
+      (item.chapterId ? '<button type="button" class="outline-button compact" data-continuity-chapter="' + escapeHtml(item.chapterId) + '">เปิดบท</button>' : '') +
+    '</article>'
+  ).join("") + (findings.length > 80 ? '<p class="form-hint">แสดง 80 รายการแรกจากทั้งหมด ' + findings.length + ' รายการ</p>' : "");
+  target.querySelectorAll("[data-continuity-chapter]").forEach(button => button.addEventListener("click", () => selectCloudChapter(button.dataset.continuityChapter)));
+}
+
+async function runStoryContinuityCheck() {
+  const button = $("runContinuityCheck");
+  const hint = $("continuityHint");
+  if (!cloud.ready || !cloud.activeProjectId) {
+    if (hint) hint.textContent = "กรุณาเข้าสู่ระบบและเลือกโครงการ Cloud ก่อนตรวจความต่อเนื่อง";
+    return;
+  }
+  const projectId = cloud.activeProjectId;
+  button.disabled = true;
+  button.textContent = "กำลังตรวจ...";
+  $("continuityResults").innerHTML = "";
+  if (cloud.activeChapterId) {
+    const saved = await saveCloudChapter();
+    if (!saved) {
+      button.disabled = false;
+      button.textContent = "ตรวจความต่อเนื่อง";
+      hint.textContent = "ยังตรวจไม่ได้ เพราะบทปัจจุบันบันทึกไม่สำเร็จ กรุณาตรวจสถานะการบันทึกก่อน";
+      return;
+    }
+  }
+  try {
+    const candidates = cloud.chapters.slice(0, 40);
+    const chapters = [];
+    const failures = [];
+    let textBudget = 0;
+    for (let offset = 0; offset < candidates.length; offset += 4) {
+      if (cloud.activeProjectId !== projectId) throw new Error("โครงการที่เลือกเปลี่ยนไประหว่างตรวจ");
+      const batch = await Promise.all(candidates.slice(offset, offset + 4).map(async item => {
+        try {
+          const result = await cloudApi("/api/chapters/" + encodeURIComponent(item.id));
+          return result.chapter;
+        } catch (error) {
+          failures.push((item.title || "บทไม่มีชื่อ") + ": " + error.message);
+          return null;
+        }
+      }));
+      for (const chapter of batch.filter(Boolean)) {
+        const raw = String(chapter.body || "");
+        const text = raw.replace(/<[^>]*>/g, " ").replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&");
+        if (textBudget + text.length > 1000000) {
+          failures.push("ถึงขีดจำกัดข้อความ 1,000,000 ตัวอักษร");
+          break;
+        }
+        textBudget += text.length;
+        chapters.push({ ...chapter, text });
+      }
+      if (failures.some(message => message.startsWith("ถึงขีดจำกัด"))) break;
+    }
+    const findings = analyzeStoryContinuity({
+      chapters,
+      characters: cloud.modules.characters || [],
+      timeline: cloud.modules.timeline || [],
+      plotThreads: cloud.modules["plot-threads"] || []
+    });
+    const partial = [
+      candidates.length < cloud.chapters.length ? "จำกัดการตรวจไว้ 40 บท" : "",
+      failures.length ? failures.slice(0, 3).join(" · ") : ""
+    ].filter(Boolean).join(" · ");
+    renderContinuityResults(findings, { scanned: chapters.length, total: cloud.chapters.length, partial });
+  } catch (error) {
+    hint.textContent = "ตรวจความต่อเนื่องไม่สำเร็จ: " + error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = "ตรวจอีกครั้ง";
+  }
+}
+
 function renderChapterCharacterReferences() {
   const select = $("chapterCharacters");
   const panel = $("chapterCanonPanel");
+  const continuityPanel = $("continuityPanel");
+  if (continuityPanel) continuityPanel.hidden = !cloud.ready || !cloud.activeProjectId;
   if (!select || !panel) return;
   const enabled = cloud.ready && Boolean(cloud.activeProjectId && cloud.activeChapterId);
   panel.hidden = !enabled;
@@ -3483,6 +3656,7 @@ function setupCloudEvents() {
   $("deleteChapter")?.addEventListener("click", deleteActiveChapter);
   $("chapterSelect")?.addEventListener("change", event => selectCloudChapter(event.target.value));
   $("chapterCharacters")?.addEventListener("change", scheduleCloudSave);
+  $("runContinuityCheck")?.addEventListener("click", runStoryContinuityCheck);
   $("chapterHistoryButton")?.addEventListener("click", showChapterHistory);
   $("chapterHistoryInline")?.addEventListener("click", showChapterHistory);
   $("replaceAll")?.addEventListener("click", () => {
