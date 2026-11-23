@@ -876,7 +876,20 @@ function validateCloudBackupData(backupProjects) {
           checkString("title", 200, true); checkString("description", 10000); checkString("story_time", 120); checkOrder();
         } else if (collection === "notes") {
           checkString("title", 200); checkString("content", 30000); checkString("note_type", 60);
+          checkString("scene_type", 40); checkString("scene_status", 40);
           if (item.pinned != null && ![true, false, 0, 1].includes(item.pinned)) throw new Error("สถานะปักหมุดในบันทึกไม่ถูกต้อง");
+          let sceneChapterRefs;
+          try { sceneChapterRefs = item.chapter_ids_json == null ? [] : JSON.parse(typeof item.chapter_ids_json === "string" ? item.chapter_ids_json : JSON.stringify(item.chapter_ids_json)); }
+          catch { throw new Error("ฉากมีรายการบทที่อ้างอิงไม่ถูกต้อง"); }
+          if (!Array.isArray(sceneChapterRefs) || sceneChapterRefs.length > 100 ||
+              sceneChapterRefs.some(id => typeof id !== "string" || !UUID_RE.test(id) || !chapterIds.has(id)) ||
+              new Set(sceneChapterRefs).size !== sceneChapterRefs.length) {
+            throw new Error("ฉากอ้างถึงบทที่ไม่มีอยู่ในโครงการเดียวกัน");
+          }
+          if (item.note_type === "scene" && (!["setup", "conflict", "turning_point", "climax", "resolution", "other"].includes(item.scene_type || "other") ||
+              !["planned", "drafting", "written", "revised"].includes(item.scene_status || "planned"))) {
+            throw new Error("ประเภทหรือสถานะฉากใน Backup ไม่ถูกต้อง");
+          }
         }
       }
     }
@@ -924,6 +937,7 @@ async function restoreCloudBackup(backupProjects) {
   try {
     for (const entry of backupProjects) {
       const createdPlotChapterLinks = [];
+      const createdSceneChapterLinks = [];
       if (!entry?.project?.id || !Array.isArray(entry.chapters) || !entry.modules || typeof entry.modules !== "object") {
         throw new Error("โครงสร้างข้อมูลโครงการใน Backup ไม่ถูกต้อง");
       }
@@ -952,9 +966,10 @@ async function restoreCloudBackup(backupProjects) {
             "plot-threads": ["title", "summary", "status", "sort_order", "character_ids_json"],
             "world-lore": ["category", "title", "content", "sort_order", "character_ids_json"],
             timeline: ["title", "description", "story_time", "sort_order", "character_ids_json"],
-            notes: ["title", "content", "note_type", "pinned", "character_ids_json"]
+            notes: ["title", "content", "note_type", "pinned", "character_ids_json", "chapter_ids_json", "scene_type", "scene_status"]
           }[collection];
           for (const field of allowed) {
+            if (field === "chapter_ids_json" && collection === "notes" && item.note_type === "scene") continue;
             if (item[field] !== undefined) payload[field] = field === "pinned" ? Boolean(item[field]) : item[field];
           }
           const result = await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/" + collection, {
@@ -969,6 +984,10 @@ async function restoreCloudBackup(backupProjects) {
               createdPlotChapterLinks.push({ id: item.id, chapterIds: item.chapter_ids_json });
             } else if (collection === "plot-threads" && typeof item.chapter_ids_json === "string") {
               createdPlotChapterLinks.push({ id: item.id, chapterIds: JSON.parse(item.chapter_ids_json) });
+            }
+            if (collection === "notes" && item.note_type === "scene") {
+              const chapterIds = Array.isArray(item.chapter_ids_json) ? item.chapter_ids_json : safeJSON(item.chapter_ids_json || "[]", []);
+              if (Array.isArray(chapterIds) && chapterIds.length) createdSceneChapterLinks.push({ id: item.id, chapterIds });
             }
           }
         }
@@ -992,6 +1011,12 @@ async function restoreCloudBackup(backupProjects) {
         await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/plot-threads/" + encodeURIComponent(plot.id), {
           method: "PATCH",
           body: JSON.stringify({ chapter_ids_json: plot.chapterIds })
+        });
+      }
+      for (const scene of createdSceneChapterLinks) {
+        await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/notes/" + encodeURIComponent(scene.id), {
+          method: "PATCH",
+          body: JSON.stringify({ chapter_ids_json: scene.chapterIds })
         });
       }
     }
