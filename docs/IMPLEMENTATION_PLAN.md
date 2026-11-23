@@ -384,3 +384,11 @@ See [ROADMAP_NEXT_20.md](./ROADMAP_NEXT_20.md) for the ordered acceptance checkl
 - The Continuity Checker now flags unlinked planned scenes, dangling scene references, and scenes marked written when all linked chapters are empty.
 - Added project-scoped chapter links to World Lore and Timeline with migration 0009. Their links are validated on create/update, shown in lists, removed when a chapter is deleted, and restored only after chapters exist.
 - These are test-branch code changes only. Migrations 0008 and 0009 have not been applied to the live D1 database, and no deployment has occurred. Browser/tablet and live D1 integration checks remain outstanding.
+
+
+### Chapter planning metadata and outline — 23 November 2026
+
+- Added per-chapter synopsis and writing status (planned, draft, revised, final) to the D1 chapter model through migration 0010.
+- Manuscript Studio now edits and autosaves the synopsis/status alongside the chapter, includes them in local recovery drafts, and shows status, word count, synopsis preview, and linked-scene count in the chapter outline.
+- Chapter revision snapshots now include synopsis and writing status; restoring a revision restores both fields. Cloud Backup validation and restore preserve these fields while accepting older archives that do not contain them.
+- No migration was applied to live D1 and no deployment occurred. Browser/tablet and live D1 runtime checks remain outstanding.
