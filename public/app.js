@@ -2394,9 +2394,9 @@ function characterReferenceNames(item) {
 function promptCharacterReferences(currentIds) {
   const characters = cloud.modules.characters || [];
   if (!characters.length) return [];
-  const menu = characters.map((character, index) => (index + 1) + ". " + character.name).join("\\n");
+  const menu = characters.map((character, index) => (index + 1) + ". " + character.name).join("\n");
   const current = (currentIds || []).map(id => characters.findIndex(character => character.id === id) + 1).filter(n => n > 0).join(", ");
-  const answer = prompt("เลือกตัวละครที่เกี่ยวข้อง ใส่หมายเลขคั่นด้วยจุลภาค (เว้นว่าง = ไม่เลือก):\\n" + menu, current);
+  const answer = prompt("เลือกตัวละครที่เกี่ยวข้อง ใส่หมายเลขคั่นด้วยจุลภาค (เว้นว่าง = ไม่เลือก):\n" + menu, current);
   if (answer === null) return null;
   if (!answer.trim()) return [];
   const indexes = answer.split(",").map(value => Number(value.trim()) - 1);
