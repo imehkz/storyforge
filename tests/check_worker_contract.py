@@ -68,6 +68,17 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("clientId", APP)
         self.assertIn("migrationMapKey", APP)
 
+    def test_chapter_snapshot_history_is_bounded(self):
+        self.assertGreaterEqual(
+            WORKER.count("ORDER BY created_at DESC, id DESC LIMIT 100"),
+            2,
+            "Both chapter edits and restores must prune history to the latest 100 snapshots",
+        )
+        self.assertGreaterEqual(
+            WORKER.count("DELETE FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ?"),
+            2,
+        )
+
     def test_chapter_history_and_revision_are_atomic(self):
         self.assertGreaterEqual(WORKER.count("env.DB.batch(["), 2)
         self.assertIn("expectedRevision", WORKER)
