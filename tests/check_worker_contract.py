@@ -74,6 +74,12 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("/move", WORKER)
         self.assertIn("sort_order", WORKER)
 
+    def test_thai_word_count_uses_consistent_unicode_segmentation(self):
+        self.assertIn('new Intl.Segmenter("th", { granularity: "word" })', WORKER)
+        self.assertIn('new Intl.Segmenter("th", { granularity: "word" })', APP)
+        self.assertIn("filter(part => part.isWordLike).length", WORKER)
+        self.assertIn("filter(part => part.isWordLike).length", APP)
+
     def test_frontend_has_cloud_project_and_editor_integration(self):
         for fragment in (
             "/api/projects", "/api/chapters/", "scheduleCloudSave",
