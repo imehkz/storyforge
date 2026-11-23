@@ -19,13 +19,13 @@ const findings = analyze({
   scenes: [
     { title: "ฉากที่ยังไม่วางลงบท", note_type: "scene", scene_status: "planned", chapter_ids_json: "[]" },
     { title: "ฉากที่อ้างบทหาย", note_type: "scene", scene_status: "drafting", chapter_ids_json: '["missing-scene-chapter"]' },
-    { title: "ฉากเขียนแล้วแต่บทว่าง", note_type: "scene", scene_status: "written", chapter_ids_json: '["ch4"]' }
+    { title: "ฉากเขียนแล้วแต่บทว่าง", note_type: "scene", scene_status: "written", chapter_ids_json: '["ch3"]' }
   ],
   characters,
   chapters: [
     { id: "ch1", title: "บทแรก", body: "เจ้าหญิงเงาเดินเข้าปราสาท", character_ids_json: '["c1"]' },
     { id: "ch2", title: "บทแรก", body: "Tao พบกับ Mira ที่ประตู", character_ids_json: "[]" },
-    { id: "ch3", title: "บทสาม", body: "ฝนตกหนัก", character_ids_json: '["c1"]' },
+    { id: "ch3", title: "บทสาม", body: "", character_ids_json: '["c1"]' },
     { id: "ch4", title: "บทสี่", body: "เจ้าหญิงเงาปรากฏตัว", character_ids_json: "[]" }
   ],
   timeline: [
