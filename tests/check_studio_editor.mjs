@@ -53,9 +53,12 @@ const recoveryEnd = app.indexOf("\nasync function moveActiveChapter", recoverySt
 assert.ok(recoveryStart >= 0 && recoveryEnd > recoveryStart,
   "local chapter recovery handler must remain discoverable");
 const recoveryHandler = app.slice(recoveryStart, recoveryEnd);
-assert.match(recoveryHandler, /const chapterId = cloud\\.activeChapterId;[\\s\\S]*?await cloudApi\\([\\s\\S]*?if \\(cloud\\.activeChapterId !== chapterId\\) return;/,
+const recoveryFetch = recoveryHandler.indexOf("await cloudApi(");
+const recoveryGuard = recoveryHandler.indexOf("if (cloud.activeChapterId !== chapterId) return;");
+assert.ok(recoveryHandler.includes("const chapterId = cloud.activeChapterId;") &&
+  recoveryFetch >= 0 && recoveryGuard > recoveryFetch,
   "recovery must abort after an async fetch if the user switched chapters");
-assert.match(recoveryHandler, /latest\\.chapter\\.id !== chapterId/,
+assert.ok(recoveryHandler.includes("latest.chapter.id !== chapterId"),
   "recovery must verify that Cloud returned the requested chapter");
 
 assert.match(css, /@media \(min-width: 981px\) and \(max-width: 1280px\)[\s\S]*?#manuscript \.manuscript-layout\s*\{\s*grid-template-columns:\s*minmax\(150px, \.72fr\) minmax\(0, 2\.1fr\) minmax\(205px, \.96fr\)/,
