@@ -33,8 +33,13 @@ const redirect = (url, extraHeaders = {}) => {
   return new Response(null, { status: 302, headers });
 };
 const countWords = (value) => {
-  const text = typeof value === "string" ? value.trim() : "";
-  return text ? text.split(/\s+/).filter(Boolean).length : 0;
+  const text = typeof value === "string" ? value.replace(/<[^>]*>/g, " ").replace(/&nbsp;/gi, " ").trim() : "";
+  if (!text) return 0;
+  if (typeof Intl !== "undefined" && typeof Intl.Segmenter === "function") {
+    return Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment(text))
+      .filter(part => part.isWordLike).length;
+  }
+  return text.split(/\s+/).filter(Boolean).length;
 };
 const validateWordCount = (value, fallback) => {
   if (value === undefined) return fallback;
