@@ -50,7 +50,7 @@ function crc32(bytes) {
 
 const names = [
   "xmlEscape", "crc32", "createStoredZip", "exportBaseName",
-  "wordParagraph", "countWords", "getManuscriptText", "manuscriptHtmlToWord", "exportManuscriptDocx", "exportManuscriptEpub"
+  "wordParagraph", "countWords", "getManuscriptText", "manuscriptHtmlToWord", "exportManuscriptDocx", "exportManuscriptEpub", "exportWholeNovelEpub"
 ];
 const code = names.map(extractFunction).join("\n");
 const values = {
@@ -66,8 +66,13 @@ const mockCrypto = { randomUUID: () => "11111111-1111-4111-8111-111111111111" };
 const countWords = new Function(extractFunction("countWords") + "\nreturn countWords;")();
 assert.equal(countWords(""), 0);
 assert.equal(countWords("ห้องสมุดแห่งความทรงจำ"), 6, "Thai word segmentation");
-const exportsApi = new Function("$", "downloadBlob", "crypto", code +
-  "\nreturn { exportManuscriptDocx, exportManuscriptEpub };")($, downloadBlob, mockCrypto);
+class ExportDOMParser {
+  parseFromString(html) {
+    return { body: { innerHTML: String(html), querySelectorAll: () => [] } };
+  }
+}
+const exportsApi = new Function("$", "downloadBlob", "crypto", "DOMParser", "sanitizeManuscriptHtml", code +
+  "\nreturn { exportManuscriptDocx, exportManuscriptEpub, exportWholeNovelEpub };")($, downloadBlob, mockCrypto, ExportDOMParser, value => String(value || ""));
 
 exportsApi.exportManuscriptDocx();
 const docx = downloads.pop();
@@ -78,6 +83,27 @@ assert.ok(docxFiles.has("word/document.xml"));
 assert.ok(docxFiles.has("word/styles.xml"));
 assert.ok(docxFiles.get("word/document.xml").includes("ห้องสมุดแห่งความทรงจำ"));
 assert.ok(docxFiles.get("word/document.xml").includes("&amp; &lt;tag&gt;"));
+exportsApi.exportManuscriptDocx([
+  { title: "บทที่หนึ่ง", body: "เนื้อหาภาษาไทยบทหนึ่ง" },
+  { title: "บทที่สอง", body: "เนื้อหาภาษาไทยบทสอง" }
+], "นิยายทดสอบ");
+const wholeDocx = readStoredZip(Buffer.from(await downloads.pop().blob.arrayBuffer()));
+const wholeDocxXml = wholeDocx.get("word/document.xml");
+assert.ok(wholeDocxXml.includes("บทที่หนึ่ง") && wholeDocxXml.includes("บทที่สอง"));
+assert.ok(wholeDocxXml.includes("สารบัญ"), "DOCX contains a contents section");
+assert.ok((wholeDocxXml.match(/<w:pageBreakBefore\/>/g) || []).length >= 2, "DOCX starts each chapter on a new page");
+assert.ok(wholeDocxXml.includes("เนื้อหาภาษาไทยบทสอง"), "DOCX preserves later chapter text");
+
+exportsApi.exportWholeNovelEpub([
+  { title: "บทที่หนึ่ง", body: "<p>เนื้อหาภาษาไทยบทหนึ่ง</p>" },
+  { title: "บทที่สอง", body: "<p>เนื้อหาภาษาไทยบทสอง</p>" }
+], "นิยายทดสอบ");
+const wholeEpub = readStoredZip(Buffer.from(await downloads.pop().blob.arrayBuffer()));
+assert.ok(wholeEpub.has("OEBPS/chapter-1.xhtml") && wholeEpub.has("OEBPS/chapter-2.xhtml"));
+assert.ok(wholeEpub.get("OEBPS/nav.xhtml").includes("บทที่สอง"), "EPUB navigation lists every chapter");
+assert.ok(wholeEpub.get("OEBPS/chapter-2.xhtml").includes("เนื้อหาภาษาไทยบทสอง"), "EPUB preserves Thai chapter text");
+assert.ok(wholeEpub.get("OEBPS/content.opf").includes("<dc:language>th</dc:language>"), "EPUB declares Thai language");
+
 
 exportsApi.exportManuscriptEpub();
 const epub = downloads.pop();
