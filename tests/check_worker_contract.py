@@ -13,6 +13,7 @@ WORKER = (ROOT / "cloudflare" / "worker.js").read_text(encoding="utf-8")
 APP = (ROOT / "public" / "app.js").read_text(encoding="utf-8")
 HTML = (ROOT / "public" / "index.html").read_text(encoding="utf-8")
 WRANGLER = (ROOT / "cloudflare" / "wrangler.toml.example").read_text(encoding="utf-8")
+CSS = (ROOT / "public" / "style.css").read_text(encoding="utf-8")
 
 
 class IdCollector(HTMLParser):
@@ -133,6 +134,10 @@ class WorkerContractTests(unittest.TestCase):
         ):
             self.assertIn(element_id, HTML)
             self.assertIn(element_id, APP)
+
+    def test_relationship_map_has_visible_keyboard_focus(self):
+        self.assertIn(".relationship-node:focus-visible rect", CSS)
+        self.assertIn(".relationship-edge:focus-visible path", CSS)
 
     def test_relationship_edges_follow_nodes_during_drag(self):
         self.assertIn('path?.setAttribute("d"', APP)
