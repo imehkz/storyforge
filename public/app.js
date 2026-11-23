@@ -3487,10 +3487,10 @@ function populateModuleCharacterSelector(selectId) {
 function renderChapterSelect() {
   const canManageChapters = cloud.ready && Boolean(cloud.activeProjectId);
   if ($("continuityPanel")) $("continuityPanel").hidden = !canManageChapters;
-  ["chapterSelect", "chapterSelectLabel", "newChapter"].forEach(id => {
+  ["chapterSelect", "chapterSelectLabel", "newChapter", "studioContinuityShortcut"].forEach(id => {
     if ($(id)) $(id).hidden = !canManageChapters;
   });
-  ["moveChapterUp", "moveChapterDown", "deleteChapter", "chapterHistoryButton", "chapterHistoryInline"].forEach(id => {
+  ["moveChapterUp", "moveChapterDown", "deleteChapter", "chapterHistoryButton", "chapterHistoryInline", "studioHistoryShortcut"].forEach(id => {
     if ($(id)) $(id).hidden = !canManageChapters || !cloud.activeChapterId;
   });
   const select = $("chapterSelect");
