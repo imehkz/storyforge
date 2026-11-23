@@ -1332,9 +1332,35 @@ function renderRelationshipGraph() {
       };
       node.addEventListener("pointermove",move);node.addEventListener("pointerup",up,{once:true});
     });
-    node.addEventListener("click",()=> {
+    node.addEventListener("click",event=> {
+      if (event.target.closest?.("button")) return;
       const character=characters.find(item=>item.id===node.dataset.characterId);
-      if(character) alert(character.name+" · "+(character.role||"ตัวละคร")+"\n"+(character.description||"เปิดรายละเอียดได้จากคลังตัวละคร"));
+      if(character) {
+        startEditCharacter(character);
+        showTab("characters");
+        $("characterName")?.scrollIntoView({behavior:"smooth",block:"center"});
+      }
+    });
+    node.addEventListener("keydown",event=>{
+      if(event.key!=="Enter" && event.key!==" ") return;
+      event.preventDefault();
+      const character=characters.find(item=>item.id===node.dataset.characterId);
+      if(character) {
+        startEditCharacter(character);
+        showTab("characters");
+        $("characterName")?.scrollIntoView({behavior:"smooth",block:"center"});
+      }
+    });
+  });
+  target.querySelectorAll(".relationship-edge").forEach(edge=>{
+    edge.style.cursor="pointer";
+    edge.setAttribute("tabindex","0");
+    edge.setAttribute("role","button");
+    edge.setAttribute("aria-label","แก้ไขความสัมพันธ์");
+    const edit=()=>editModuleItem("relationships",edge.dataset.edgeId);
+    edge.addEventListener("click",edit);
+    edge.addEventListener("keydown",event=>{
+      if(event.key==="Enter" || event.key===" ") { event.preventDefault(); edit(); }
     });
   });
   $("resetRelationshipLayout")?.addEventListener("click",()=>{localStorage.removeItem(layoutKey);renderRelationshipGraph();});
