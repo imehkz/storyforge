@@ -343,19 +343,78 @@ async function collectCloudBackup() {
   return projects;
 }
 
+async function collectCharacterVaultBackup(cloudProjects) {
+  if (!cloudProjects.length || !("indexedDB" in window)) return [];
+  const allowed = new Map();
+  cloudProjects.forEach(entry => {
+    const projectId = entry.project?.id;
+    (entry.modules?.characters || []).forEach(character => {
+      if (projectId && character.id) allowed.set(projectId + "::" + character.id, true);
+    });
+  });
+  const db = await openCharacterVault();
+  const records = await new Promise((resolve, reject) => {
+    const tx = db.transaction(CHARACTER_VAULT_STORE, "readonly");
+    const request = tx.objectStore(CHARACTER_VAULT_STORE).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error || new Error("อ่านคลังภาพเพื่อ Backup ไม่สำเร็จ"));
+    tx.oncomplete = () => db.close();
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
+  const filtered = records.filter(record => allowed.has(record.projectId + "::" + record.characterId));
+  const size = filtered.reduce((sum, record) => sum + String(record.dataUrl || "").length, 0);
+  if (size > 34 * 1024 * 1024) throw new Error("คลังภาพอ้างอิงมีขนาดเกิน 34 MB กรุณาลดจำนวนภาพก่อนสำรองข้อมูล");
+  return filtered;
+}
+async function restoreCharacterVaultRecords(records) {
+  if (!Array.isArray(records) || !records.length) return;
+  const db = await openCharacterVault();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(CHARACTER_VAULT_STORE, "readwrite");
+    const store = tx.objectStore(CHARACTER_VAULT_STORE);
+    records.forEach(record => store.put(record));
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error || new Error("กู้คืนคลังภาพไม่สำเร็จ")); };
+  });
+}
+function validateCharacterVaultBackup(records, cloudProjects) {
+  if (!Array.isArray(records) || records.length > 2000) throw new Error("ข้อมูลคลังภาพอ้างอิงใน Backup ไม่ถูกต้อง");
+  const allowed = new Set();
+  cloudProjects.forEach(entry => (entry.modules?.characters || []).forEach(character =>
+    allowed.add(entry.project.id + "::" + character.id)
+  ));
+  for (const record of records) {
+    if (!record || typeof record !== "object" ||
+        !allowed.has(record.projectId + "::" + record.characterId) ||
+        typeof record.id !== "string" || record.id.length > 100 ||
+        typeof record.dataUrl !== "string" ||
+        !/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(record.dataUrl) ||
+        record.dataUrl.length > 260000 ||
+        typeof record.label !== "string" || record.label.length > 100 ||
+        typeof record.note !== "string" || record.note.length > 300 ||
+        !Number.isInteger(record.version) || record.version < 1 || record.version > 8 ||
+        typeof record.canonical !== "boolean" ||
+        !Number.isFinite(record.createdAt)) {
+      throw new Error("พบภาพอ้างอิงที่ไม่ถูกต้องหรือไม่ได้อยู่ในโครงการเดียวกัน");
+    }
+  }
+}
 async function collectBackup() {
   const cloudProjects = await collectCloudBackup();
+  const characterVault = await collectCharacterVaultBackup(cloudProjects);
   return {
     app: "STORYFORGE",
-    version: 2,
+    version: 3,
     createdAt: new Date().toISOString(),
     scope: {
       localDeviceData: true,
       cloudProjects: cloud.authenticated && cloud.ready,
-      snapshotHistory: false
+      snapshotHistory: false,
+      characterReferenceVault: true
     },
     data: collectLocalBackup(),
-    cloud: { projects: cloudProjects }
+    cloud: { projects: cloudProjects },
+    characterVault
   };
 }
 
@@ -700,7 +759,7 @@ function restoreFromFile() {
   reader.onload = async () => {
     try {
       const backup = JSON.parse(reader.result);
-      if (backup.app !== "STORYFORGE" || ![1, 2].includes(backup.version) ||
+      if (backup.app !== "STORYFORGE" || ![1, 2, 3].includes(backup.version) ||
           !backup.data || typeof backup.data !== "object" || Array.isArray(backup.data)) {
         throw new Error("ไฟล์นี้ไม่ใช่ Backup ของ STORYFORGE");
       }
@@ -708,10 +767,12 @@ function restoreFromFile() {
       if (entries.some(([key, value]) => !key.startsWith("sf_") || typeof value !== "string")) {
         throw new Error("ข้อมูลในไฟล์ Backup ไม่ถูกต้อง");
       }
-      const cloudProjects = backup.version === 2 ? (backup.cloud?.projects || []) : [];
-      if (backup.version === 2 && !Array.isArray(cloudProjects)) throw new Error("ข้อมูล Cloud Backup ไม่ถูกต้อง");
+      const cloudProjects = backup.version >= 2 ? (backup.cloud?.projects || []) : [];
+      if (backup.version >= 2 && !Array.isArray(cloudProjects)) throw new Error("ข้อมูล Cloud Backup ไม่ถูกต้อง");
       if (cloudProjects.length) validateCloudBackupData(cloudProjects);
-      if (!entries.length && !cloudProjects.length) throw new Error("ไม่พบข้อมูลสำหรับกู้คืน");
+      const characterVault = backup.version >= 3 ? (backup.characterVault || []) : [];
+      if (backup.version >= 3) validateCharacterVaultBackup(characterVault, cloudProjects);
+      if (!entries.length && !cloudProjects.length && !characterVault.length) throw new Error("ไม่พบข้อมูลสำหรับกู้คืน");
       const confirmed = confirm(
         "ระบบจะดาวน์โหลดข้อมูลปัจจุบันเก็บไว้ก่อน แล้วนำข้อมูลจาก Backup เข้ามาเพิ่ม\n\n" +
         "ข้อมูล Cloud จะถูกรวมด้วยรหัสเดิมโดยไม่ลบโครงการปัจจุบัน และข้อมูลในอุปกรณ์จะถูกแทนที่\n" +
@@ -723,6 +784,7 @@ function restoreFromFile() {
         $("backupStatus").textContent = "กำลังกู้คืนโครงการและข้อมูล Cloud...";
         await restoreCloudBackup(cloudProjects);
       }
+      if (characterVault.length) { $("backupStatus").textContent = "กำลังกู้คืนคลังภาพอ้างอิง..."; await restoreCharacterVaultRecords(characterVault); }
       const previousData = collectLocalBackup();
       try {
         for (const key of Object.keys(localStorage)) if (key.startsWith("sf_")) localStorage.removeItem(key);
