@@ -2273,10 +2273,44 @@ function wordParagraph(text, style = "") {
   return `<w:p>${styleXml}<w:r><w:t xml:space="preserve">${xmlEscape(text)}</w:t></w:r></w:p>`;
 }
 
+function wordRunsFromNode(node) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.nodeValue ? `<w:r><w:t xml:space="preserve">${xmlEscape(node.nodeValue)}</w:t></w:r>` : "";
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return "";
+  if (node.tagName === "BR") return "<w:r><w:br/></w:r>";
+  const inner = [...node.childNodes].map(wordRunsFromNode).join("");
+  const props = [];
+  if (["B","STRONG"].includes(node.tagName)) props.push("<w:b/>");
+  if (["I","EM"].includes(node.tagName)) props.push("<w:i/>");
+  if (node.tagName === "U") props.push('<w:u w:val="single"/>');
+  const style = node.getAttribute("style") || "";
+  if (/text-align\s*:\s*center/i.test(style)) props.push('<w:jc w:val="center"/>');
+  if (/text-align\s*:\s*right/i.test(style)) props.push('<w:jc w:val="right"/>');
+  return props.length ? `<w:r><w:rPr>${props.join("")}</w:rPr>${inner.replace(/<w:r>/g,"<w:r>").replace(/<w\/r>/g,"</w:r>")}</w:r>` : inner;
+}
+
+function manuscriptHtmlToWord() {
+  const editor = $("manuscriptEditor");
+  const source = editor ? sanitizeManuscriptHtml(editor.innerHTML) : "";
+  const doc = new DOMParser().parseFromString(source, "text/html");
+  const blocks = [...doc.body.childNodes];
+  if (!blocks.length) return getManuscriptText().split(/\r?\n/).map(line => wordParagraph(line)).join("");
+  return blocks.map(node => {
+    if (node.nodeType === Node.TEXT_NODE) return wordParagraph(node.nodeValue || "");
+    const tag = node.tagName;
+    const style = tag === "H1" ? "Heading1" : tag === "H2" ? "Heading2" : tag === "H3" ? "Heading3" : "";
+    const prefix = tag === "LI" ? "• " : "";
+    const runs = prefix + [...node.childNodes].map(child => wordRunsFromNode(child)).join("");
+    const pPr = [style ? `<w:pStyle w:val="${style}"/>` : "", tag === "BLOCKQUOTE" ? '<w:ind w:left="720"/>' : ""].filter(Boolean).join("");
+    return `<w:p>${pPr ? `<w:pPr>${pPr}</w:pPr>` : ""}${typeof runs === "string" && runs.startsWith("<w:r>") ? runs : `<w:r><w:t xml:space="preserve">${xmlEscape(runs)}</w:t></w:r>`}</w:p>`;
+  }).join("");
+}
+
 function exportManuscriptDocx() {
   const title = $("title").value || "StoryForge Manuscript";
   const chapter = $("chapterTitle").value || "ต้นฉบับ";
-  const paragraphs = getManuscriptText().split(/\r?\n/).map(line => wordParagraph(line)).join("");
+  const paragraphs = manuscriptHtmlToWord();
   const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
 <w:body>${wordParagraph(title, "Title")}${wordParagraph(chapter, "Heading1")}${paragraphs}
@@ -2324,7 +2358,9 @@ function exportManuscriptEpub() {
   const title = $("title").value || "StoryForge Manuscript";
   const chapter = $("chapterTitle").value || "ต้นฉบับ";
   const identifier = "urn:uuid:" + crypto.randomUUID();
-  const paragraphs = getManuscriptText().split(/\r?\n/).map(line =>
+  const editor = $("manuscriptEditor");
+  const richBody = editor ? sanitizeManuscriptHtml(editor.innerHTML) : "";
+  const paragraphs = richBody || getManuscriptText().split(/\r?\n/).map(line =>
     line ? `<p>${xmlEscape(line)}</p>` : '<p class="blank">&#160;</p>'
   ).join("");
   const files = [
