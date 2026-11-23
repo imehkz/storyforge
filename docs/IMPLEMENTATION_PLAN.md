@@ -349,3 +349,12 @@ No hosting resources or secrets have been provisioned, and no production deploym
 - Findings can open the relevant chapter. The checker saves the active chapter before scanning and does not modify manuscript or Canon records.
 - This is deterministic rule-based checking only; it does not yet understand aliases beyond the character nickname field, pronouns, implicit references, narrative causality, or semantic contradictions. Timeline comparison only runs when dates use a supported numeric format.
 - Cloud requests are made using the existing owner-authenticated, project-scoped chapter endpoint. No new endpoint, AI API, billing, or external data transfer was added.
+
+
+## Latest implementation update — Character alias and cross-link review
+
+- Added a project-scoped character alias field to Character Studio. Aliases are stored inside the existing character profile JSON, so no database migration or new API route is required.
+- Continuity review now recognizes the canonical name, nickname, and alternate names when checking whether a character appears in a chapter, and when suggesting a missing chapter Canon link.
+- Added a soft warning when a Timeline event references characters that are not linked to any scanned chapter Canon. Future events may legitimately be unlinked; the result is explicitly a review hint, not an error.
+- Extended the continuity test fixture to cover aliases and Timeline-to-chapter cross-links.
+- These checks remain heuristic and project-scoped; they do not rewrite prose or infer semantic contradictions.
