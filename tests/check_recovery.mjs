@@ -86,7 +86,7 @@ const makeRestore = (projectCreated, calls, failSecondChapter = true) => new Fun
       if (failSecondChapter && chapterCreates === 2) throw new Error("simulated chapter failure");
       return { created: true };
     }
-    if ((path.includes("/plot-threads") || path.includes("/notes")) && options.method === "POST") return { created: true };
+    if (["/plot-threads", "/notes", "/world-lore", "/timeline"].some(part => path.includes(part)) && options.method === "POST") return { created: true };
     return { ok: true };
   },
   () => 0
