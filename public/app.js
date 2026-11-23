@@ -1810,15 +1810,24 @@ function buildStoryAssistantContext() {
     if (!notes.length) lines.push("ยังไม่มีบันทึก");
     notes.forEach(item => { let refs = []; try { refs = JSON.parse(item.character_ids_json || "[]"); } catch {} const linked = refs.map(id => characters.find(character => character.id === id)?.name).filter(Boolean); lines.push("- " + (item.title || "บันทึก") + ": " + (item.content || "") + (linked.length ? " | ตัวละครที่เกี่ยวข้อง: " + linked.join(", ") : "")); });
     lines.push("", "## รายการบท");
-    (cloud.chapters || []).forEach((item, index) => lines.push((index + 1) + ". " + (item.title || "บทไม่มีชื่อ") + " (" + (Number(item.word_count) || 0) + " คำ)"));
+    (cloud.chapters || []).forEach((item, index) => {
+      const linked = chapterCharacterIds(item).map(id => characters.find(character => character.id === id)?.name).filter(Boolean);
+      lines.push((index + 1) + ". " + (item.title || "บทไม่มีชื่อ") + " (" + (Number(item.word_count) || 0) + " คำ)" + (linked.length ? " | Canon: " + linked.join(", ") : ""));
+    });
   } else {
     lines.push("## ข้อมูลโมดูล");
     lines.push("ยังไม่ได้เชื่อมต่อ Cloud ในโปรเจกต์ที่เลือก จึงแนบเฉพาะข้อมูลโครงการและต้นฉบับปัจจุบัน");
   }
 
   const chapterTitle = $("chapterTitle")?.value || "";
+  const activeChapter = cloud.chapters.find(item => item.id === cloud.activeChapterId);
+  const activeCharacterNames = chapterCharacterIds(activeChapter)
+    .map(id => (cloud.modules.characters || []).find(character => character.id === id)?.name)
+    .filter(Boolean);
   const manuscript = getManuscriptText().slice(0, 14000);
-  lines.push("", "## บทที่กำลังเปิด", chapterTitle || "ยังไม่มีชื่อบท", manuscript || "ยังไม่มีต้นฉบับ");
+  lines.push("", "## บทที่กำลังเปิด", chapterTitle || "ยังไม่มีชื่อบท");
+  lines.push("ตัวละคร Canon ของบทนี้: " + (activeCharacterNames.join(", ") || "ยังไม่ได้กำหนด"));
+  lines.push(manuscript || "ยังไม่มีต้นฉบับ");
   if (getManuscriptText().length > 14000) lines.push("[ตัดต้นฉบับส่วนเกินออกเพื่อให้คัดลอกได้สะดวก]");
   const selectedMode = document.querySelector(".mode.active")?.dataset.mode || mode || "writer";
   const modeLabels = { writer:"นักเขียน", brainstorm:"ระดมไอเดีย", editor:"บรรณาธิการ", publisher:"สำนักพิมพ์" };
