@@ -11,7 +11,7 @@ Production deployment: **not authorized**
 - Brand colors: Midnight Navy `#101827`, Antique Gold `#C5A15B`, Old Parchment `#E8D8B8`, Dark Mahogany `#382D29`.
 - Never expose secrets in browser code, local storage, repository files, or chat.
 - Do not use OpenAI API keys or silently fall back to a paid provider.
-- Copilot must run with the authenticated user's own GitHub identity and subscription.
+- Do not integrate GitHub Copilot. Keep AI disabled until the owner explicitly approves a provider, its privacy terms, and any cost.
 - No paid service, billing activation, production deployment, or merge to `main` without explicit approval.
 
 ## Verified current state — 23 November 2026
@@ -22,10 +22,19 @@ This section supersedes earlier historical status statements below where they co
 - The Worker source implements owner-only GitHub OAuth, hashed sessions, CSRF/origin validation, logout revocation, project/chapter APIs, snapshots, and project-scoped module CRUD.
 - The browser frontend is connected to authenticated Cloud APIs for projects, chapters, autosave/revisions, snapshots, local recovery/import, and project-scoped studio modules.
 - Backup format v2 includes device-local data plus Cloud projects, chapters, and all six studio module collections. Snapshot history is excluded and explicitly disclosed. Restore preflights Cloud data, preserves stable IDs, and merges rather than deleting existing Cloud data.
-- Latest verified branch: `feature/storyforge-studio-80`, commit `786630aa0053c7b8c5b1ef5c3e27d8a140d09328`. Draft PR #1 targets `feature/character-studio`, not `main`.
-- GitHub Actions runs #246 and #247 passed on the documentation-reconciled head `ccb5946`; run #245 passed on code head `786630a`. Checks cover JavaScript syntax/export smoke tests, D1 schema validation, and Worker security-contract checks. These are static/source and SQLite checks, not live Worker/D1 or browser end-to-end tests.
+- Latest verified branch: `feature/storyforge-studio-80`, commit `bf032f62d48e4871a24e2da4c76e68938ea084a7`. Draft PR #1 targets `feature/character-studio`, not `main`.
+- GitHub Actions run `45116359195` passed on commit `bf032f62`. Checks cover JavaScript syntax/export smoke tests, D1 schema validation, and Worker security-contract checks. These are static/source and SQLite checks, not live Worker/D1 or browser end-to-end tests.
 - The deployed Worker is an earlier build; the latest branch changes have not been deployed. No merge to `main` or new deployment is authorized.
-- AI is intentionally disabled. GitHub identity OAuth does not itself authorize the Copilot SDK or establish per-user Copilot entitlement.
+- AI is intentionally disabled. No AI provider is selected or approved; GitHub identity OAuth is only for sign-in.
+
+## Latest implementation update — 23 November 2026
+
+- Added whole-novel TXT export that fetches every chapter from the selected Cloud project, checks each chapter's Project ID, sorts by chapter order, and stops if saving the active chapter fails.
+- Added whole-novel DOCX export with chapter headings and embedded images retained through the existing rich-text converter.
+- Added whole-novel EPUB export with one XHTML file per chapter, a navigation document/table of contents, and embedded chapter images.
+- Added whole-novel print-to-PDF with a table of contents and chapter page breaks; browser print is still used and the user chooses Save as PDF.
+- Added export safety checks and structural tests for project isolation and document size limits.
+- The latest GitHub Actions run passed. This does not replace browser/device or live Worker/D1 testing.
 
 ## MVP acceptance criteria
 
@@ -50,10 +59,9 @@ This section supersedes earlier historical status statements below where they co
    - Consolidate design tokens and navigation.
    - Test desktop and tablet layouts; keyboard focus, disabled/loading/error states, contrast, and readable type.
 5. **AI (after identity and project isolation)**
-   - Use the official `@github/copilot-sdk` package.
-   - One SDK client/session per authenticated user; explicitly disable logged-in-user credential fallback.
-   - Use only that user's OAuth token and Copilot entitlement. No shared owner token.
-   - Scope every prompt to the active project and its approved canon.
+   - Do not use GitHub Copilot. Select an owner-approved provider only after reviewing privacy, cost, and runtime compatibility.
+   - Keep credentials server-side; never use a shared credential or silent provider fallback.
+   - Scope every prompt to the active project and its approved canon; require prompt preview and explicit confirmation.
 6. **Publishing**
    - DOCX, PDF, and EPUB only after structure, Thai typography, images, front matter, TOC, and pagination have test fixtures.
 
@@ -73,7 +81,7 @@ This section supersedes earlier historical status statements below where they co
 - P0 — Requirements, owner-only authentication design, data model, project-isolation contract, save/version/recovery contract.
 - P1 — Database and storage decision with verified free-tier limits and no billing activation; authentication and permissions; project CRUD; chapter editor and autosave.
 - P2 — Figma-matched Dashboard and Library; Character Studio, Relationship Map, Plot, World, Timeline, Notes.
-- P3 — Project-scoped Copilot assistant and approval workflow.
+- P3 — Project-scoped AI assistant with provider approval and prompt-confirmation workflow.
 - P4 — Illustration/Cover Studio and DOCX/PDF/EPUB export.
 - P5 — Accessibility, responsive, security, backup/restore, performance, and end-to-end QA.
 
@@ -81,13 +89,15 @@ This section supersedes earlier historical status statements below where they co
 
 Create a novel → add a chapter → write text → save → sign out/in → restore a previous version → export text. Repeat with a second project containing duplicate character names and verify strict isolation.
 
-## Current known blockers
+## Current known blockers — updated 23 November 2026
 
-- Cloudflare runtime configuration, D1 binding/database, GitHub OAuth App, owner allowlist secret, and Worker secrets are not provisioned.
-- Cloudflare resources and credentials are not provisioned, so the new API-backed editor cannot be exercised against a live service yet.
-- No verified end-to-end Worker/D1 run has been completed. GitHub Actions passed on draft PR #1 for commit a4818cb7240ae773e1d72f1a14554764c698abd4; live Cloudflare integration remains untested.
-- Independent encrypted D1 backup and full restore verification remain outstanding.
-- Copilot SDK requires a separately approved compatible runtime and each user's own Copilot entitlement; it remains disabled.
+- Cloudflare Worker, D1, and GitHub OAuth are provisioned; latest branch code has not been deployed to the active Worker.
+- Live Worker/D1 integration and browser/device end-to-end tests remain outstanding, including Android tablet validation.
+- Independent encrypted off-site D1 backup and a full restore drill remain outstanding.
+- Character Reference Vault is device-local IndexedDB; Cloud image storage and cross-device synchronization are not implemented.
+- AI text/image generation remains disabled. GitHub Copilot is explicitly excluded; an alternative provider requires owner approval and a cost/privacy review.
+- Whole-novel TXT, DOCX, EPUB, and print-to-PDF export controls have now been added on the test branch. They still require real-browser verification with multi-chapter Thai text and embedded images.
+- Book-cover artwork generation, version history, approved cover assets, and full illustration library remain incomplete.
 
 ## Progress update — 22 November 2026
 
@@ -100,7 +110,7 @@ Create a novel → add a chapter → write text → save → sign out/in → res
 - Connected Dashboard display to the current browser-local project title, chapter title, and manuscript character count.
 - Added local project IDs for newly saved project metadata. This is not server-side project isolation and does not yet create independent manuscript storage per project.
 - Moved the Backup Center into its own panel and clarified that automatic Telegram backup only runs while this page remains open.
-- Kept Copilot disabled until per-user GitHub OAuth, SDK setup, and server-side permission boundaries are implemented.
+- Kept AI disabled; GitHub OAuth is sign-in only and is not an AI-provider authorization mechanism.
 
 ### Baseline limitations before Cloudflare integration (historical record)
 
@@ -113,7 +123,7 @@ Create a novel → add a chapter → write text → save → sign out/in → res
 
 ### Next safe implementation steps
 
-See [SECURITY_AND_STORAGE_DECISIONS.md](./SECURITY_AND_STORAGE_DECISIONS.md) for the reviewed OAuth, Copilot isolation, and hosting/storage constraints. In particular, Render Free Postgres is not suitable for durable manuscripts because it expires after 30 days; no paid storage or hosting has been approved.
+See [SECURITY_AND_STORAGE_DECISIONS.md](./SECURITY_AND_STORAGE_DECISIONS.md) for the reviewed OAuth, AI-provider isolation, and hosting/storage constraints. In particular, Render Free Postgres is not suitable for durable manuscripts because it expires after 30 days; no paid storage or hosting has been approved.
 
 1. Run a local Node 22 syntax/runtime smoke test and verify all dashboard navigation and form controls.
 2. Add a local data migration and project-scoped storage contract before exposing project switching; do not pretend a project ID alone provides isolation.
@@ -137,7 +147,7 @@ See [SECURITY_AND_STORAGE_DECISIONS.md](./SECURITY_AND_STORAGE_DECISIONS.md) for
 - At that point the browser UI still read and wrote localStorage and had not been connected to D1.
 - Worker-side OAuth, sessions, owner allowlist, project/chapter/module APIs, chapter snapshots, and server-side project ownership checks are implemented in source but have not been verified against a live or local Cloudflare Worker/D1 runtime.
 - The Cloudflare scaffold has not been deployed and no Cloudflare resource has been created.
-- Copilot SDK is not hosted on Workers; keep AI disabled until a separately approved compatible runtime is available.
+- AI provider integration remains disabled until a provider, runtime, privacy model, and costs are explicitly approved. GitHub Copilot is excluded.
 - No runtime, migration, security, or browser test has been executed. Do not treat scaffold commits as a working hosted app.
 
 
@@ -158,7 +168,7 @@ See [SECURITY_AND_STORAGE_DECISIONS.md](./SECURITY_AND_STORAGE_DECISIONS.md) for
 4. Complete browser-level tests of the frontend API integration and reversible localStorage-to-D1 import flow.
 5. Improve retry/reconnect behavior and cross-device recovery after live Worker/D1 validation.
 6. Implement independent encrypted D1 backups and test restore.
-7. Reassess Copilot separately; Workers is not assumed to support the Node.js SDK runtime.
+7. Select and validate a non-Copilot AI provider only after explicit approval; do not assume Workers compatibility.
 
 No deployment, remote D1 creation, OAuth app, secret, paid plan, or production release has been performed.
 
@@ -215,7 +225,7 @@ No hosting resources or secrets have been provisioned, and no production deploym
 2. Verify CI and run the Worker locally with D1; test owner denial, CSRF/origin rejection, cross-project isolation, import retry, autosave, conflict, move/delete, restore, and backups.
 3. Run browser tests on desktop/tablet and review accessibility/contrast against the approved Figma frames.
 4. Validate the new DOCX and EPUB ZIP packages in Microsoft Word/LibreOffice and an EPUB reader; validate the A4 browser print-to-PDF flow on desktop and Android. TXT, DOCX, EPUB, and print-to-PDF source implementations are now present.
-5. Design and approve a compatible per-user Copilot runtime; AI remains disabled.
+5. Select an approved AI provider and define a secure, project-scoped integration; AI remains disabled until then.
 6. Only after the above, request explicit approval for a private preview deployment. No production deployment or merge to `main` is authorized.
 
 - Added migration `0003_chapter_word_count.sql`; the browser computes Thai-aware word counts and the Worker validates/persists them. Chapter lists return compact metadata and the Dashboard aggregates project-wide word counts without downloading every chapter body.
