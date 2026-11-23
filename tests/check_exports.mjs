@@ -144,7 +144,7 @@ const txtCloudApi = async path => {
   throw new Error("Unexpected TXT export request: " + path);
 };
 const exportTxt = new Function("cloud", "$", "cloudApi", "saveCloudChapter", "download", "exportBaseName", "chapterHtmlToPlainText", "alert",
-  extractFunction("exportEntireNovelTxt") + "\nreturn exportEntireNovelTxt;")(
+  extractFunction("exportEntireNovelTxt").replace(/^function /, "async function ") + "\nreturn exportEntireNovelTxt;")(
   txtCloud, id => txtElements[id], txtCloudApi, async () => true,
   (name, text) => txtDownloads.push({ name, text }), () => "storyforge-test",
   value => value, message => { throw new Error(message); }
