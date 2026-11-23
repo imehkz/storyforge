@@ -981,7 +981,10 @@ function buildStoryAssistantContext() {
   const request = $("prompt")?.value?.trim();
   lines.push("", "## คำสั่งจากผู้เขียน", request || "โปรดช่วยวิเคราะห์และให้คำแนะนำโดยยึดข้อมูล Canon ข้างต้น");
   lines.push("", "ข้อกำหนด: ใช้ข้อมูลของนิยายนี้เท่านั้น หากข้อมูลไม่พอให้ถามก่อน อย่าสร้างข้อเท็จจริง Canon ใหม่เอง");
-  return lines.join("\n");
+  const context = lines.join("\n");
+  return context.length > 40000
+    ? context.slice(0, 40000) + "\n[ตัดบริบทส่วนเกินเพื่อให้คัดลอกได้สะดวก]"
+    : context;
 }
 
 async function copyStoryText(value) {
