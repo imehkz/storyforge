@@ -978,7 +978,8 @@ function buildStoryAssistantContext() {
   lines.push("", "## บทที่กำลังเปิด", chapterTitle || "ยังไม่มีชื่อบท", manuscript || "ยังไม่มีต้นฉบับ");
   if (getManuscriptText().length > 14000) lines.push("[ตัดต้นฉบับส่วนเกินออกเพื่อให้คัดลอกได้สะดวก]");
   const selectedMode = document.querySelector(".mode.active")?.dataset.mode || mode || "writer";
-  lines.push("", "## รูปแบบความช่วยเหลือที่ต้องการ", selectedMode);
+  const modeLabels = { writer:"นักเขียน", brainstorm:"ระดมไอเดีย", editor:"บรรณาธิการ", publisher:"สำนักพิมพ์" };
+  lines.push("", "## รูปแบบความช่วยเหลือที่ต้องการ", modeLabels[selectedMode] || selectedMode);
   const request = $("prompt")?.value?.trim();
   lines.push("", "## คำสั่งจากผู้เขียน", request || "โปรดช่วยวิเคราะห์และให้คำแนะนำโดยยึดข้อมูล Canon ข้างต้น");
   lines.push("", "ข้อกำหนด: ใช้ข้อมูลของนิยายนี้เท่านั้น หากข้อมูลไม่พอให้ถามก่อน อย่าสร้างข้อเท็จจริง Canon ใหม่เอง");
