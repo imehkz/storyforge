@@ -25,19 +25,15 @@ Required behavior:
 
 Before enabling the OAuth flow, the owner must create a GitHub OAuth App and configure its callback URL and client secret in the hosting provider's secret store. Do not ask the owner to paste secrets into chat or commit them to the public repository.
 
-## 3. Copilot isolation contract
+## 3. AI provider isolation contract
 
-Use the official Node package `@github/copilot-sdk`, only after the OAuth identity/session layer is complete.
-
-For every authenticated user:
-- Pass that user's own GitHub OAuth token explicitly to their Copilot SDK client/session.
-- Set `useLoggedInUser: false` to prevent fallback to a shared CLI login or environment credential.
-- Do not share the owner's Copilot client, token, session, or quota with another user.
-- Treat Copilot subscription entitlement, quota, token refresh, and re-authentication as user-specific.
-- Keep token material server-side and encrypted at rest if persisted.
-- AI requests must be scoped to a Project ID that the authenticated user owns.
-
-The SDK does not manage the OAuth lifecycle; token storage, refresh, expiry, and re-authentication are application responsibilities.
+- The owner has explicitly chosen not to use GitHub Copilot for STORYFORGE.
+- No AI text or image provider is currently approved or connected. AI actions must remain disabled until a provider and its cost/authorization model are explicitly approved.
+- Do not use a shared owner credential, silently fall back to an environment login, or expose any provider secret to browser code, localStorage, repository files, or chat.
+- Every future AI request must be server-side, authenticated, scoped to the active Project ID, and limited to that project's approved canon and manuscript context.
+- Prompt preview, user editing, and explicit confirmation must happen before any external AI request.
+- Provider quotas, retention, privacy, content policy, rate limits, and costs must be documented before enabling the integration.
+- If a provider cannot meet project isolation and secret-handling requirements, do not integrate it.
 
 ## 4. Storage and hosting decision
 
@@ -58,7 +54,7 @@ Important:
 - Use the provider's `.workers.dev` hostname for the first deployment if available; a custom domain may cost extra.
 - Keep the UI's local-recovery and Cloud-sync states distinct. Do not claim live Cloud persistence until the owner provisions D1/OAuth and the deployed integration tests pass.
 - Never silently fall back to local disk on a production host for durable user content.
-- Copilot SDK is not part of the Workers runtime; do not share the owner's credentials or quota and do not silently introduce paid hosting.
+- No AI provider has been approved; do not introduce Copilot or paid hosting.
 
 ## 5. Project data isolation contract
 
@@ -83,12 +79,10 @@ Required automated tests:
 4. Configure independent encrypted off-site backups and test a full restore.
 5. Validate DOCX/EPUB in common readers and print-to-PDF on desktop and Android.
 6. Review tablet layout, accessibility, and contrast against the approved Figma source.
-7. Integrate Copilot only when a compatible Node.js runtime is explicitly approved and each user uses their own GitHub identity.
+7. Integrate an owner-approved AI provider only after documenting runtime compatibility, project isolation, privacy, quotas, and cost.
 
 ## Sources reviewed
 
-- GitHub Copilot SDK OAuth guide: https://docs.github.com/en/copilot/how-tos/copilot-sdk/setup/github-oauth
-- GitHub Copilot SDK authentication guide: https://docs.github.com/en/copilot/how-tos/copilot-sdk/auth/authenticate
 - Render free services and data-retention limitations: https://render.com/docs/free
 - Render persistent disks: https://render.com/docs/disks
 - Render pricing: https://render.com/pricing
@@ -96,10 +90,10 @@ Required automated tests:
 
 ## Current code decisions — 22 November 2026
 
-- GitHub OAuth is used only to verify the one allowlisted owner account. The OAuth access token is discarded after identity verification and is not stored for Copilot use.
+- GitHub OAuth is used only to verify the one allowlisted owner account. The OAuth access token is discarded after identity verification.
 - The Worker stores hashed session identifiers and hashed CSRF tokens; the session cookie is host-only, Secure, HttpOnly, and SameSite=Lax. CSRF uses a separate host-only, Secure, HttpOnly, SameSite=Strict cookie plus a same-origin request header.
 - All project and chapter queries are scoped to the authenticated owner. Project modules are scoped by project ID; relationship foreign keys prevent cross-project character links.
 - Chapter updates use optimistic revision checks and return conflict responses rather than silently overwriting a newer revision. Prior chapter content is stored as snapshots and can be restored.
 - The editor now saves selected projects and chapters through the authenticated Worker APIs, while retaining per-chapter local recovery drafts and an explicit idempotent import path. Local data is not deleted by import. Live Cloud sync remains unavailable until the owner provisions and configures Cloudflare D1 and GitHub OAuth.
 - Optional Telegram backup requires Worker secrets and remains separate from independent encrypted D1 backups.
-- GitHub Copilot integration remains disabled; GitHub identity OAuth is not the Copilot SDK authorization flow.
+- AI integration remains disabled until the owner approves a provider; the user has explicitly ruled out GitHub Copilot.
