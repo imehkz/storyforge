@@ -2273,21 +2273,23 @@ function wordParagraph(text, style = "") {
   return `<w:p>${styleXml}<w:r><w:t xml:space="preserve">${xmlEscape(text)}</w:t></w:r></w:p>`;
 }
 
-function wordRunsFromNode(node) {
+function wordRunsFromNode(node, inherited = {}) {
   if (node.nodeType === Node.TEXT_NODE) {
-    return node.nodeValue ? `<w:r><w:t xml:space="preserve">${xmlEscape(node.nodeValue)}</w:t></w:r>` : "";
+    if (!node.nodeValue) return "";
+    const props = [];
+    if (inherited.bold) props.push("<w:b/>");
+    if (inherited.italic) props.push("<w:i/>");
+    if (inherited.underline) props.push('<w:u w:val="single"/>');
+    const rPr = props.length ? `<w:rPr>${props.join("")}</w:rPr>` : "";
+    return `<w:r>${rPr}<w:t xml:space="preserve">${xmlEscape(node.nodeValue)}</w:t></w:r>`;
   }
   if (node.nodeType !== Node.ELEMENT_NODE) return "";
   if (node.tagName === "BR") return "<w:r><w:br/></w:r>";
-  const inner = [...node.childNodes].map(wordRunsFromNode).join("");
-  const props = [];
-  if (["B","STRONG"].includes(node.tagName)) props.push("<w:b/>");
-  if (["I","EM"].includes(node.tagName)) props.push("<w:i/>");
-  if (node.tagName === "U") props.push('<w:u w:val="single"/>');
-  const style = node.getAttribute("style") || "";
-  if (/text-align\s*:\s*center/i.test(style)) props.push('<w:jc w:val="center"/>');
-  if (/text-align\s*:\s*right/i.test(style)) props.push('<w:jc w:val="right"/>');
-  return props.length ? `<w:r><w:rPr>${props.join("")}</w:rPr>${inner.replace(/<w:r>/g,"<w:r>").replace(/<w\/r>/g,"</w:r>")}</w:r>` : inner;
+  const next = { ...inherited };
+  if (["B","STRONG"].includes(node.tagName)) next.bold = true;
+  if (["I","EM"].includes(node.tagName)) next.italic = true;
+  if (node.tagName === "U") next.underline = true;
+  return [...node.childNodes].map(child => wordRunsFromNode(child, next)).join("");
 }
 
 function manuscriptHtmlToWord() {
@@ -2300,10 +2302,10 @@ function manuscriptHtmlToWord() {
     if (node.nodeType === Node.TEXT_NODE) return wordParagraph(node.nodeValue || "");
     const tag = node.tagName;
     const style = tag === "H1" ? "Heading1" : tag === "H2" ? "Heading2" : tag === "H3" ? "Heading3" : "";
-    const prefix = tag === "LI" ? "• " : "";
-    const runs = prefix + [...node.childNodes].map(child => wordRunsFromNode(child)).join("");
+    const prefixRun = tag === "LI" ? "<w:r><w:t>• </w:t></w:r>" : "";
+    const runs = prefixRun + [...node.childNodes].map(child => wordRunsFromNode(child)).join("");
     const pPr = [style ? `<w:pStyle w:val="${style}"/>` : "", tag === "BLOCKQUOTE" ? '<w:ind w:left="720"/>' : ""].filter(Boolean).join("");
-    return `<w:p>${pPr ? `<w:pPr>${pPr}</w:pPr>` : ""}${typeof runs === "string" && runs.startsWith("<w:r>") ? runs : `<w:r><w:t xml:space="preserve">${xmlEscape(runs)}</w:t></w:r>`}</w:p>`;
+    return `<w:p>${pPr ? `<w:pPr>${pPr}</w:pPr>` : ""}${runs || "<w:r><w:t/></w:r>"}</w:p>`;
   }).join("");
 }
 
