@@ -306,3 +306,11 @@ No hosting resources or secrets have been provisioned, and no production deploym
 - Editing these records preserves the current links unless the user changes the selected character list.
 - Deleting a character removes its ID from plot, world, and timeline references in the same D1 batch as the character deletion, preventing stale links in future backups.
 - This establishes explicit character-to-canon references; automatic semantic linking from manuscript prose and cross-reference navigation remain future work.
+
+
+### Story-note character references — 23 November 2026
+
+- Story notes can reference up to 50 characters from the same project.
+- Character-reference validation applies on note creation and update; deleting a character cleans references in notes together with plot, world, and timeline records.
+- Note links are visible in the notes list and included in manually copied ChatGPT story context.
+- Backup/restore validation and payload mapping include note character references.
