@@ -309,6 +309,8 @@ class WorkerContractTests(unittest.TestCase):
         chapter_html = HTML[HTML.index('id="chapterTitle"'):HTML.index('id="manuscriptEditor"')]
         self.assertIn('id="chapterStatus"', chapter_html)
         self.assertIn('id="chapterSynopsis"', chapter_html)
+        self.assertIn("chapter-outline-summary", APP)
+        self.assertIn("sceneCount", APP)
         chapter_routes = WORKER[WORKER.index("const chaptersMatch"):WORKER.index("const chapterMoveMatch")]
         chapter_detail = WORKER[WORKER.index("const chapterMatch"):WORKER.index('return json({ error: "NOT_FOUND" }, 404);')]
         self.assertIn("synopsis", chapter_routes)
