@@ -235,7 +235,7 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('chapter_ids_json: ["json_array", 16000]', module_route)
         self.assertIn('scene_type: ["string", 40]', module_route)
         self.assertIn('scene_status: ["string", 40]', module_route)
-        self.assertIn('["plot-threads", "notes"].includes(collection)', module_route)
+        self.assertIn('["plot-threads", "notes", "world-lore", "timeline"].includes(collection)', module_route)
         self.assertIn("UPDATE story_notes SET chapter_ids_json", WORKER)
         self.assertIn('id="sceneTrackerList"', HTML)
         self.assertIn('id="addScene"', HTML)
@@ -276,7 +276,7 @@ class WorkerContractTests(unittest.TestCase):
             self.assertIn(control, APP)
         self.assertIn("promptCharacterReferences", APP)
         self.assertIn("characterReferenceNames", APP)
-        self.assertIn('notes: ["title", "content", "note_type", "pinned", "character_ids_json"]', APP)
+        self.assertIn('notes: ["title", "content", "note_type", "pinned", "character_ids_json", "chapter_ids_json", "scene_type", "scene_status"]', APP)
 
     def test_canonical_character_references_survive_backup_and_restore(self):
         restore = APP[APP.index("async function restoreCloudBackup"):APP.index("function restoreFromFile")]
@@ -284,9 +284,9 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('character_ids_json: ["json_array", 8000]', WORKER)
         self.assertIn('"character_ids_json"', restore)
         self.assertIn('"plot-threads": ["title", "summary", "status", "sort_order", "character_ids_json"]', restore)
-        self.assertIn('"world-lore": ["category", "title", "content", "sort_order", "character_ids_json"]', restore)
-        self.assertIn('timeline: ["title", "description", "story_time", "sort_order", "character_ids_json"]', restore)
-        self.assertIn('notes: ["title", "content", "note_type", "pinned", "character_ids_json"]', restore)
+        self.assertIn('"world-lore": ["category", "title", "content", "sort_order", "character_ids_json", "chapter_ids_json"]', restore)
+        self.assertIn('timeline: ["title", "description", "story_time", "sort_order", "character_ids_json", "chapter_ids_json"]', restore)
+        self.assertIn('notes: ["title", "content", "note_type", "pinned", "character_ids_json", "chapter_ids_json", "scene_type", "scene_status"]', restore)
         self.assertIn('for (const collection of ["plot-threads", "world-lore", "timeline", "notes"])', validation)
         self.assertIn('characterIds.has(id)', validation)
 
