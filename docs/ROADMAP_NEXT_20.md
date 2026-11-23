@@ -18,14 +18,14 @@ The sequence is deliberately writer-first. Status is updated only after code and
 | 10 | Chapter synopsis fields | Store per-chapter summary for navigation and context assembly | Implemented; CI passed; migration 0010 pending runtime application |
 | 11 | Manuscript outline view | Reorder chapters and inspect synopsis/scene coverage before drafting | Implemented; CI passed |
 | 12 | Editor usability pass | Improve tablet toolbar, focus mode, keyboard and Thai typing behavior | Implemented; tablet toolbar, focus/save shortcuts and Thai IME composition handling; CI passed |
-| 13 | Save/recovery acceptance | Test autosave, conflict, offline draft, reload and restore on real browser | Blocked: requires isolated staging Worker/D1 and browser/device execution; code-level recovery regressions pass CI |
+| 13 | Save/recovery acceptance | Test autosave, conflict, offline draft, reload and restore on real browser | Code-level race/recovery regressions pass CI, including typing during an in-flight save; live browser/device acceptance blocked on isolated staging Worker/D1 |
 | 14 | TXT export validation | Verify complete multi-chapter Thai output and stable ordering | Implemented and tested with multi-chapter Thai fixtures and project isolation; CI passed |
 | 15 | DOCX validation | Verify headings, Thai typography, embedded images and metadata in office-reader package tests; real reader QA pending | Implemented package tests for multi-chapter Thai, TOC, page breaks and publishing metadata; real reader QA pending |
 | 16 | EPUB validation | Verify metadata, navigation, chapter XHTML, image embedding and Thai rendering | Implemented package tests for Thai language, chapter navigation and publication metadata; real e-reader QA pending |
 | 17 | Publishing metadata | Add title page, pen name, copyright, foreword and author bio fields | Implemented per-project metadata fields and TXT/DOCX/EPUB metadata export; CI passed; migration 0011 pending runtime application |
 | 18 | Cover Studio persistence | Persist cover brief, prompt and selected character references per project; approved artwork selection awaits image assets | Implemented Cloud/local project-scoped brief persistence; approved cover asset workflow remains pending; migration 0012 pending runtime application |
 | 19 | Illustration asset workflow | Categorize, filter, caption and reinsert project-local illustrations with backup checks | Implemented categories, filtering, captions and reinsert; library remains device-local by design |
-| 20 | Private-beta QA gate | Browser/tablet, isolation, backup/restore, security and accessibility test report | QA gate checklist documented; gate remains blocked until staging/browser/device and backup-restore drills pass |
+| 20 | Private-beta QA gate | Browser/tablet, isolation, backup/restore, security and accessibility test report | QA gate checklist corrected to require migrations 0001–0012 on isolated staging; release remains blocked pending staging/browser/device and backup-restore drills |
 
 ## Current execution note
 
