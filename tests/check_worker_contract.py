@@ -214,6 +214,19 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('ยังไม่มีระบบสร้างภาพปกเชื่อมต่ออยู่', HTML)
         self.assertIn('.cover-studio-grid', CSS)
 
+    def test_illustration_studio_inserts_project_content_images_safely(self):
+        for fragment in ('data-tab="illustrations"', 'id="illustrations"', 'id="illustrationFile"',
+                         'id="illustrationCaption"', 'id="insertIllustration"', 'id="illustrationPrompt"'):
+            self.assertIn(fragment, HTML)
+        self.assertIn('function compressIllustration(file)', APP)
+        self.assertIn('function buildIllustrationPromptText()', APP)
+        self.assertIn('function insertIllustrationAtCursor()', APP)
+        self.assertIn('data:image\\/(?:png|jpeg|webp);base64', APP)
+        self.assertIn('node.tagName === "IMG"', APP)
+        self.assertIn('setupIllustrationStudio();', APP)
+        self.assertIn('ยังไม่มีผู้ให้บริการสร้างภาพเชื่อมต่อ', HTML)
+        self.assertIn('.illustration-studio-grid', CSS)
+
     def test_html_ids_are_unique(self):
         parser = IdCollector()
         parser.feed(HTML)
