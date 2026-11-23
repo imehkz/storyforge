@@ -120,6 +120,16 @@
             <label for="genre">แนวนิยาย</label><select id="genre"><option>แฟนตาซี</option><option>โรแมนซ์</option><option>สืบสวน / ระทึกขวัญ</option><option>วาย / BL</option><option>ไซไฟ</option><option>ดราม่า</option><option>Historical</option><option value="__custom__">อื่น ๆ (ระบุเอง)</option></select>
             <div id="customGenreField" hidden><label for="customGenre">พิมพ์แนวนิยายที่ต้องการ</label><input id="customGenre" type="text" maxlength="80" placeholder="เช่น พีเรียดแฟนตาซี, Cozy Mystery, โรแมนติกคอมเมดี้"></div>
             <label for="context">เรื่องย่อและข้อมูลสำคัญ</label><textarea id="context" rows="6" placeholder="โลกของเรื่อง ตัวละครหลัก แนวคิด และสิ่งที่ต้องจำ..."></textarea>
+            <details class="writing-settings card-frame publication-settings">
+              <summary><strong>ข้อมูลสำหรับจัดพิมพ์</strong><span>นามปากกา · ลิขสิทธิ์ · คำนำ · ประวัติผู้เขียน</span></summary>
+              <div class="writing-settings-grid">
+                <div><label for="penName">นามปากกา</label><input id="penName" maxlength="120" placeholder="ชื่อที่ใช้บนหน้าปก"></div>
+                <div><label for="copyrightText">ข้อความลิขสิทธิ์</label><input id="copyrightText" maxlength="300" placeholder="เช่น Copyright © 2026 นามปากกา"></div>
+                <div class="publication-wide"><label for="foreword">คำนำ</label><textarea id="foreword" rows="4" maxlength="10000" placeholder="ข้อความคำนำหรือคำชี้แจงก่อนเริ่มเรื่อง"></textarea></div>
+                <div class="publication-wide"><label for="authorBio">ประวัติผู้เขียน</label><textarea id="authorBio" rows="3" maxlength="3000" placeholder="แนะนำตัวผู้เขียนสำหรับท้ายเล่ม"></textarea></div>
+              </div>
+              <p class="form-hint">บันทึกแยกตามนิยาย และใช้ประกอบไฟล์ส่งออกเมื่อจัดทำต้นฉบับฉบับเต็ม</p>
+            </details>
             <details class="writing-settings card-frame" open>
               <summary><strong>ตั้งค่าการเขียนนิยาย</strong><span>จำนวนตอน · จำนวนคำ · แนวและระดับความเข้มข้น</span></summary>
               <div class="writing-settings-grid">
