@@ -243,7 +243,7 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('characterIds.has(id)', validation)
 
     def test_ai_context_includes_canonical_character_links(self):
-        context = APP[APP.index("function buildStoryAssistantContext"):APP.index("function copyStoryContext")]
+        context = APP[APP.index("function buildStoryAssistantContext"):APP.index("async function copyStoryText")]
         self.assertGreaterEqual(context.count('JSON.parse(item.character_ids_json || "[]")'), 3)
         self.assertIn("ตัวละครที่เกี่ยวข้อง:", context)
 
