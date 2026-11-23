@@ -1713,6 +1713,40 @@ function renderRelationshipOptions() {
   });
 }
 
+async function hydrateRelationshipPortraits(svg, characters, projectId) {
+  if (!svg || !projectId || !characters.length) return;
+  const ns = "http://www.w3.org/2000/svg";
+  for (const character of characters) {
+    try {
+      const records = await characterVaultRecords(projectId, character.id);
+      const canonical = records.find(record => record.canonical) || records[records.length - 1];
+      if (!canonical || !svg.isConnected) continue;
+      const node = svg.querySelector('[data-character-id="' + CSS.escape(character.id) + '"]');
+      if (!node) continue;
+      const rect = node.querySelector("rect");
+      const x = Number(rect?.getAttribute("x")) || 0;
+      const y = Number(rect?.getAttribute("y")) || 0;
+      const clipId = "portrait_" + String(character.id).replace(/[^a-zA-Z0-9_-]/g, "");
+      const defs = svg.querySelector("defs") || document.createElementNS(ns, "defs");
+      if (!defs.parentNode) svg.prepend(defs);
+      const clip = document.createElementNS(ns, "clipPath");
+      clip.setAttribute("id", clipId);
+      const circle = document.createElementNS(ns, "circle");
+      circle.setAttribute("cx", String(x + 27)); circle.setAttribute("cy", String(y + 33)); circle.setAttribute("r", "17");
+      clip.appendChild(circle); defs.appendChild(clip);
+      const image = document.createElementNS(ns, "image");
+      image.setAttribute("href", canonical.dataUrl);
+      image.setAttribute("x", String(x + 10)); image.setAttribute("y", String(y + 16));
+      image.setAttribute("width", "34"); image.setAttribute("height", "34");
+      image.setAttribute("preserveAspectRatio", "xMidYMid slice");
+      image.setAttribute("clip-path", "url(#" + clipId + ")");
+      node.appendChild(image);
+    } catch (error) {
+      console.warn("Character portrait unavailable", error);
+    }
+  }
+}
+
 function renderRelationshipGraph() {
   const target = $("relationshipGraph");
   if (!target) return;
@@ -1765,6 +1799,7 @@ function renderRelationshipGraph() {
   }).join("");
   target.innerHTML = `<div class="relationship-graph-tools"><span>ลากการ์ดเพื่อจัดตำแหน่ง · แตะตัวละครเพื่อดูข้อมูล</span><button type="button" class="outline-button compact" id="resetRelationshipLayout">จัดผังใหม่</button></div><svg viewBox="0 0 ${width} ${height}" width="100%" role="group" aria-label="แผนผังสายใยความสัมพันธ์ของตัวละคร">${edges}${nodes}</svg><div class="relationship-legend"><span><i style="background:#d58aa9"></i>ความรัก</span><span><i style="background:#c66b70"></i>ศัตรู/ขัดแย้ง</span><span><i style="background:#7da7d8"></i>ครอบครัว</span><span><i style="background:#83b99a"></i>พันธมิตร</span><span><i style="background:#c5a15b"></i>ผู้ชี้แนะ</span></div>`;
   const svg=target.querySelector("svg");
+  hydrateRelationshipPortraits(svg, characters, cloud.activeProjectId);
   target.querySelectorAll(".relationship-node").forEach(node=>{
     node.addEventListener("pointerdown",event=>{
       if(event.button!==0) return;
@@ -2097,12 +2132,15 @@ async function addCharacterReference(file) {
   await renderCharacterVault();
 }
 function setupCharacterVault() {
-  $("characterReferenceFile")?.addEventListener("change", async event => {
+  if ($("characterReferenceFile") && !$("characterReferenceFile").dataset.vaultBound) {
+    $("characterReferenceFile").dataset.vaultBound = "true";
+    $("characterReferenceFile").addEventListener("change", async event => {
     try {
       $("characterVaultStatus").textContent = "กำลังย่อและบันทึกภาพ...";
       await addCharacterReference(event.target.files?.[0]);
     } catch (error) { $("characterVaultStatus").textContent = error.message; }
-  });
+    });
+  }
   renderCharacterVault();
 }
 
