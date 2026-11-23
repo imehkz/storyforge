@@ -270,15 +270,15 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("hydrateRelationshipPortraits(svg, characters, cloud.activeProjectId)", APP)
         self.assertIn('image.setAttribute("href", canonical.dataUrl)', APP)
 
-    def test_character_reference_vault_is_in_backup_v3(self):
+    def test_character_reference_vault_is_in_backup_v4(self):
         self.assertIn("async function collectCharacterVaultBackup(cloudProjects)", APP)
         self.assertIn("async function restoreCharacterVaultRecords(records)", APP)
         self.assertIn("function validateCharacterVaultBackup(records, cloudProjects)", APP)
-        self.assertIn("version: 3", APP)
+        self.assertIn("version: 4", APP)
         self.assertIn("characterVault", APP)
         self.assertIn("restoreCharacterVaultRecords(characterVault)", APP)
         self.assertIn("backup.version >= 3", APP)
-        self.assertIn("รวมในไฟล์ Backup รุ่น 3", HTML)
+        self.assertIn("รวมในไฟล์ Backup รุ่น 4", HTML)
 
     def test_character_reference_images_can_be_inserted_into_manuscript(self):
         self.assertIn("data-reference-insert", APP)
