@@ -2633,6 +2633,12 @@ function renderPlotBoard(items) {
       `<article class="plot-board-card">
         <b>${escapeHtml(item.title)}</b>
         <p>${escapeHtml(item.summary || "ยังไม่มีคำอธิบาย")}</p>
+        <div class="plot-linked-chapters"><small>เชื่อมกับบท ${plotChapterIds(item).length}/${(cloud.chapters || []).length} บท</small>
+          ${plotChapterIds(item).map(id => {
+            const chapter = cloud.chapters.find(row => row.id === id);
+            return chapter ? '<button type="button" class="plot-chapter-link" data-plot-chapter="' + escapeHtml(id) + '">' + escapeHtml(chapter.title || "บทไม่มีชื่อ") + '</button>' : '<span class="plot-chapter-missing">บทที่อ้างอิงไม่พบ</span>';
+          }).join("") || '<span class="plot-chapter-missing">ยังไม่ได้เชื่อมบท</span>'}
+        </div>
         <select data-plot-status="${escapeHtml(item.id)}" aria-label="เปลี่ยนสถานะเส้นเรื่อง">
           ${columns.map(option => `<option value="${option.key}" ${option.key === item.status ? "selected" : ""}>${option.title}</option>`).join("")}
         </select>
@@ -2641,6 +2647,9 @@ function renderPlotBoard(items) {
     ).join("");
     return `<section class="plot-board-column"><header><b>${column.title}</b><span>${items.filter(item => item.status === column.key).length}</span></header>${cards || '<p class="muted-note">ยังไม่มีเส้นเรื่อง</p>'}</section>`;
   }).join("");
+  target.querySelectorAll("[data-plot-chapter]").forEach(button =>
+    button.addEventListener("click", () => selectCloudChapter(button.dataset.plotChapter))
+  );
   target.querySelectorAll("[data-plot-status]").forEach(select => {
     select.addEventListener("change", async () => {
       try {
@@ -2695,12 +2704,48 @@ function populateModuleCharacterSelectors() {
     Array.from(select.options).forEach(option => { option.selected = selected.has(option.value); });
     select.disabled = !characters.length;
   }
+  const chapterSelect = $("plotChapters");
+  if (chapterSelect) {
+    const selected = new Set(Array.from(chapterSelect.selectedOptions || []).map(option => option.value));
+    chapterSelect.innerHTML = (cloud.chapters || []).map(chapter =>
+      '<option value="' + escapeHtml(chapter.id) + '">' + escapeHtml(chapter.title || "บทไม่มีชื่อ") + '</option>'
+    ).join("");
+    Array.from(chapterSelect.options).forEach(option => { option.selected = selected.has(option.value); });
+    chapterSelect.disabled = !cloud.chapters.length;
+  }
 }
 
 function characterReferenceNames(item) {
   let ids = [];
   try { ids = JSON.parse(item.character_ids_json || "[]"); } catch {}
   return ids.map(id => (cloud.modules.characters || []).find(character => character.id === id)?.name).filter(Boolean);
+}
+
+function plotChapterIds(item) {
+  try {
+    const ids = JSON.parse(item?.chapter_ids_json || "[]");
+    return Array.isArray(ids) ? ids.filter(id => typeof id === "string") : [];
+  } catch { return []; }
+}
+
+function plotChapterNames(item) {
+  return plotChapterIds(item).map(id => cloud.chapters.find(chapter => chapter.id === id)?.title || "บทที่ไม่พบ");
+}
+
+function promptChapterReferences(currentIds) {
+  const chapters = cloud.chapters || [];
+  if (!chapters.length) return [];
+  const menu = chapters.map((chapter, index) => (index + 1) + ". " + (chapter.title || "บทไม่มีชื่อ")).join("\n");
+  const current = (currentIds || []).map(id => chapters.findIndex(chapter => chapter.id === id) + 1).filter(n => n > 0).join(", ");
+  const answer = prompt("เลือกบทที่เส้นเรื่องนี้เกี่ยวข้อง ใส่หมายเลขคั่นด้วยจุลภาค (เว้นว่าง = ยังไม่เชื่อมบท):\n" + menu, current);
+  if (answer === null) return null;
+  if (!answer.trim()) return [];
+  const indexes = answer.split(",").map(value => Number(value.trim()) - 1);
+  if (indexes.some(index => !Number.isInteger(index) || index < 0 || index >= chapters.length) || new Set(indexes).size !== indexes.length) {
+    alert("หมายเลขบทไม่ถูกต้อง");
+    return null;
+  }
+  return indexes.map(index => chapters[index].id);
 }
 
 function promptCharacterReferences(currentIds) {
@@ -2746,7 +2791,11 @@ function renderModuleLists() {
   }, item => [item.relationship_type, item.description].filter(Boolean).join(" · "));
   render("plotList", plots, "plot-threads", item => item.title, item => {
     const labels = { planned: "วางแผน", in_progress: "กำลังดำเนิน", completed: "เสร็จแล้ว", paused: "พักไว้" };
-    return (labels[item.status] || item.status) + (item.summary ? " · " + item.summary : "") + (characterReferenceNames(item).length ? " · ตัวละคร: " + characterReferenceNames(item).join(", ") : "");
+    const linked = plotChapterNames(item);
+    return (labels[item.status] || item.status) + (item.summary ? " · " + item.summary : "") +
+      (characterReferenceNames(item).length ? " · ตัวละคร: " + characterReferenceNames(item).join(", ") : "") +
+      " · เชื่อมกับบท " + linked.length + "/" + (cloud.chapters || []).length +
+      (linked.length ? " · " + linked.join(", ") : " · ยังไม่เชื่อมบท");
   });
   render("worldList", worlds, "world-lore", item => item.title, item => [item.category, item.content, characterReferenceNames(item).length ? "ตัวละคร: " + characterReferenceNames(item).join(", ") : ""].filter(Boolean).join(" · "));
   render("timelineList", timeline, "timeline", item => item.title, item => [item.story_time, item.description, characterReferenceNames(item).length ? "ตัวละคร: " + characterReferenceNames(item).join(", ") : ""].filter(Boolean).join(" · "));
@@ -3063,7 +3112,9 @@ async function editModuleItem(collection, itemId) {
     if (summary === null) return;
     const character_ids = promptCharacterReferences(JSON.parse(item.character_ids_json || "[]"));
     if (character_ids === null) return;
-    payload = { title, summary, character_ids_json: character_ids };
+    const chapter_ids = promptChapterReferences(plotChapterIds(item));
+    if (chapter_ids === null) return;
+    payload = { title, summary, character_ids_json: character_ids, chapter_ids_json: chapter_ids };
   } else if (collection === "world-lore") {
     const category = prompt("หมวดหมู่ (place / history / rule / culture / faction / other)", item.category || "other");
     if (category === null) return;
@@ -3141,8 +3192,8 @@ function setupModuleEvents() {
   $("addPlot")?.addEventListener("click", () => {
     const title = $("plotTitle").value.trim();
     if (!title) return alert("กรุณาระบุชื่อเส้นเรื่อง");
-    createModuleItem("plot-threads", { title, summary: $("plotSummary").value, status: $("plotStatus").value, character_ids_json: selectedModuleCharacterIds("plotCharacters"), sort_order: cloud.modules["plot-threads"].length })
-      .then(ok => { if (ok) { $("plotTitle").value = ""; $("plotSummary").value = ""; } });
+    createModuleItem("plot-threads", { title, summary: $("plotSummary").value, status: $("plotStatus").value, character_ids_json: selectedModuleCharacterIds("plotCharacters"), chapter_ids_json: selectedModuleCharacterIds("plotChapters"), sort_order: cloud.modules["plot-threads"].length })
+      .then(ok => { if (ok) { $("plotTitle").value = ""; $("plotSummary").value = ""; Array.from($("plotCharacters").options).forEach(option => { option.selected = false; }); Array.from($("plotChapters").options).forEach(option => { option.selected = false; }); } });
   });
   $("addWorld")?.addEventListener("click", () => {
     const title = $("worldTitle").value.trim();
