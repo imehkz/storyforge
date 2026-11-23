@@ -229,6 +229,7 @@
         <div class="two-column">
           <div class="card-frame form-card"><h2>เพิ่มเส้นเรื่อง</h2><label for="plotTitle">ชื่อเส้นเรื่อง</label><input id="plotTitle" maxlength="200" placeholder="เช่น ความลับของราชบัลลังก์">
             <label for="plotSummary">เรื่องย่อ / จุดเปลี่ยน</label><textarea id="plotSummary" rows="6"></textarea>
+            <label for="plotCharacters">ตัวละครที่เกี่ยวข้อง</label><select id="plotCharacters" multiple size="4" aria-describedby="plotCharactersHint"></select><p id="plotCharactersHint" class="form-hint">เลือกได้หลายคนจากตัวละครในนิยายนี้</p>
             <label for="plotStatus">สถานะ</label><select id="plotStatus"><option value="planned">วางแผน</option><option value="in_progress">กำลังดำเนิน</option><option value="completed">เสร็จแล้ว</option><option value="paused">พักไว้</option></select>
             <button id="addPlot" class="gold-button" type="button">บันทึกเส้นเรื่อง</button>
           </div>
@@ -241,6 +242,7 @@
           <div class="card-frame form-card"><h2>เพิ่มข้อมูลโลก</h2><label for="worldCategory">หมวดหมู่</label><select id="worldCategory"><option value="place">สถานที่</option><option value="history">ประวัติศาสตร์</option><option value="rule">กฎของโลก</option><option value="culture">วัฒนธรรม</option><option value="faction">กลุ่ม / องค์กร</option><option value="other">อื่น ๆ</option></select>
             <label for="worldTitle">ชื่อข้อมูล</label><input id="worldTitle" maxlength="200" placeholder="ชื่อสถานที่หรือหัวข้อ">
             <label for="worldContent">รายละเอียด</label><textarea id="worldContent" rows="7"></textarea>
+            <label for="worldCharacters">ตัวละครที่เกี่ยวข้อง</label><select id="worldCharacters" multiple size="4" aria-describedby="worldCharactersHint"></select><p id="worldCharactersHint" class="form-hint">เลือกได้หลายคนจากตัวละครในนิยายนี้</p>
             <button id="addWorld" class="gold-button" type="button">บันทึกข้อมูลโลก</button>
           </div>
           <div class="card-frame collection-card"><h2>สารานุกรมโลกนิยาย</h2><div id="worldList" class="module-list">เข้าสู่ระบบและเลือกโครงการเพื่อโหลดข้อมูลโลก</div></div>
@@ -252,6 +254,7 @@
           <div class="card-frame form-card"><h2>เพิ่มเหตุการณ์</h2><label for="timelineTime">เวลาในเรื่อง</label><input id="timelineTime" maxlength="120" placeholder="เช่น ปีที่ 302 · วันที่ 14 เดือนจันทรา">
             <label for="timelineTitle">ชื่อเหตุการณ์</label><input id="timelineTitle" maxlength="200">
             <label for="timelineDescription">รายละเอียด</label><textarea id="timelineDescription" rows="6"></textarea>
+            <label for="timelineCharacters">ตัวละครที่เกี่ยวข้อง</label><select id="timelineCharacters" multiple size="4" aria-describedby="timelineCharactersHint"></select><p id="timelineCharactersHint" class="form-hint">เลือกได้หลายคนจากตัวละครในนิยายนี้</p>
             <button id="addTimeline" class="gold-button" type="button">บันทึกเหตุการณ์</button>
           </div>
           <div class="card-frame collection-card"><h2>เส้นเวลา</h2><div id="timelineList" class="module-list" hidden>เข้าสู่ระบบและเลือกโครงการเพื่อโหลดไทม์ไลน์</div><div id="timelineView" class="timeline-view" aria-label="เส้นเวลาเหตุการณ์"></div></div>
