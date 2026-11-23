@@ -86,6 +86,12 @@ assert.ok(currentDraftCheck >= 0 &&
   saveHandler.includes("const saveStillCurrent = currentDraft.title === draft.title") &&
   conditionalDraftStore > currentDraftCheck && guardedDraftStore > conditionalDraftStore,
   "a stale Cloud save response must not overwrite a newer local recovery draft");
+assert.ok(saveHandler.includes("if (saveStillCurrent) {") &&
+  saveHandler.includes("มีการแก้ไขใหม่ · กำลังบันทึกต่อ") &&
+  saveHandler.includes("กำลังส่งข้อความที่แก้ไขล่าสุดขึ้น Cloud"),
+  "the UI must not claim the chapter is fully saved while newer edits are still pending");
+assert.ok(saveHandler.includes("if (saveStillCurrent && $(\"recoverLocalDraft\"))"),
+  "a newer local draft must not have its recovery affordance hidden by an older save response");
 
 const historyStart = app.indexOf("async function showChapterHistory()");
 const historyEnd = app.indexOf("\nasync function importLocalNovelData", historyStart);
