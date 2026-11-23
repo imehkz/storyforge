@@ -74,6 +74,11 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("publicationFrontMatter", APP)
         self.assertIn("publicationBackMatter", APP)
         self.assertIn("dc:rights", APP)
+        self.assertIn("validateCoverBrief", project_route)
+        self.assertIn("cover_brief_json", project_route)
+        self.assertIn("cover_brief_json: serialized", APP)
+        self.assertIn("cloudBrief", APP)
+        self.assertIn("createdCanonChapterLinks", APP)
 
 
     def test_local_import_uses_stable_client_ids(self):
