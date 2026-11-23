@@ -3768,8 +3768,10 @@ async function showChapterHistory() {
     panel.textContent = "ประวัติเวอร์ชันจะแสดงเมื่อเลือกบทที่บันทึกบน Cloud";
     return;
   }
+  const chapterId = cloud.activeChapterId;
   try {
-    const result = await cloudApi("/api/chapters/" + encodeURIComponent(cloud.activeChapterId) + "/snapshots");
+    const result = await cloudApi("/api/chapters/" + encodeURIComponent(chapterId) + "/snapshots");
+    if (cloud.activeChapterId !== chapterId) return;
     const snapshots = result.snapshots || [];
     panel.hidden = false;
     panel.innerHTML = snapshots.length
@@ -3780,12 +3782,17 @@ async function showChapterHistory() {
       : "<strong>ประวัติเวอร์ชัน</strong><p>ยังไม่มี Snapshot ก่อนหน้า</p>";
     panel.querySelectorAll("[data-restore-snapshot]").forEach(button => {
       button.addEventListener("click", async () => {
+        if (cloud.activeChapterId !== chapterId) return;
         if (!confirm("ต้องการกู้คืนฉบับนี้หรือไม่? ระบบจะเก็บฉบับปัจจุบันเป็น Snapshot ก่อน")) return;
         try {
-          const restored = await cloudApi("/api/chapters/" + encodeURIComponent(cloud.activeChapterId) + "/restore", {
+          const restored = await cloudApi("/api/chapters/" + encodeURIComponent(chapterId) + "/restore", {
             method: "POST",
             body: JSON.stringify({ snapshotId: button.dataset.restoreSnapshot })
           });
+          if (cloud.activeChapterId !== chapterId) return;
+          if (!restored.chapter || restored.chapter.id !== chapterId) {
+            throw new Error("ข้อมูล Snapshot ที่ได้รับไม่ตรงกับบทที่เลือก");
+          }
           cloud.revision = restored.chapter.revision;
           cloud.chapters = cloud.chapters.map(item => item.id === restored.chapter.id ? restored.chapter : item);
           await selectCloudChapter(restored.chapter.id);
