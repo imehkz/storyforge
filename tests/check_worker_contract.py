@@ -201,6 +201,19 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('" · ID: " + active.id', APP)
         self.assertIn('" · Project ID: " + active.id', APP)
 
+    def test_book_cover_studio_is_project_scoped_and_does_not_fake_image_generation(self):
+        for fragment in ('data-tab="cover"', 'id="cover"', 'id="coverTitle"', 'id="coverPenName"',
+                         'id="coverCharacters"', 'id="coverBlurb"', 'id="coverDirection"',
+                         'id="coverPrompt"', 'id="copyCoverPrompt"'):
+            self.assertIn(fragment, HTML)
+        self.assertIn('function activeCoverProject()', APP)
+        self.assertIn('function coverBriefKey(projectId) { return "sf_cover_brief_" + projectId; }', APP)
+        self.assertIn('project.id === cloud.activeProjectId', APP)
+        self.assertIn('function buildCoverPromptText()', APP)
+        self.assertIn('setupCoverStudio();', APP)
+        self.assertIn('ยังไม่มีระบบสร้างภาพปกเชื่อมต่ออยู่', HTML)
+        self.assertIn('.cover-studio-grid', CSS)
+
     def test_html_ids_are_unique(self):
         parser = IdCollector()
         parser.feed(HTML)
