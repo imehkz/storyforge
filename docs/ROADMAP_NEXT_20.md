@@ -14,9 +14,9 @@ The sequence is deliberately writer-first. Status is updated only after code and
 | 6 | Timeline-to-chapter linking | Events can reference relevant chapters without cross-project leakage | Implemented on test branch; migration 0009 and CI verification pending |
 | 7 | World-lore chapter links | Locations/rules can be traced to chapters that establish or use them | Implemented on test branch; migration 0009 and CI verification pending |
 | 8 | Plot-to-scene navigation | Plot cards expose their related scenes and chapter progression | Implemented by matching scenes and plots through linked chapter IDs; CI verification pending |
-| 9 | Chapter status metadata | Track outline/draft/revision/final state separately from save revision | Planned |
-| 10 | Chapter synopsis fields | Store per-chapter summary for navigation and context assembly | Planned |
-| 11 | Manuscript outline view | Reorder chapters and inspect synopsis/scene coverage before drafting | Planned |
+| 9 | Chapter status metadata | Track outline/draft/revision/final state separately from save revision | Implemented on test branch with revision snapshots; migration 0010 pending runtime application |
+| 10 | Chapter synopsis fields | Store per-chapter summary for navigation and context assembly | Implemented on test branch with backup/restore validation; migration 0010 pending runtime application |
+| 11 | Manuscript outline view | Reorder chapters and inspect synopsis/scene coverage before drafting | Implemented in chapter sidebar with status, synopsis preview, word count and linked-scene count |
 | 12 | Editor usability pass | Improve tablet toolbar, focus mode, keyboard and Thai typing behavior | Planned |
 | 13 | Save/recovery acceptance | Test autosave, conflict, offline draft, reload and restore on real browser | Planned |
 | 14 | TXT export validation | Verify complete multi-chapter Thai output and stable ordering | Planned |
