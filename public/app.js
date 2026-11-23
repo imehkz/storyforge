@@ -923,6 +923,121 @@ function showTab(tab, activeButton = null) {
   if ($("breadcrumbTitle")) $("breadcrumbTitle").textContent = label;
   if (tab === "projects") renderProjects();
   if (tab === "dashboard") renderDashboard();
+  if (tab === "cover") loadCoverBrief();
+}
+
+
+// ==========================================
+// BOOK COVER STUDIO — project-scoped local brief
+// ==========================================
+function activeCoverProject() {
+  if (cloud.ready && cloud.activeProjectId) {
+    return cloud.projects.find(project => project.id === cloud.activeProjectId) || null;
+  }
+  const projects = safeJSON(localStorage.getItem("sf_projects") || "[]", []);
+  const activeId = localStorage.getItem("sf_active_project_id");
+  return Array.isArray(projects) ? projects.find(project => project.id === activeId) || projects[0] || null : null;
+}
+function coverBriefKey(projectId) { return "sf_cover_brief_" + projectId; }
+function selectedCoverCharacterNames() {
+  const select = $("coverCharacters");
+  return select ? Array.from(select.selectedOptions).map(option => option.textContent) : [];
+}
+function refreshCoverCharacterOptions(selectedIds = []) {
+  const select = $("coverCharacters");
+  if (!select) return;
+  const project = activeCoverProject();
+  const characters = project && cloud.ready && project.id === cloud.activeProjectId
+    ? (cloud.modules.characters || [])
+    : [];
+  select.replaceChildren();
+  characters.forEach(character => {
+    const option = document.createElement("option");
+    option.value = character.id;
+    option.textContent = character.name || "ตัวละครไม่มีชื่อ";
+    option.selected = selectedIds.includes(character.id);
+    select.appendChild(option);
+  });
+  if (!characters.length) {
+    const option = document.createElement("option");
+    option.disabled = true;
+    option.textContent = "ยังไม่มีตัวละครในนิยายที่เชื่อม Cloud";
+    select.appendChild(option);
+  }
+}
+function readCoverBrief() {
+  return {
+    projectId: activeCoverProject()?.id || "",
+    title: $("coverTitle")?.value.trim() || "",
+    penName: $("coverPenName")?.value.trim() || "",
+    style: $("coverStyle")?.value || "Classic Storybook",
+    characterIds: Array.from($("coverCharacters")?.selectedOptions || []).map(option => option.value).filter(Boolean),
+    blurb: $("coverBlurb")?.value.trim() || "",
+    direction: $("coverDirection")?.value.trim() || "",
+    prompt: $("coverPrompt")?.value || ""
+  };
+}
+function renderCoverPreview() {
+  if ($("coverPreviewTitle")) $("coverPreviewTitle").textContent = $("coverTitle")?.value.trim() || "ชื่อเรื่องของคุณ";
+  if ($("coverPreviewAuthor")) $("coverPreviewAuthor").textContent = $("coverPenName")?.value.trim() || "นามปากกา";
+  if ($("coverPreviewStyle")) $("coverPreviewStyle").textContent = ($("coverStyle")?.value || "Classic Storybook").toUpperCase();
+}
+function loadCoverBrief() {
+  const project = activeCoverProject();
+  const brief = project ? safeJSON(localStorage.getItem(coverBriefKey(project.id)) || "{}", {}) : {};
+  $("coverTitle").value = brief.title || project?.title || "";
+  $("coverPenName").value = brief.penName || "";
+  $("coverStyle").value = brief.style || "Classic Storybook";
+  $("coverBlurb").value = brief.blurb || "";
+  $("coverDirection").value = brief.direction || "";
+  $("coverPrompt").value = brief.prompt || "";
+  refreshCoverCharacterOptions(Array.isArray(brief.characterIds) ? brief.characterIds : []);
+  renderCoverPreview();
+  $("coverSaveStatus").textContent = project
+    ? "กำลังแก้ไขปกของ “" + (project.title || "นิยายนี้") + "” · Project ID: " + project.id
+    : "กรุณาสร้างหรือเลือกนิยายก่อนบันทึกแนวทางปก";
+}
+function buildCoverPromptText() {
+  const brief = readCoverBrief();
+  const project = activeCoverProject();
+  if (!project) throw new Error("กรุณาสร้างหรือเลือกนิยายก่อน");
+  const characterNames = selectedCoverCharacterNames();
+  return [
+    "Book cover illustration for a Thai novel.",
+    "Book title: " + (brief.title || project.title || "Untitled"),
+    "Author pen name: " + (brief.penName || "Not specified"),
+    "Visual style: " + brief.style,
+    "Characters from this project only: " + (characterNames.join(", ") || "No named character selected"),
+    "Back-cover blurb / story premise: " + (brief.blurb || "Not provided"),
+    "Art direction and composition: " + (brief.direction || "Create a balanced, polished literary cover composition."),
+    "Design requirements: professional publishing quality, strong focal point, legible title area, coherent lighting and palette, no random lettering, no watermark."
+  ].join("\n");
+}
+function setupCoverStudio() {
+  ["coverTitle","coverPenName","coverStyle"].forEach(id => $(id)?.addEventListener("input", renderCoverPreview));
+  $("coverStyle")?.addEventListener("change", renderCoverPreview);
+  $("saveCoverBrief")?.addEventListener("click", () => {
+    const brief = readCoverBrief();
+    if (!brief.projectId) { $("coverSaveStatus").textContent = "ยังไม่มีนิยายที่เลือก กรุณาไปที่คลังนิยายก่อน"; return; }
+    localStorage.setItem(coverBriefKey(brief.projectId), JSON.stringify(brief));
+    $("coverSaveStatus").textContent = "บันทึกแนวทางปกของนิยายนี้ในอุปกรณ์แล้ว";
+  });
+  $("resetCoverBrief")?.addEventListener("click", loadCoverBrief);
+  $("buildCoverPrompt")?.addEventListener("click", () => {
+    try { $("coverPrompt").value = buildCoverPromptText(); }
+    catch (error) { $("coverSaveStatus").textContent = error.message; }
+  });
+  $("copyCoverPrompt")?.addEventListener("click", async () => {
+    try {
+      if (!$("coverPrompt").value.trim()) $("coverPrompt").value = buildCoverPromptText();
+      await copyStoryText($("coverPrompt").value);
+      $("coverSaveStatus").textContent = "คัดลอก Prompt แล้ว — ยังไม่มีการส่งข้อมูลไปบริการภายนอก";
+    } catch (error) { $("coverSaveStatus").textContent = error.message; }
+  });
+  document.querySelectorAll("#cover input,#cover textarea,#cover select").forEach(field => {
+    field.addEventListener("input", renderCoverPreview);
+  });
+  loadCoverBrief();
 }
 
 function buildStoryAssistantContext() {
@@ -2833,6 +2948,7 @@ function init() {
   updateWordGoal();
   setupCloudEvents();
   setupModuleEvents();
+  setupCoverStudio();
   refreshAuthStatus();
 
   console.log("STORYFORGE initialized successfully");
