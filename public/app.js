@@ -1502,7 +1502,7 @@ const CHARACTER_PROFILE_FIELDS = [
   "characterAppearance", "characterPersonality", "characterMotivation",
   "characterBackstory", "characterStrengths", "characterWeaknesses",
   "characterLikes", "characterDislikes", "characterSkills", "characterFamily",
-  "characterSecret", "characterProfile"
+  "characterCustomFields", "characterSecret", "characterProfile"
 ];
 
 function characterProfileFromForm() {
@@ -1533,6 +1533,7 @@ function characterProfileFromForm() {
     dislikes: $("characterDislikes").value,
     skills: $("characterSkills").value,
     family: $("characterFamily").value,
+    customFields: $("characterCustomFields").value,
     secret: $("characterSecret").value,
     description: $("characterProfile").value
   };
@@ -1567,6 +1568,7 @@ function startEditCharacter(item) {
     characterStrengths: profile.strengths, characterWeaknesses: profile.weaknesses,
     characterLikes: profile.likes, characterDislikes: profile.dislikes,
     characterSkills: profile.skills, characterFamily: profile.family,
+    characterCustomFields: profile.customFields,
     characterSecret: profile.secret, characterProfile: profile.description
   };
   for (const [id, value] of Object.entries(values)) $(id).value = value || "";
