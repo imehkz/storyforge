@@ -93,6 +93,16 @@ class D1SchemaTests(unittest.TestCase):
                 "INSERT INTO relationships(id, project_id, source_character_id, target_character_id) VALUES ('r1','p1','a','b')"
             )
 
+    def test_story_notes_store_scene_tracking_fields(self):
+        columns = {row[1] for row in self.db.execute("PRAGMA table_info(story_notes)")}
+        self.assertTrue({"chapter_ids_json", "scene_type", "scene_status"}.issubset(columns))
+        self.seed_project()
+        self.db.execute("INSERT INTO chapters(id, project_id, title) VALUES ('scene-chapter','p1','Scene Chapter')")
+        self.db.execute("INSERT INTO story_notes(id, project_id, title, note_type, chapter_ids_json, scene_type, scene_status) VALUES ('scene-1','p1','Opening','scene', ?, 'setup', 'planned')", ('["scene-chapter"]',))
+        self.assertEqual(self.db.execute("SELECT chapter_ids_json, scene_type, scene_status FROM story_notes WHERE id='scene-1'").fetchone(), ('["scene-chapter"]', "setup", "planned"))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.db.execute("UPDATE story_notes SET chapter_ids_json = ? WHERE id='scene-1'", ("not-json",))
+
     def test_plot_threads_store_chapter_reference_arrays(self):
         columns = {row[1] for row in self.db.execute("PRAGMA table_info(plot_threads)")}
         self.assertIn("chapter_ids_json", columns)
