@@ -1656,6 +1656,7 @@ async function selectCloudProject(projectId) {
 async function loadCloudProject(projectId) {
   const result = await cloudApi("/api/projects/" + encodeURIComponent(projectId));
   const project = result.project;
+  if (cloud.activeProjectId && cloud.activeProjectId !== project.id) resetCharacterForm();
   cloud.activeProjectId = project.id;
   localStorage.setItem("sf_cloud_active_project_id", project.id);
   loadWritingSettings(project.id);
@@ -2064,6 +2065,10 @@ async function saveCharacterVaultRecord(record) {
     tx.onerror = () => { db.close(); reject(tx.error || new Error("บันทึกภาพไม่สำเร็จ")); };
   });
 }
+async function deleteCharacterVaultForCharacter(projectId, characterId) {
+  const records = await characterVaultRecords(projectId, characterId);
+  await Promise.all(records.map(record => deleteCharacterVaultRecord(record.id)));
+}
 async function deleteCharacterVaultRecord(id) {
   const db = await openCharacterVault();
   return new Promise((resolve, reject) => {
@@ -2086,6 +2091,7 @@ async function renderCharacterVault() {
   $("characterReferenceFile").disabled = false;
   try {
     const records = await characterVaultRecords(projectId, characterId);
+    if (cloud.activeProjectId !== projectId || cloud.editingCharacterId !== characterId) return;
     target.innerHTML = records.length ? records.map(record => `
       <article class="character-reference-card" data-reference-id="${escapeHtml(record.id)}">
         <img src="${record.dataUrl}" alt="${escapeHtml(record.label || "ภาพอ้างอิงตัวละคร")}" loading="lazy">
@@ -2238,6 +2244,7 @@ async function deleteModuleItem(collection, itemId) {
   if (collection === "characters" && cloud.editingCharacterId === itemId) resetCharacterForm();
   try {
     await cloudApi("/api/projects/" + encodeURIComponent(cloud.activeProjectId) + "/" + collection + "/" + encodeURIComponent(itemId), { method: "DELETE" });
+    if (collection === "characters") await deleteCharacterVaultForCharacter(cloud.activeProjectId, itemId);
     await loadProjectModules(cloud.activeProjectId);
   } catch (error) { alert("ลบรายการไม่สำเร็จ: " + error.message); }
 }
