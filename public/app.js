@@ -1593,11 +1593,13 @@ async function editModuleItem(collection, itemId) {
     if (summary === null) return;
     payload = { title, summary };
   } else if (collection === "world-lore") {
+    const category = prompt("หมวดหมู่ (place / history / rule / culture / faction / other)", item.category || "other");
+    if (category === null) return;
     const title = prompt("หัวข้อ", item.title);
     if (title === null) return;
     const content = prompt("รายละเอียด", item.content || "");
     if (content === null) return;
-    payload = { title, content };
+    payload = { category, title, content };
   } else if (collection === "timeline") {
     const title = prompt("ชื่อเหตุการณ์", item.title);
     if (title === null) return;
