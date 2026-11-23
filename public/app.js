@@ -930,6 +930,8 @@ async function restoreCloudBackup(backupProjects) {
           method: "PATCH", body: JSON.stringify({ status: "archived" })
         });
       }
+
+      // Characters and other canon records are restored before chapters so chapter references validate.
       for (const collection of collections) {
         const rows = entry.modules[collection] || [];
         if (!Array.isArray(rows)) throw new Error("ข้อมูล " + collection + " ใน Backup ไม่ถูกต้อง");
@@ -955,36 +957,20 @@ async function restoreCloudBackup(backupProjects) {
           });
         }
       }
+
       for (const chapter of entry.chapters) {
         const result = await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/chapters", {
           method: "POST",
-          body: JSON.stringify({ clientId: chapter.id, title: chapter.title || "", body: chapter.body || "", sortOrder: Number.isInteger(chapter.sort_order) ? chapter.sort_order : 0, wordCount: Number.isInteger(chapter.word_count) ? chapter.word_count : countWords(chapter.body || ""), character_ids_json: chapter.character_ids_json || "[]" })
+          body: JSON.stringify({
+            clientId: chapter.id,
+            title: chapter.title || "",
+            body: chapter.body || "",
+            sortOrder: Number.isInteger(chapter.sort_order) ? chapter.sort_order : 0,
+            wordCount: Number.isInteger(chapter.word_count) ? chapter.word_count : countWords(chapter.body || ""),
+            character_ids_json: chapter.character_ids_json || "[]"
+          })
         });
         if (result.created) createdItems.push({ projectId: project.id, path: "/api/chapters/" + encodeURIComponent(chapter.id) });
-      }
-        const rows = entry.modules[collection] || [];
-        if (!Array.isArray(rows)) throw new Error("ข้อมูล " + collection + " ใน Backup ไม่ถูกต้อง");
-        for (const item of rows) {
-          const payload = { clientId: item.id };
-          const allowed = {
-            characters: ["name", "role", "profile_json", "sort_order"],
-            relationships: ["source_character_id", "target_character_id", "relationship_type", "description"],
-            "plot-threads": ["title", "summary", "status", "sort_order", "character_ids_json"],
-            "world-lore": ["category", "title", "content", "sort_order", "character_ids_json"],
-            timeline: ["title", "description", "story_time", "sort_order", "character_ids_json"],
-            notes: ["title", "content", "note_type", "pinned", "character_ids_json"]
-          }[collection];
-          for (const field of allowed) {
-            if (item[field] !== undefined) payload[field] = field === "pinned" ? Boolean(item[field]) : item[field];
-          }
-          const result = await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/" + collection, {
-            method: "POST", body: JSON.stringify(payload)
-          });
-          if (result.created) createdItems.push({
-            projectId: project.id,
-            path: "/api/projects/" + encodeURIComponent(project.id) + "/" + collection + "/" + encodeURIComponent(item.id)
-          });
-        }
       }
     }
   } catch (restoreError) {
