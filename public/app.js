@@ -872,6 +872,18 @@ function validateCloudBackupData(backupProjects) {
         }
       }
     }
+    for (const collection of ["plot-threads", "world-lore", "timeline"]) {
+      for (const item of (entry.modules[collection] || [])) {
+        let references;
+        try { references = item.character_ids_json == null ? [] : JSON.parse(typeof item.character_ids_json === "string" ? item.character_ids_json : JSON.stringify(item.character_ids_json)); }
+        catch { throw new Error("รายการ " + collection + " มีรายการตัวละครที่อ้างอิงไม่ถูกต้อง"); }
+        if (!Array.isArray(references) || references.length > 50 ||
+            references.some(id => typeof id !== "string" || !UUID_RE.test(id) || !characterIds.has(id)) ||
+            new Set(references).size !== references.length) {
+          throw new Error("รายการ " + collection + " อ้างถึงตัวละครที่ไม่มีอยู่ในโครงการเดียวกัน");
+        }
+      }
+    }
     for (const relation of (entry.modules.relationships || [])) {
       if (!characterIds.has(relation.source_character_id) || !characterIds.has(relation.target_character_id)) {
         throw new Error("ความสัมพันธ์ใน Backup อ้างถึงตัวละครที่ไม่มีอยู่ในโครงการเดียวกัน");
@@ -923,9 +935,9 @@ async function restoreCloudBackup(backupProjects) {
           const allowed = {
             characters: ["name", "role", "profile_json", "sort_order"],
             relationships: ["source_character_id", "target_character_id", "relationship_type", "description"],
-            "plot-threads": ["title", "summary", "status", "sort_order"],
-            "world-lore": ["category", "title", "content", "sort_order"],
-            timeline: ["title", "description", "story_time", "sort_order"],
+            "plot-threads": ["title", "summary", "status", "sort_order", "character_ids_json"],
+            "world-lore": ["category", "title", "content", "sort_order", "character_ids_json"],
+            timeline: ["title", "description", "story_time", "sort_order", "character_ids_json"],
             notes: ["title", "content", "note_type", "pinned"]
           }[collection];
           for (const field of allowed) {
