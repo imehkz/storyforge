@@ -74,6 +74,16 @@ assert.ok(selectionHandler.includes("const selectionToken = ++cloud.chapterSelec
 assert.ok(selectionHandler.includes("loaded.chapter.id !== chapterId"),
   "chapter selection must verify the returned chapter ID");
 
+const saveStart = app.indexOf("async function saveCloudChapter()");
+const saveEnd = app.indexOf("\nasync function createCloudChapter", saveStart);
+assert.ok(saveStart >= 0 && saveEnd > saveStart,
+  "Cloud chapter save handler must remain discoverable");
+const saveHandler = app.slice(saveStart, saveEnd);
+assert.ok(saveHandler.includes("const currentDraft = activeChapterDraft();") &&
+  saveHandler.includes("const saveStillCurrent = currentDraft.title === draft.title") &&
+  saveHandler.includes("if (saveStillCurrent) {\\n        storeLocalChapterDraft("),
+  "a stale Cloud save response must not overwrite a newer local recovery draft");
+
 assert.match(css, /@media \(min-width: 981px\) and \(max-width: 1280px\)[\s\S]*?#manuscript \.manuscript-layout\s*\{\s*grid-template-columns:\s*minmax\(150px, \.72fr\) minmax\(0, 2\.1fr\) minmax\(205px, \.96fr\)/,
   "tablet workspace must retain chapter, manuscript, and insight columns");
 assert.match(css, /@media \(min-width: 1281px\)[\s\S]*?#manuscript \.manuscript-layout\s*\{\s*grid-template-columns:\s*minmax\(190px, 220px\) minmax\(420px, 1fr\) minmax\(245px, 285px\)/,
