@@ -425,7 +425,7 @@ async function collectBackup() {
 async function makeBackupFile() {
   const content = JSON.stringify(await collectBackup(), null, 2);
   if (new Blob([content]).size > 39 * 1024 * 1024) {
-    throw new Error("ไฟล์ Backup มีขนาดเกินขีดจำกัดที่กู้คืนได้ 40 MB กรุณาลดจำนวนภาพอ้างอิงก่อนสำรองข้อมูล");
+    throw new Error("ไฟล์ Backup มีขนาดเกินขีดจำกัดที่กู้คืนได้ 40 MB กรุณาลดขนาดหรือจำนวนข้อมูลภาพก่อนสำรองข้อมูล");
   }
   return content;
 }
@@ -1450,6 +1450,7 @@ async function illustrationLibraryRecords(projectId) {
   });
 }
 async function collectIllustrationLibraryBackup(cloudProjects, localData) {
+  if (!("indexedDB" in window)) return [];
   const allowed = new Set((cloudProjects || []).map(entry => entry.project?.id).filter(Boolean));
   const projects = safeJSON(localData?.sf_projects || "[]", []);
   if (Array.isArray(projects)) projects.forEach(project => { if (project?.id) allowed.add(project.id); });
@@ -1502,6 +1503,7 @@ async function savePendingIllustrationToLibrary() {
   const project = illustrationProject();
   if (!project?.id || !pendingIllustrationData) throw new Error("เลือกนิยายและภาพก่อนบันทึกเข้าคลัง");
   const rows = await illustrationLibraryRecords(project.id);
+  if (illustrationProject()?.id !== project.id) throw new Error("นิยายที่เลือกเปลี่ยนไปแล้ว กรุณาเลือกภาพอีกครั้ง");
   if (rows.length >= 100 || rows.reduce((n,r) => n + (r.dataUrl || "").length,0) + pendingIllustrationData.length > 12*1024*1024) throw new Error("คลังภาพถึงขีดจำกัดแล้ว กรุณาลบภาพเก่าก่อน");
   const db = await openCharacterVault();
   const caption = $("illustrationCaption")?.value.trim() || "";
@@ -1540,7 +1542,9 @@ async function renderIllustrationLibrary() {
       });
       const remove = document.createElement("button"); remove.type = "button"; remove.className = "outline-button compact"; remove.textContent = "ลบ";
       remove.addEventListener("click", async () => {
+        if (illustrationProject()?.id !== project.id) return;
         if (!confirm("ลบภาพนี้ออกจากคลังของนิยายนี้หรือไม่? ภาพในต้นฉบับจะไม่ถูกลบ")) return;
+        if (illustrationProject()?.id !== project.id) return;
         const db = await openCharacterVault();
         await new Promise((resolve,reject) => { const tx=db.transaction(ILLUSTRATION_LIBRARY_STORE,"readwrite"); tx.objectStore(ILLUSTRATION_LIBRARY_STORE).delete(record.id); tx.oncomplete=()=>{db.close();resolve();}; tx.onerror=()=>{db.close();reject(tx.error);}; });
         await renderIllustrationLibrary();
