@@ -170,7 +170,7 @@ const wrongProjectApi = async path => path.endsWith("/chapters")
   ? { chapters: [{ id: "chapter-1", sort_order: 1 }] }
   : { chapter: { id: "chapter-1", project_id: "another-project", title: "หลุดโครงการ", body: "ห้ามส่งออก" } };
 const protectedTxt = new Function("cloud", "$", "cloudApi", "saveCloudChapter", "download", "exportBaseName", "chapterHtmlToPlainText", "alert",
-  extractFunction("exportEntireNovelTxt") + "\nreturn exportEntireNovelTxt;")(
+  extractFunction("exportEntireNovelTxt").replace(/^function /, "async function ") + "\nreturn exportEntireNovelTxt;")(
   txtCloud, id => txtElements[id], wrongProjectApi, async () => true,
   (name, text) => txtDownloads.push({ name, text }), () => "storyforge-test",
   value => value, () => {}
