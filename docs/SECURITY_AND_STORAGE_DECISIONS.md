@@ -27,8 +27,8 @@ Before enabling the OAuth flow, the owner must create a GitHub OAuth App and con
 
 ## 3. AI provider isolation contract
 
-- The owner has explicitly chosen not to use GitHub Copilot for STORYFORGE.
-- No AI text or image provider is currently approved or connected. AI actions must remain disabled until a provider and its cost/authorization model are explicitly approved.
+- The owner has explicitly excluded GitHub Copilot and selected OpenAI (ChatGPT) as the intended provider for STORYFORGE.
+- This provider selection does not authorize API spending. No OpenAI API key or API billing is configured, and AI actions must remain disabled until API cost, privacy/retention terms, and server-side secret configuration are explicitly approved.
 - Do not use a shared owner credential, silently fall back to an environment login, or expose any provider secret to browser code, localStorage, repository files, or chat.
 - Every future AI request must be server-side, authenticated, scoped to the active Project ID, and limited to that project's approved canon and manuscript context.
 - Prompt preview, user editing, and explicit confirmation must happen before any external AI request.
@@ -54,7 +54,7 @@ Important:
 - Use the provider's `.workers.dev` hostname for the first deployment if available; a custom domain may cost extra.
 - Keep the UI's local-recovery and Cloud-sync states distinct. Do not claim live Cloud persistence until the owner provisions D1/OAuth and the deployed integration tests pass.
 - Never silently fall back to local disk on a production host for durable user content.
-- No AI provider has been approved; do not introduce Copilot or paid hosting.
+- OpenAI (ChatGPT) is the intended AI provider, but direct API usage is not approved or connected. Do not introduce Copilot, expose API keys, or activate paid usage.
 
 ## 5. Project data isolation contract
 
@@ -109,3 +109,12 @@ This section supersedes older status statements above where they conflict.
 - The Illustration Library is not cloud-synced and is not a substitute for an independent off-site backup. Manuscript-embedded illustrations remain part of chapter content.
 - No R2 bucket or other paid storage service has been enabled. No AI provider is approved or connected. No GitHub Copilot integration is permitted.
 - No production deployment or merge to `main` has been performed or authorized. Browser-based end-to-end verification and Android tablet testing remain outstanding.
+
+
+## OpenAI provider decision — 23 November 2026
+
+- Provider direction: OpenAI (ChatGPT). GitHub Copilot is excluded from the product plan and UI.
+- The assistant screen now names OpenAI (ChatGPT) as the intended provider and offers a manual context-copy workflow for use in ChatGPT. This does not transmit novel data from StoryForge to an external service.
+- The in-app AI run action remains disabled. ChatGPT Plus is a ChatGPT subscription and does not itself provide API credits; direct OpenAI API usage is billed separately.
+- No API key was requested, stored, or added to the repository. No API request, billing activation, or paid service was performed.
+- Before enabling direct integration, the owner must explicitly approve API spending and OpenAI data/privacy/retention terms. Then configure the API key only as a Cloudflare Worker secret; never in frontend code, localStorage, source control, or chat. All requests must require the owner session, validate CSRF/origin for mutations, verify the active Project ID belongs to the owner, send only the selected project's context, and require prompt preview plus explicit user confirmation.
