@@ -3052,7 +3052,7 @@ function sanitizeManuscriptHtml(value) {
       const alt = (node.getAttribute("alt") || "").slice(0, 300);
       const imageWidth = Number(node.getAttribute("width"));
       const imageHeight = Number(node.getAttribute("height"));
-      const safeImage = /^data:image\\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(src) && src.length <= 260000;
+      const safeImage = /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(src) && src.length <= 260000;
       [...node.attributes].forEach(attr => node.removeAttribute(attr.name));
       if (!safeImage) { node.replaceWith(doc.createTextNode(alt)); return; }
       node.setAttribute("src", src);
