@@ -51,6 +51,11 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('headers.append("Set-Cookie", item)', WORKER)
         self.assertIn("revoked_at", WORKER)
 
+    def test_health_endpoint_probes_database_readiness(self):
+        self.assertIn('await env.DB.prepare("SELECT 1 AS ok").first()', WORKER)
+        self.assertIn('error: "DATABASE_UNAVAILABLE"', WORKER)
+        self.assertIn('databaseReady: true', WORKER)
+
     def test_project_queries_are_owner_scoped(self):
         self.assertIn("WHERE owner_id = ?", WORKER)
         self.assertIn("projects.owner_id = ?", WORKER)
