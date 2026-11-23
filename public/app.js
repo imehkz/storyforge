@@ -1481,14 +1481,20 @@ function renderModuleLists() {
 }
 
 const CHARACTER_PROFILE_FIELDS = [
+  "characterNickname", "characterGender", "characterBirthday", "characterProfession",
   "characterAge", "characterPronouns", "characterSpecies", "characterHeight",
   "characterAppearance", "characterPersonality", "characterMotivation",
   "characterBackstory", "characterStrengths", "characterWeaknesses",
+  "characterLikes", "characterDislikes", "characterSkills", "characterFamily",
   "characterSecret", "characterProfile"
 ];
 
 function characterProfileFromForm() {
   return {
+    nickname: $("characterNickname").value,
+    gender: $("characterGender").value,
+    birthday: $("characterBirthday").value,
+    profession: $("characterProfession").value,
     age: $("characterAge").value,
     pronouns: $("characterPronouns").value,
     species: $("characterSpecies").value,
@@ -1499,6 +1505,10 @@ function characterProfileFromForm() {
     backstory: $("characterBackstory").value,
     strengths: $("characterStrengths").value,
     weaknesses: $("characterWeaknesses").value,
+    likes: $("characterLikes").value,
+    dislikes: $("characterDislikes").value,
+    skills: $("characterSkills").value,
+    family: $("characterFamily").value,
     secret: $("characterSecret").value,
     description: $("characterProfile").value
   };
@@ -1520,11 +1530,15 @@ function startEditCharacter(item) {
   $("characterName").value = item.name || "";
   $("characterRole").value = item.role || "";
   const values = {
+    characterNickname: profile.nickname, characterGender: profile.gender,
+    characterBirthday: profile.birthday, characterProfession: profile.profession,
     characterAge: profile.age, characterPronouns: profile.pronouns,
     characterSpecies: profile.species, characterHeight: profile.height,
     characterAppearance: profile.appearance, characterPersonality: profile.personality,
     characterMotivation: profile.motivation, characterBackstory: profile.backstory,
     characterStrengths: profile.strengths, characterWeaknesses: profile.weaknesses,
+    characterLikes: profile.likes, characterDislikes: profile.dislikes,
+    characterSkills: profile.skills, characterFamily: profile.family,
     characterSecret: profile.secret, characterProfile: profile.description
   };
   for (const [id, value] of Object.entries(values)) $(id).value = value || "";
