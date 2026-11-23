@@ -487,13 +487,15 @@ async function api(request, env, url) {
       if (["plot-threads", "notes"].includes(collection) && values.chapter_ids_json !== undefined) {
         values.chapter_ids_json = await validateChapterReferences(values.chapter_ids_json);
       }
-      if (collection === "notes" && values.note_type === "scene") {
+      if (collection === "notes" && (values.note_type === "scene" || values.scene_type !== undefined || values.scene_status !== undefined)) {
         const existingScene = await env.DB.prepare("SELECT note_type, scene_type, scene_status FROM story_notes WHERE id = ? AND project_id = ?").bind(itemId, projectId).first();
         if (!existingScene) throw new Error("NOT_FOUND");
-        const type = values.scene_type ?? existingScene.scene_type;
-        const status = values.scene_status ?? existingScene.scene_status;
-        if (!["setup", "conflict", "turning_point", "climax", "resolution", "other"].includes(type)) throw new Error("INVALID_SCENE_TYPE");
-        if (!["planned", "drafting", "written", "revised"].includes(status)) throw new Error("INVALID_SCENE_STATUS");
+        if ((values.note_type ?? existingScene.note_type) === "scene") {
+          const type = values.scene_type ?? existingScene.scene_type;
+          const status = values.scene_status ?? existingScene.scene_status;
+          if (!["setup", "conflict", "turning_point", "climax", "resolution", "other"].includes(type)) throw new Error("INVALID_SCENE_TYPE");
+          if (!["planned", "drafting", "written", "revised"].includes(status)) throw new Error("INVALID_SCENE_STATUS");
+        }
       }
       if (["plot-threads", "world-lore", "timeline", "notes"].includes(collection) && values.character_ids_json !== undefined) {
         const existing = await env.DB.prepare(
