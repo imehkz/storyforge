@@ -96,6 +96,8 @@ assert.ok(source.includes("function exportManuscriptPdf"));
 assert.ok(source.includes("async function exportEntireNovelTxt()"), "whole-novel TXT export is implemented");
 assert.ok(source.includes("async function exportEntireNovelPdf()"), "whole-novel print-to-PDF flow is implemented");
 assert.ok(source.includes("totalSize > 12 * 1024 * 1024"), "whole-novel PDF export has a memory safety cap");
+assert.ok(source.includes("print-book-toc"), "whole-novel PDF includes a table of contents");
+assert.ok(stylesheet.includes("break-before: page"), "whole-novel PDF starts chapters on new pages");
 assert.ok(source.includes("chapter.project_id !== projectId"), "whole-novel export rejects cross-project chapter data");
 assert.ok(source.includes("new Blob([content]).size > 39 * 1024 * 1024"), "Backup size stays below restore limit");
 assert.ok(source.includes("window.print()"));
