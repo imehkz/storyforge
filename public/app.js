@@ -3453,9 +3453,12 @@ function renderChapterSelect() {
     } else if (!cloud.chapters.length) {
       list.innerHTML = '<p class="muted-note">ยังไม่มีบท · กด “เพิ่มบทใหม่” เพื่อเริ่มเขียน</p>';
     } else {
-      list.innerHTML = cloud.chapters.map((item, index) =>
-        `<button type="button" class="chapter-list-item ${item.id === cloud.activeChapterId ? "active" : ""}" data-chapter-item="${escapeHtml(item.id)}"><span>${String(index + 1).padStart(2, "0")}</span><div><b>${escapeHtml(item.title || "บทไม่มีชื่อ")}</b><small>${({ planned: "วางแผน", draft: "ฉบับร่าง", revised: "ปรับแก้แล้ว", final: "ฉบับสมบูรณ์" })[item.writing_status || "draft"]} · Revision ${Number(item.revision) || 1} · ${(Number(item.word_count) || 0).toLocaleString("th-TH")} คำ</small></div></button>`
-      ).join("");
+      list.innerHTML = cloud.chapters.map((item, index) => {
+        const sceneCount = (cloud.modules.notes || []).filter(scene =>
+          scene.note_type === "scene" && safeJSON(scene.chapter_ids_json || "[]", []).includes(item.id)
+        ).length;
+        return `<button type="button" class="chapter-list-item ${item.id === cloud.activeChapterId ? "active" : ""}" data-chapter-item="${escapeHtml(item.id)}"><span>${String(index + 1).padStart(2, "0")}</span><div><b>${escapeHtml(item.title || "บทไม่มีชื่อ")}</b><small>${({ planned: "วางแผน", draft: "ฉบับร่าง", revised: "ปรับแก้แล้ว", final: "ฉบับสมบูรณ์" })[item.writing_status || "draft"]} · ${(Number(item.word_count) || 0).toLocaleString("th-TH")} คำ · ${sceneCount} ฉาก</small>${item.synopsis ? '<small class="chapter-outline-summary">' + escapeHtml(item.synopsis) + '</small>' : '<small class="chapter-outline-summary muted">ยังไม่มีสรุปย่อ</small>'}</div></button>`;
+      }).join("");
       list.querySelectorAll("[data-chapter-item]").forEach(button =>
         button.addEventListener("click", () => selectCloudChapter(button.dataset.chapterItem))
       );
