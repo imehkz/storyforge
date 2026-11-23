@@ -2245,7 +2245,7 @@ function chapterCharacterIds(chapter = null) {
 function analyzeStoryContinuity({ chapters = [], characters = [], timeline = [], plotThreads = [] } = {}) {
   const findings = [];
   const add = (kind, title, detail, chapterId = "") => findings.push({ kind, title, detail, chapterId });
-  const normalize = value => String(value || "").normalize("NFC").toLocaleLowerCase("th-TH").replace(/[\\s\\u00a0]+/g, "");
+  const normalize = value => String(value || "").normalize("NFC").toLocaleLowerCase("th-TH").replace(/[\s\u00a0]+/g, "");
   const characterById = new Map(characters.map(character => [character.id, character]));
   const chapterCanonIds = new Set();
   const normalizedTitles = new Map();
@@ -2286,11 +2286,11 @@ function analyzeStoryContinuity({ chapters = [], characters = [], timeline = [],
   const orderedTimeline = [...timeline].sort((a, b) => (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0));
   const parseDate = value => {
     const raw = String(value || "").trim();
-    let match = raw.match(/^(\\d{4})[-/.](\\d{1,2})[-/.](\\d{1,2})$/);
+    let match = raw.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
     let year, month, day;
     if (match) [, year, month, day] = match.map(Number);
     else {
-      match = raw.match(/^(\\d{1,2})[-/.](\\d{1,2})[-/.](\\d{4})$/);
+      match = raw.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
       if (!match) return null;
       [, day, month, year] = match.map(Number);
     }
