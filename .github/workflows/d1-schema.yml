@@ -28,6 +28,7 @@ jobs:
           node --input-type=module --check < cloudflare/worker.js
           node --check public/app.js
           node tests/check_exports.mjs
+          node tests/check_recovery.mjs
       - name: Validate D1 schema
         run: python tests/check_d1_schema.py
       - name: Validate Worker security contract
