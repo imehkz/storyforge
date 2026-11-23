@@ -9,7 +9,7 @@ Scope: validate the private beta only after an isolated staging Worker and D1 da
 - [ ] Create a separate staging Cloudflare Worker and D1 database with no production data.
 - [ ] Configure staging GitHub OAuth callback and owner allowlist without exposing secrets in source control.
 - [ ] Take a verified staging D1 backup before applying migrations.
-- [ ] Apply migrations 0008–0012 to staging in order and verify all tables/columns/check constraints.
+- [ ] Apply migrations 0001–0012 to the new staging D1 database in order and verify all tables/columns/check constraints. Do not reuse the production D1 database for staging.
 - [ ] Confirm staging can be destroyed/recreated without affecting production.
 - [ ] Confirm no OpenAI API key or image provider is configured unless billing and privacy have been explicitly approved.
 
@@ -59,7 +59,7 @@ Scope: validate the private beta only after an isolated staging Worker and D1 da
 The following remain release blockers until evidenced as passed:
 
 1. No isolated staging Worker/D1 browser environment has been validated in this work session.
-2. Migrations 0008–0012 are committed to the test branch but have not been applied to any live database.
+2. Read-only Cloudflare inspection on 23 November 2026 found that the existing `storyforge` D1 database has only migrations 0001–0003 applied; branch migrations 0004–0012 remain unapplied there. The existing `storyforge` Worker is the currently deployed production Worker and runs an earlier build. Do not apply branch migrations or deploy this branch to that Worker. Create an isolated staging Worker and D1 database first.
 3. No real Android tablet/browser E2E run has been performed.
 4. Independent encrypted off-site D1 backup and restore drill is not evidenced.
 5. DOCX/EPUB have automated package-level tests, but real office/e-reader rendering remains unverified.
