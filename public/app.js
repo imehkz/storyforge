@@ -548,6 +548,37 @@ async function exportEntireNovelDocx() {
   }
 }
 
+function printPlainTextParagraphs(value) {
+  return String(value || "").split(/\r?\n/).map(line =>
+    line.trim() ? "<p>" + escapeHtml(line) + "</p>" : '<p class="print-book-spacer">&#160;</p>'
+  ).join("");
+}
+
+function buildWholeNovelPrintHtml(project, chapters) {
+  const title = project.title || "ต้นฉบับนิยาย";
+  const frontMatter = [
+    '<section class="print-book-frontmatter">',
+    '<h1 class="print-book-title">' + escapeHtml(title) + '</h1>',
+    project.pen_name ? '<p class="print-book-pen-name">' + escapeHtml(project.pen_name) + '</p>' : "",
+    project.copyright_text ? '<p class="print-book-copyright">' + escapeHtml(project.copyright_text) + '</p>' : "",
+    project.foreword ? '<section class="print-book-foreword"><h2>คำนำ</h2>' + printPlainTextParagraphs(project.foreword) + '</section>' : "",
+    '</section>'
+  ].join("");
+  const toc = '<section class="print-book-toc"><h2>สารบัญ</h2><ol>' + chapters.map((chapter, index) =>
+    '<li>' + escapeHtml("บทที่ " + (index + 1) + " — " + (chapter.title || "บทไม่มีชื่อ")) + '</li>'
+  ).join("") + '</ol></section>';
+  const body = chapters.map((chapter, index) => {
+    const chapterBody = sanitizeManuscriptHtml(chapter.body || "");
+    return '<section class="print-book-chapter"><h2 class="print-chapter-title">' +
+      escapeHtml("บทที่ " + (index + 1) + " — " + (chapter.title || "บทไม่มีชื่อ")) +
+      '</h2><div class="print-book-body">' + chapterBody + '</div></section>';
+  }).join("");
+  const backMatter = project.author_bio
+    ? '<section class="print-book-backmatter"><h2>เกี่ยวกับผู้เขียน</h2>' + printPlainTextParagraphs(project.author_bio) + '</section>'
+    : "";
+  return frontMatter + toc + body + backMatter;
+}
+
 async function exportEntireNovelPdf() {
   const projectId = cloud.activeProjectId;
   if (!cloud.authenticated || !cloud.ready || !projectId) {
@@ -579,17 +610,7 @@ async function exportEntireNovelPdf() {
     if (totalSize > 12 * 1024 * 1024) throw new Error("ต้นฉบับทั้งเล่มมีขนาดใหญ่เกินขีดจำกัดการจัดหน้า 12 MB กรุณาแบ่งส่งออกเป็นส่วน");
     const printNode = $("printManuscriptText");
     if (!printNode) throw new Error("ไม่พบพื้นที่จัดหน้า PDF");
-    const toc = '<section class="print-book-toc"><h2>สารบัญ</h2><ol>' + full.map((chapter, index) =>
-      '<li>' + escapeHtml("บทที่ " + (index + 1) + " — " + (chapter.title || "บทไม่มีชื่อ")) + '</li>'
-    ).join("") + '</ol></section>';
-    const sections = full.map((chapter, index) => {
-      const body = sanitizeManuscriptHtml(chapter.body || "");
-      return '<section class="print-book-chapter"><h2 class="print-chapter-title">' +
-        escapeHtml("บทที่ " + (index + 1) + " — " + (chapter.title || "บทไม่มีชื่อ")) +
-        '</h2><div class="print-book-body">' + body + '</div></section>';
-    }).join("");
-    printNode.innerHTML = '<h1 class="print-book-title">' + escapeHtml(project.title || "ต้นฉบับนิยาย") +
-      '</h1><p class="print-book-meta">จำนวน ' + full.length + ' บท</p>' + toc + sections;
+    printNode.innerHTML = buildWholeNovelPrintHtml(project, full);
     document.body.classList.add("print-manuscript");
     const cleanup = () => {
       document.body.classList.remove("print-manuscript");
