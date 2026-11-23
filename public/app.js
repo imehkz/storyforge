@@ -2294,7 +2294,10 @@ function wordRunsFromNode(node, inherited = {}) {
 
 function manuscriptHtmlToWord() {
   const editor = $("manuscriptEditor");
-  const source = editor ? sanitizeManuscriptHtml(editor.innerHTML) : "";
+  if (!editor || !editor.innerHTML || typeof DOMParser === "undefined") {
+    return getManuscriptText().split(/\r?\n/).map(line => wordParagraph(line)).join("");
+  }
+  const source = sanitizeManuscriptHtml(editor.innerHTML);
   const doc = new DOMParser().parseFromString(source, "text/html");
   const blocks = [...doc.body.childNodes];
   if (!blocks.length) return getManuscriptText().split(/\r?\n/).map(line => wordParagraph(line)).join("");
