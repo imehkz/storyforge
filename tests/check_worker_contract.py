@@ -134,6 +134,10 @@ class WorkerContractTests(unittest.TestCase):
             self.assertIn(element_id, HTML)
             self.assertIn(element_id, APP)
 
+    def test_relationship_map_supports_english_and_thai_relationship_types(self):
+        for term in ("enemy", "family", "romance", "ally", "business", "mentor"):
+            self.assertIn(term, APP)
+
     def test_relationship_map_keeps_interactive_nodes_accessible(self):
         self.assertIn('id="relationshipGraph" class="relationship-graph" role="region"', HTML)
         self.assertIn('role="group" aria-label="แผนผังสายใยความสัมพันธ์ของตัวละคร"', APP)
