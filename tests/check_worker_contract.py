@@ -320,6 +320,11 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("writing_status: chapter.writing_status || \"draft\"", APP)
         self.assertIn("chapter.synopsis != null", APP)
         self.assertIn("activeChapterDraft()", APP)
+        self.assertIn("compositionend", APP)
+        self.assertIn("event.isComposing", APP)
+        self.assertIn('event.key.toLowerCase() === "s"', APP)
+        self.assertIn('event.shiftKey && event.key.toLowerCase() === "f"', APP)
+        self.assertIn("overflow-x: auto", CSS)
 
     def test_chapter_canon_character_links_are_saved_and_project_scoped(self):
         self.assertIn('id="chapterCharacters"', HTML)
