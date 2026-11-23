@@ -84,6 +84,16 @@ assert.ok(saveHandler.includes("const currentDraft = activeChapterDraft();") &&
   saveHandler.includes("if (saveStillCurrent) {\\n        storeLocalChapterDraft("),
   "a stale Cloud save response must not overwrite a newer local recovery draft");
 
+const historyStart = app.indexOf("async function showChapterHistory()");
+const historyEnd = app.indexOf("\nasync function importLocalNovelData", historyStart);
+assert.ok(historyStart >= 0 && historyEnd > historyStart,
+  "chapter history handler must remain discoverable");
+const historyHandler = app.slice(historyStart, historyEnd);
+assert.ok(historyHandler.includes("const chapterId = cloud.activeChapterId;") &&
+  historyHandler.includes("if (cloud.activeChapterId !== chapterId) return;") &&
+  historyHandler.includes("restored.chapter.id !== chapterId"),
+  "history and snapshot restore must be bound to the chapter that opened them");
+
 assert.match(css, /@media \(min-width: 981px\) and \(max-width: 1280px\)[\s\S]*?#manuscript \.manuscript-layout\s*\{\s*grid-template-columns:\s*minmax\(150px, \.72fr\) minmax\(0, 2\.1fr\) minmax\(205px, \.96fr\)/,
   "tablet workspace must retain chapter, manuscript, and insight columns");
 assert.match(css, /@media \(min-width: 1281px\)[\s\S]*?#manuscript \.manuscript-layout\s*\{\s*grid-template-columns:\s*minmax\(190px, 220px\) minmax\(420px, 1fr\) minmax\(245px, 285px\)/,
