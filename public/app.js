@@ -924,6 +924,7 @@ function showTab(tab, activeButton = null) {
   if (tab === "projects") renderProjects();
   if (tab === "dashboard") renderDashboard();
   if (tab === "cover") loadCoverBrief();
+  if (tab === "illustrations") loadIllustrationSettings();
 }
 
 
@@ -1038,6 +1039,160 @@ function setupCoverStudio() {
     field.addEventListener("input", renderCoverPreview);
   });
   loadCoverBrief();
+}
+
+// ==========================================
+// ILLUSTRATION STUDIO — project-scoped manuscript images
+// ==========================================
+let pendingIllustrationData = "";
+let illustrationSavedRange = null;
+function illustrationProject() { return activeCoverProject(); }
+function illustrationSettingsKey(projectId) { return "sf_illustration_settings_" + projectId; }
+function loadIllustrationSettings() {
+  const project = illustrationProject();
+  const saved = project ? safeJSON(localStorage.getItem(illustrationSettingsKey(project.id)) || "{}", {}) : {};
+  if ($("illustrationStyle")) $("illustrationStyle").value = saved.style || "Pencil Sketch";
+  if ($("illustrationDirection")) $("illustrationDirection").value = saved.direction || "";
+  $("illustrationStatus").textContent = project
+    ? "กำลังทำงานกับนิยาย “" + (project.title || "นิยายนี้") + "” · Project ID: " + project.id
+    : "กรุณาสร้างหรือเลือกนิยายก่อน";
+}
+function buildIllustrationPromptText() {
+  const project = illustrationProject();
+  if (!project) throw new Error("กรุณาสร้างหรือเลือกนิยายก่อน");
+  const characters = cloud.ready && cloud.activeProjectId === project.id ? (cloud.modules.characters || []) : [];
+  const lore = cloud.ready && cloud.activeProjectId === project.id ? (cloud.modules["world-lore"] || []) : [];
+  const excerpt = getManuscriptText().slice(0, 1800);
+  return [
+    "Create an editorial illustration for a Thai novel.",
+    "Novel: " + (project.title || $("title")?.value || ""),
+    "Genre: " + ($("genre")?.value || "Not specified"),
+    "Visual style: " + ($("illustrationStyle")?.value || "Pencil Sketch"),
+    "Characters in this project only: " + (characters.map(item => item.name).filter(Boolean).join(", ") || "Use only characters described in the supplied scene"),
+    "World details: " + (lore.slice(0, 8).map(item => [item.title, item.content].filter(Boolean).join(": ")).join(" | ") || "Follow the manuscript context"),
+    "Scene to illustrate: " + ($("illustrationMoment")?.value.trim() || excerpt || "Scene not specified"),
+    "Additional art direction: " + ($("illustrationDirection")?.value.trim() || "Readable composition, expressive poses, consistent character design"),
+    "Avoid: lettering, watermark, logos, extra characters, anachronistic objects."
+  ].join("\n");
+}
+function compressIllustration(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !/^image\/(png|jpeg|webp)$/.test(file.type)) return reject(new Error("รองรับเฉพาะ PNG, JPG และ WEBP"));
+    if (file.size > 12 * 1024 * 1024) return reject(new Error("ไฟล์ต้นฉบับใหญ่เกิน 12 MB"));
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("อ่านไฟล์ภาพไม่สำเร็จ"));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error("เปิดไฟล์ภาพไม่สำเร็จ"));
+      image.onload = () => {
+        const scale = Math.min(1, 1800 / Math.max(image.width, image.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("ไม่สามารถประมวลผลภาพบนอุปกรณ์นี้ได้"));
+        ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        let quality = 0.82, data = canvas.toDataURL("image/jpeg", quality);
+        while (data.length > 235000 && quality > 0.35) { quality -= 0.1; data = canvas.toDataURL("image/jpeg", quality); }
+        if (data.length > 235000) return reject(new Error("ภาพยังใหญ่เกินไปหลังย่อ กรุณาเลือกรูปที่เล็กกว่านี้"));
+        resolve(data);
+      };
+      image.src = String(reader.result || "");
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function insertIllustrationAtCursor() {
+  const editor = $("manuscriptEditor"), field = $("manuscriptBody");
+  if (!editor || !pendingIllustrationData) return;
+  if (illustrationProject() && cloud.ready && cloud.activeProjectId && illustrationProject().id !== cloud.activeProjectId) {
+    $("illustrationStatus").textContent = "หยุดแทรกภาพ: นิยายที่เลือกไม่ตรงกับพื้นที่ทำงานปัจจุบัน";
+    return;
+  }
+  const figure = document.createElement("figure");
+  figure.className = "manuscript-illustration";
+  figure.style.cssText = "text-align:" + ($("illustrationAlign")?.value || "center") + ";margin:1.5em auto;width:100%;";
+  const image = document.createElement("img");
+  image.src = pendingIllustrationData;
+  image.alt = $("illustrationCaption")?.value.trim() || "ภาพประกอบนิยาย";
+  image.style.cssText = "display:block;width:" + ($("illustrationWidth")?.value || "100%") + ";max-width:100%;height:auto;margin:0 auto;";
+  figure.appendChild(image);
+  const captionText = $("illustrationCaption")?.value.trim();
+  if (captionText) {
+    const caption = document.createElement("figcaption");
+    caption.textContent = captionText;
+    caption.style.cssText = "text-align:center;font-size:0.9em;margin-top:.5em;";
+    figure.appendChild(caption);
+  }
+  const selection = window.getSelection();
+  if (illustrationSavedRange && editor.contains(illustrationSavedRange.commonAncestorContainer)) {
+    selection.removeAllRanges(); selection.addRange(illustrationSavedRange);
+  } else {
+    const range = document.createRange(); range.selectNodeContents(editor); range.collapse(false);
+    selection.removeAllRanges(); selection.addRange(range);
+  }
+  const range = selection.getRangeAt(0);
+  range.deleteContents(); range.insertNode(figure);
+  const spacer = document.createElement("p"); spacer.innerHTML = "<br>";
+  figure.after(spacer);
+  const newRange = document.createRange(); newRange.setStart(spacer, 0); newRange.collapse(true);
+  selection.removeAllRanges(); selection.addRange(newRange);
+  editor.focus();
+  const sanitized = sanitizeManuscriptHtml(editor.innerHTML);
+  field.value = sanitized;
+  save("manuscriptBody");
+  $("illustrationStatus").textContent = "แทรกภาพลงในต้นฉบับแล้ว และบันทึกภาพไว้ในเนื้อหาของบทนี้";
+  pendingIllustrationData = ""; illustrationSavedRange = null;
+  $("illustrationSelectedPreview").hidden = true;
+  $("insertIllustration").disabled = true;
+  $("illustrationFile").value = "";
+}
+function setupIllustrationStudio() {
+  $("illustrationStyle")?.addEventListener("change", () => {
+    const project = illustrationProject();
+    if (project) localStorage.setItem(illustrationSettingsKey(project.id), JSON.stringify({
+      style: $("illustrationStyle").value, direction: $("illustrationDirection").value
+    }));
+  });
+  $("illustrationDirection")?.addEventListener("change", () => {
+    const project = illustrationProject();
+    if (project) localStorage.setItem(illustrationSettingsKey(project.id), JSON.stringify({
+      style: $("illustrationStyle").value, direction: $("illustrationDirection").value
+    }));
+  });
+  $("buildIllustrationPrompt")?.addEventListener("click", () => {
+    try { $("illustrationPrompt").value = buildIllustrationPromptText(); }
+    catch (error) { $("illustrationStatus").textContent = error.message; }
+  });
+  $("copyIllustrationPrompt")?.addEventListener("click", async () => {
+    try {
+      if (!$("illustrationPrompt").value.trim()) $("illustrationPrompt").value = buildIllustrationPromptText();
+      await copyStoryText($("illustrationPrompt").value);
+      $("illustrationStatus").textContent = "คัดลอก Prompt แล้ว — ไม่มีการส่งข้อมูลไปบริการภายนอก";
+    } catch (error) { $("illustrationStatus").textContent = error.message; }
+  });
+  $("illustrationFile")?.addEventListener("change", async event => {
+    try {
+      const data = await compressIllustration(event.target.files?.[0]);
+      pendingIllustrationData = data;
+      const preview = $("illustrationSelectedPreview");
+      preview.replaceChildren();
+      const img = document.createElement("img"); img.src = data; img.alt = "ตัวอย่างภาพที่จะเพิ่ม";
+      preview.appendChild(img); preview.hidden = false;
+      $("insertIllustration").disabled = false;
+      $("illustrationStatus").textContent = "เตรียมภาพแล้ว (" + Math.round(data.length * 0.75 / 1024) + " KB โดยประมาณ) — เปิดห้องเขียนและวางเคอร์เซอร์ก่อนแทรก";
+    } catch (error) {
+      pendingIllustrationData = ""; $("insertIllustration").disabled = true;
+      $("illustrationStatus").textContent = error.message;
+    }
+  });
+  $("insertIllustration")?.addEventListener("click", insertIllustrationAtCursor);
+  $("illustrationFile")?.addEventListener("click", () => {
+    const selection = window.getSelection();
+    illustrationSavedRange = selection && selection.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
+  });
+  loadIllustrationSettings();
 }
 
 function buildStoryAssistantContext() {
@@ -2832,10 +2987,23 @@ function getManuscriptText() {
 function sanitizeManuscriptHtml(value) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(String(value || ""), "text/html");
-  const allowed = new Set(["P","DIV","BR","STRONG","B","EM","I","U","H1","H2","H3","BLOCKQUOTE","UL","OL","LI","SPAN"]);
+  const allowed = new Set(["P","DIV","BR","STRONG","B","EM","I","U","H1","H2","H3","BLOCKQUOTE","UL","OL","LI","SPAN","FIGURE","FIGCAPTION","IMG"]);
   doc.body.querySelectorAll("*").forEach(node => {
     if (!allowed.has(node.tagName)) {
       node.replaceWith(doc.createTextNode(node.textContent || ""));
+      return;
+    }
+    if (node.tagName === "IMG") {
+      const src = node.getAttribute("src") || "";
+      const alt = (node.getAttribute("alt") || "").slice(0, 300);
+      const safeImage = /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(src) && src.length <= 260000;
+      [...node.attributes].forEach(attr => node.removeAttribute(attr.name));
+      if (!safeImage) { node.replaceWith(doc.createTextNode(alt)); return; }
+      node.setAttribute("src", src);
+      node.setAttribute("alt", alt);
+      node.setAttribute("loading", "lazy");
+      node.style.maxWidth = "100%";
+      node.style.height = "auto";
       return;
     }
     [...node.attributes].forEach(attr => {
@@ -2848,7 +3016,7 @@ function sanitizeManuscriptHtml(value) {
         const [name, ...rest] = declaration.split(":");
         const key = (name || "").trim().toLowerCase();
         const val = rest.join(":").trim();
-        if (["text-align","font-family","font-size","line-height"].includes(key) &&
+        if (["text-align","font-family","font-size","line-height","width","max-width","margin"].includes(key) &&
             /^[\w\s,'"().-]+$/.test(val)) safe.push(key + ":" + val);
       }
       if (safe.length) node.setAttribute("style", safe.join(";"));
@@ -2869,7 +3037,7 @@ function setupManuscriptEditor() {
     set(value) {
       descriptor.set.call(field, value ?? "");
       const stored = String(value || "");
-      const looksLikeMarkup = /<(p|div|br|strong|b|em|i|u|h[1-3]|blockquote|ul|ol|li|span)\b/i.test(stored);
+      const looksLikeMarkup = /<(p|div|br|strong|b|em|i|u|h[1-3]|blockquote|ul|ol|li|span|figure|figcaption|img)\\b/i.test(stored);
       if (looksLikeMarkup) editor.innerHTML = sanitizeManuscriptHtml(stored);
       else editor.innerHTML = stored
         ? stored.split(/\r?\n/).map(line => "<p>" + escapeHtml(line) + "</p>").join("")
@@ -2949,6 +3117,7 @@ function init() {
   setupCloudEvents();
   setupModuleEvents();
   setupCoverStudio();
+  setupIllustrationStudio();
   refreshAuthStatus();
 
   console.log("STORYFORGE initialized successfully");
