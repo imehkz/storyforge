@@ -93,8 +93,10 @@
         <div class="dashboard-lower">
           <section class="card-frame recent-card">
             <div class="section-heading"><div><h3>หน้าต่อไปของเรื่องราว</h3><p>ต้นฉบับล่าสุด</p></div><button class="text-link" data-open-tab="manuscript">ไปยังต้นฉบับ →</button></div>
-            <div class="recent-row"><span class="chapter-number">01</span><span class="recent-title" id="recentChapterTitle">ยังไม่มีบทที่บันทึก</span><span class="recent-detail" id="recentWordCount">0 คำ</span><span class="recent-arrow">→</span></div>
-            <p class="muted-note">รายการบทและประวัติเวอร์ชันจะแสดงเมื่อระบบจัดการบทพร้อมใช้งาน</p>
+            <div id="dashboardRecentChapters" class="dashboard-recent-list" aria-live="polite">
+              <div class="recent-row"><span class="chapter-number">01</span><span class="recent-title" id="recentChapterTitle">ยังไม่มีบทที่บันทึก</span><span class="recent-detail" id="recentWordCount">0 คำ</span></div>
+            </div>
+            <p class="muted-note" id="dashboardRecentHint">บทล่าสุดของนิยายที่เลือกจะแสดงที่นี่</p>
           </section>
           <section class="card-frame assistant-card">
             <span class="micro-label">✦ ผู้ช่วยเขียนนิยาย AI</span>
