@@ -392,6 +392,9 @@
 .plot-chapter-link { border: 1px solid var(--line-cool); border-radius: 3px; padding: 4px 7px; background: #26364b; color: var(--parchment); font: inherit; font-size: 12px; cursor: pointer; }
 .plot-chapter-link:hover { border-color: var(--gold); color: var(--gold); }
 .plot-chapter-missing { color: var(--muted); font-size: 12px; }
+.plot-linked-scenes { display: grid; gap: 5px; margin: 8px 0 10px; padding-top: 8px; border-top: 1px solid var(--line-cool); }
+.plot-linked-scenes small { color: var(--gold); font-size: 12px; }
+.plot-linked-scenes > span { color: var(--parchment); font-size: 13px; overflow-wrap: anywhere; }
 .timeline-view { margin-top: 14px; padding: 18px; border: 1px solid var(--line-cool); border-radius: 5px; background: #111d2d; }
 .timeline-track { position: relative; display: grid; gap: 14px; }
 .timeline-track::before { content: ""; position: absolute; top: 14px; bottom: 14px; left: 17px; width: 1px; background: var(--gold); opacity: .55; }
