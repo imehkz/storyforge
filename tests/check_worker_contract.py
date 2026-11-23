@@ -111,7 +111,7 @@ class WorkerContractTests(unittest.TestCase):
     def test_chapter_history_and_revision_are_atomic(self):
         self.assertGreaterEqual(WORKER.count("env.DB.batch(["), 2)
         self.assertIn("expectedRevision", WORKER)
-        self.assertIn("'word_count', word_count, 'revision', revision", WORKER)
+        self.assertIn("'word_count', word_count, 'character_ids_json', character_ids_json, 'revision', revision", WORKER)
         self.assertIn("validateWordCount(input.wordCount, countWords(body))", WORKER)
         self.assertIn("countWords(body)", WORKER)
         self.assertIn("word_count", WORKER)
