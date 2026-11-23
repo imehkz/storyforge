@@ -22,9 +22,9 @@ This section supersedes earlier historical status statements below where they co
 - The Worker source implements owner-only GitHub OAuth, hashed sessions, CSRF/origin validation, logout revocation, project/chapter APIs, snapshots, and project-scoped module CRUD.
 - The browser frontend is connected to authenticated Cloud APIs for projects, chapters, autosave/revisions, snapshots, local recovery/import, and project-scoped studio modules.
 - Backup format v4 includes device-local data plus Cloud projects, chapters, all six studio module collections, the character reference vault, and the project-scoped illustration library. Snapshot history is excluded and explicitly disclosed. Restore preflights Cloud data and image-library records, preserves stable IDs, and merges rather than deleting existing Cloud data. Snapshot history is excluded and explicitly disclosed. Restore preflights Cloud data, preserves stable IDs, and merges rather than deleting existing Cloud data.
-- Latest implementation branch: `feature/storyforge-studio-80`, code commit `a3672c5399c4ef4d42e404d3c1c9069563d22c20`. The Draft PR remains open and targets `feature/character-studio`, not `main`. Draft PR #1 targets `feature/character-studio`, not `main`.
-- GitHub Actions passed on the previous export milestone. The latest illustration-library changes are being checked by the current workflow. CI checks cover JavaScript syntax/export smoke tests, D1 schema validation, and Worker security-contract checks. These are static/source and SQLite checks, not live Worker/D1 or browser end-to-end tests.
-- The deployed Worker is an earlier build; the latest branch changes have not been deployed. No merge to `main` or new deployment is authorized.
+- Latest implementation branch: `feature/storyforge-studio-80`. The current Draft PR #1 remains open and targets `feature/character-studio`, not `main`.
+- GitHub Actions checks cover JavaScript syntax, export/recovery/continuity/editor contracts, Cloud-save race regression, D1 schema validation, and Worker security contracts. Recent Push and Pull Request runs passed through commit `61b651011500d522df5067e78092fc7b1a9047c3`; subsequent documentation-only commits are being checked. These are source and SQLite checks, not live Worker/D1 or browser end-to-end tests.
+- Read-only Cloudflare inspection on 23 November 2026 confirmed that the only visible D1 database is `storyforge`, and only migrations `0001`–`0003` are recorded as applied. The active `storyforge` Worker is an earlier build. Branch migrations `0004`–`0012` are not applied to that database. No separate staging Worker/D1 was visible. Do not apply migrations or deploy this branch to the existing Worker.
 - OpenAI (ChatGPT) is selected as the intended AI provider. The assistant UI now identifies this choice and supports copying the active novel context for manual use in ChatGPT. Direct API integration remains disabled: ChatGPT Plus does not include API usage, and no API billing or key configuration has been approved. GitHub identity OAuth is only for sign-in.
 
 ## Latest AI provider update — 23 November 2026
@@ -51,6 +51,15 @@ This section supersedes earlier historical status statements below where they co
 - The illustration library is stored on the current device only; it is not cloud-synced. Images embedded in manuscript chapters continue to travel with the chapter data. Cross-device library sync and a cloud asset store remain future work.
 - Added source-contract tests for project isolation, IndexedDB migration, library controls, and Backup/Restore v4. GitHub Actions passed on commit `282bca29a96051a5ebc81d06f731838264454a33`; follow-up hardening also disables saving after failed compression, rechecks the active Project ID before save/delete, and safely omits local library backup on browsers without IndexedDB. CI passed on the code commit.
 - No production deployment, merge, paid service activation, or AI provider connection was performed.
+
+
+## Latest save reliability update — 23 November 2026
+
+- Hardened the Cloud chapter save response so an older in-flight save cannot tell the writer that the newest text is already saved.
+- If the writer continues typing during a PATCH, the UI now reports that newer edits are pending, keeps the recovery affordance visible, and schedules a follow-up save after the current request releases the in-flight lock.
+- Added an asynchronous regression test that simulates typing while a Cloud save is pending and asserts that the newer local draft is preserved and queued.
+- Added the regression test to GitHub Actions. Push and Pull Request CI both passed through commit `61b651011500d522df5067e78092fc7b1a9047c3`.
+- Updated the private-beta QA gate to require migrations `0001`–`0012` on a separate staging database and documented the live database's observed migration state. Updated README instructions to remove obsolete Render/API-key deployment guidance.
 
 ## MVP acceptance criteria
 
@@ -107,8 +116,8 @@ Create a novel → add a chapter → write text → save → sign out/in → res
 
 ## Current known blockers — updated 23 November 2026
 
-- Cloudflare Worker, D1, and GitHub OAuth are provisioned; latest branch code has not been deployed to the active Worker.
-- Live Worker/D1 integration and browser/device end-to-end tests remain outstanding, including Android tablet validation.
+- Cloudflare Worker and D1 exist, but the active Worker is an earlier build. The only visible D1 has migrations `0001`–`0003` applied; migrations `0004`–`0012` remain unverified on an isolated staging database.
+- No isolated staging Worker/D1 was visible during read-only inspection. Live integration and browser/device end-to-end tests remain outstanding, including Android tablet validation.
 - Independent encrypted off-site D1 backup and a full restore drill remain outstanding.
 - Character Reference Vault is device-local IndexedDB; Cloud image storage and cross-device synchronization are not implemented.
 - AI text/image generation remains disabled. OpenAI (ChatGPT) is the intended provider; direct API use still requires explicit cost/privacy approval and server-side secret configuration. GitHub Copilot is explicitly excluded.
