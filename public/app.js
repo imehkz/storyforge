@@ -3627,11 +3627,17 @@ async function saveCloudChapter() {
         storeLocalChapterDraft(chapterId, { title: result.chapter.title, body: result.chapter.body, synopsis: result.chapter.synopsis || "", writing_status: result.chapter.writing_status || "draft", character_ids_json: result.chapter.character_ids_json || "[]" }, result.chapter.revision);
       }
       renderChapterCharacterReferences();
-      if ($("recoverLocalDraft")) $("recoverLocalDraft").hidden = true;
+      if (saveStillCurrent && $("recoverLocalDraft")) $("recoverLocalDraft").hidden = true;
       renderChapterSelect();
-      $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกต้นฉบับบน Cloud แล้ว';
-      if ($("chapterSaveHint")) $("chapterSaveHint").textContent =
-        "บันทึกบน Cloud แล้ว · Revision " + cloud.revision + " · ฉบับกู้คืนในอุปกรณ์ยังคงอยู่";
+      if (saveStillCurrent) {
+        $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกต้นฉบับบน Cloud แล้ว';
+        if ($("chapterSaveHint")) $("chapterSaveHint").textContent =
+          "บันทึกบน Cloud แล้ว · Revision " + cloud.revision + " · ฉบับกู้คืนในอุปกรณ์ยังคงอยู่";
+      } else {
+        $("saveState").innerHTML = '<span class="status-dot"></span>มีการแก้ไขใหม่ · กำลังบันทึกต่อ';
+        if ($("chapterSaveHint")) $("chapterSaveHint").textContent =
+          "บันทึกฉบับก่อนหน้าแล้ว · Revision " + cloud.revision + " · กำลังส่งข้อความที่แก้ไขล่าสุดขึ้น Cloud";
+      }
       return true;
     } catch (error) {
       if (error.status === 409) {
