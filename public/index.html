@@ -279,6 +279,19 @@
             <div id="storyNoteList" class="module-list"></div>
           </div>
         </div>
+        <section class="card-frame scene-tracker-card">
+          <div class="section-heading"><div><span class="eyebrow">SCENE TRACKER</span><h2>ทะเบียนฉาก</h2><p>วางแผนฉากสำคัญและติดตามสถานะการเขียน โดยเชื่อมกับบทและตัวละครของนิยายเรื่องนี้</p></div></div>
+          <div class="scene-tracker-form">
+            <div><label for="sceneTitle">ชื่อฉาก</label><input id="sceneTitle" maxlength="200" placeholder="เช่น การพบกันใต้หอคอย"></div>
+            <div><label for="sceneType">ประเภทฉาก</label><select id="sceneType"><option value="setup">ปูเรื่อง</option><option value="conflict">ความขัดแย้ง</option><option value="turning_point">จุดเปลี่ยน</option><option value="climax">ไคลแมกซ์</option><option value="resolution">คลี่คลาย</option><option value="other">อื่น ๆ</option></select></div>
+            <div><label for="sceneStatus">สถานะ</label><select id="sceneStatus"><option value="planned">วางแผน</option><option value="drafting">กำลังเขียน</option><option value="written">เขียนแล้ว</option><option value="revised">ปรับแก้แล้ว</option></select></div>
+            <div class="scene-tracker-wide"><label for="sceneDescription">รายละเอียด / จุดประสงค์ของฉาก</label><textarea id="sceneDescription" rows="3" maxlength="30000" placeholder="ฉากนี้เกิดอะไรขึ้น ต้องการให้ผู้อ่านรู้อะไร หรือเปลี่ยนแปลงอะไร..."></textarea></div>
+            <div><label for="sceneChapters">บทที่เกิดฉากนี้</label><select id="sceneChapters" multiple size="4" aria-describedby="sceneChaptersHint"></select><p id="sceneChaptersHint" class="form-hint">เลือกได้หลายบทในนิยายเรื่องนี้</p></div>
+            <div><label for="sceneCharacters">ตัวละครในฉาก</label><select id="sceneCharacters" multiple size="4" aria-describedby="sceneCharactersHint"></select><p id="sceneCharactersHint" class="form-hint">เลือกได้หลายตัวละคร</p></div>
+            <div class="scene-tracker-wide"><button id="addScene" class="gold-button" type="button">บันทึกฉาก</button><span class="form-hint">ฉากจะถูกเก็บในโครงการเดียวกับนิยายที่เลือก</span></div>
+          </div>
+          <div id="sceneTrackerList" class="scene-tracker-list" aria-live="polite"><p class="muted-note">เข้าสู่ระบบและเลือกนิยายเพื่อเริ่มติดตามฉาก</p></div>
+        </section>
       </section>
       <section id="manuscript" class="panel hidden">
         <div class="page-intro manuscript-page-intro"><div><span class="eyebrow">MANUSCRIPT STUDIO</span><h1>ห้องเขียนต้นฉบับ</h1><p>ดูแลทุกฉบับร่าง เขียนต่อได้อย่างอุ่นใจ</p></div><span class="save-indicator" id="manuscriptStatusMini">ฉบับร่างส่วนตัว</span></div>
