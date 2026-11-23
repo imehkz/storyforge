@@ -134,6 +134,11 @@ class WorkerContractTests(unittest.TestCase):
             self.assertIn(element_id, HTML)
             self.assertIn(element_id, APP)
 
+    def test_relationship_edges_follow_nodes_during_drag(self):
+        self.assertIn('path?.setAttribute("d"', APP)
+        self.assertIn('label?.setAttribute("x"', APP)
+        self.assertIn('label?.setAttribute("y"', APP)
+
     def test_relationship_map_supports_english_and_thai_relationship_types(self):
         for term in ("enemy", "family", "romance", "ally", "business", "mentor"):
             self.assertIn(term, APP)
