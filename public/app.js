@@ -872,6 +872,16 @@ function validateCloudBackupData(backupProjects) {
         }
       }
     }
+    for (const chapter of entry.chapters) {
+      let references;
+      try { references = chapter.character_ids_json == null ? [] : JSON.parse(typeof chapter.character_ids_json === "string" ? chapter.character_ids_json : JSON.stringify(chapter.character_ids_json)); }
+      catch { throw new Error("บทนิยายมีรายการตัวละครที่อ้างอิงไม่ถูกต้อง"); }
+      if (!Array.isArray(references) || references.length > 50 ||
+          references.some(id => typeof id !== "string" || !UUID_RE.test(id) || !characterIds.has(id)) ||
+          new Set(references).size !== references.length) {
+        throw new Error("บทนิยายอ้างถึงตัวละครที่ไม่มีอยู่ในโครงการเดียวกัน");
+      }
+    }
     for (const collection of ["plot-threads", "world-lore", "timeline", "notes"]) {
       for (const item of (entry.modules[collection] || [])) {
         let references;
@@ -923,7 +933,7 @@ async function restoreCloudBackup(backupProjects) {
       for (const chapter of entry.chapters) {
         const result = await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/chapters", {
           method: "POST",
-          body: JSON.stringify({ clientId: chapter.id, title: chapter.title || "", body: chapter.body || "", sortOrder: Number.isInteger(chapter.sort_order) ? chapter.sort_order : 0, wordCount: Number.isInteger(chapter.word_count) ? chapter.word_count : countWords(chapter.body || "") })
+          body: JSON.stringify({ clientId: chapter.id, title: chapter.title || "", body: chapter.body || "", sortOrder: Number.isInteger(chapter.sort_order) ? chapter.sort_order : 0, wordCount: Number.isInteger(chapter.word_count) ? chapter.word_count : countWords(chapter.body || ""), character_ids_json: chapter.character_ids_json || "[]" })
         });
         if (result.created) createdItems.push({ projectId: project.id, path: "/api/chapters/" + encodeURIComponent(chapter.id) });
       }
@@ -2203,6 +2213,27 @@ async function loadProjectModules(projectId) {
   ));
   names.forEach((name, index) => { cloud.modules[name] = results[index].items || []; });
   renderModuleLists();
+  renderChapterCharacterReferences();
+}
+
+function chapterCharacterIds(chapter = null) {
+  try {
+    const parsed = JSON.parse(chapter?.character_ids_json || "[]");
+    return Array.isArray(parsed) ? parsed.filter(id => typeof id === "string") : [];
+  } catch { return []; }
+}
+
+function renderChapterCharacterReferences() {
+  const select = $("chapterCharacters");
+  const panel = $("chapterCanonPanel");
+  if (!select || !panel) return;
+  const enabled = cloud.ready && Boolean(cloud.activeProjectId && cloud.activeChapterId);
+  panel.hidden = !enabled;
+  if (!enabled) return;
+  const selected = new Set(chapterCharacterIds(cloud.chapters.find(item => item.id === cloud.activeChapterId)));
+  select.innerHTML = (cloud.modules.characters || []).map(character =>
+    `<option value="${escapeHtml(character.id)}" ${selected.has(character.id) ? "selected" : ""}>${escapeHtml(character.name)}</option>`
+  ).join("") || '<option value="" disabled>ยังไม่มีตัวละครในโครงการนี้</option>';
 }
 
 function renderRelationshipOptions() {
@@ -2992,9 +3023,11 @@ async function selectCloudChapter(chapterId) {
   cloud.chapters = cloud.chapters.map(chapter => chapter.id === fullChapter.id ? fullChapter : chapter);
   $("chapterTitle").value = fullChapter.title || "";
   $("manuscriptBody").value = fullChapter.body || "";
+  renderChapterCharacterReferences();
   const localDraft = safeJSON(localStorage.getItem(localChapterDraftKey(item.id)) || "null", null);
   const hasRecoverableDraft = Boolean(localDraft &&
-    (localDraft.title !== (fullChapter.title || "") || localDraft.body !== (fullChapter.body || "")));
+    (localDraft.title !== (fullChapter.title || "") || localDraft.body !== (fullChapter.body || "") ||
+      JSON.stringify(localDraft.character_ids_json || []) !== JSON.stringify(chapterCharacterIds(fullChapter))));
   if ($("recoverLocalDraft")) {
     $("recoverLocalDraft").hidden = !hasRecoverableDraft;
     $("recoverLocalDraft").dataset.chapterId = fullChapter.id;
@@ -3019,9 +3052,14 @@ async function saveCloudChapter() {
   if (cloud.saving) return cloud.savePromise || false;
   const chapterId = cloud.activeChapterId;
   const expectedRevision = cloud.revision;
-  const draft = { title: $("chapterTitle").value, body: $("manuscriptBody").value };
+  const draft = {
+    title: $("chapterTitle").value,
+    body: $("manuscriptBody").value,
+    character_ids_json: JSON.stringify(Array.from($("chapterCharacters")?.selectedOptions || []).map(option => option.value).filter(Boolean))
+  };
   const lastSaved = cloud.chapters.find(item => item.id === chapterId);
-  if (lastSaved && lastSaved.title === draft.title && lastSaved.body === draft.body) return true;
+  if (lastSaved && lastSaved.title === draft.title && lastSaved.body === draft.body &&
+      JSON.stringify(chapterCharacterIds(lastSaved)) === draft.character_ids_json) return true;
   cloud.saving = true;
   cloud.savePromise = (async () => {
     try {
@@ -3032,7 +3070,8 @@ async function saveCloudChapter() {
       if (cloud.activeChapterId !== chapterId) return true;
       cloud.revision = result.chapter.revision;
       cloud.chapters = cloud.chapters.map(item => item.id === chapterId ? result.chapter : item);
-      storeLocalChapterDraft(chapterId, { title: result.chapter.title, body: result.chapter.body }, result.chapter.revision);
+      storeLocalChapterDraft(chapterId, { title: result.chapter.title, body: result.chapter.body, character_ids_json: result.chapter.character_ids_json || "[]" }, result.chapter.revision);
+      renderChapterCharacterReferences();
       if ($("recoverLocalDraft")) $("recoverLocalDraft").hidden = true;
       renderChapterSelect();
       $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกต้นฉบับบน Cloud แล้ว';
@@ -3054,7 +3093,8 @@ async function saveCloudChapter() {
       cloud.saving = false;
       cloud.savePromise = null;
       if (cloud.activeChapterId === chapterId &&
-          ($("chapterTitle").value !== draft.title || $("manuscriptBody").value !== draft.body)) {
+          ($("chapterTitle").value !== draft.title || $("manuscriptBody").value !== draft.body ||
+          JSON.stringify(Array.from($("chapterCharacters")?.selectedOptions || []).map(option => option.value).filter(Boolean)) !== draft.character_ids_json)) {
         scheduleCloudSave();
       }
     }
@@ -3101,6 +3141,8 @@ async function recoverLocalChapterDraft() {
     cloud.revision = latest.chapter.revision;
     $("chapterTitle").value = draft.title || "";
     $("manuscriptBody").value = draft.body || "";
+    const selectedCharacterIds = new Set(Array.isArray(draft.character_ids_json) ? draft.character_ids_json : chapterCharacterIds({ character_ids_json: draft.character_ids_json }));
+    Array.from($("chapterCharacters")?.options || []).forEach(option => { option.selected = selectedCharacterIds.has(option.value); });
     if ($("recoverLocalDraft")) $("recoverLocalDraft").hidden = true;
     scheduleCloudSave();
     $("saveState").textContent = "กู้คืนฉบับในเครื่องแล้ว · กำลังบันทึกเทียบกับ Revision ล่าสุด";
@@ -3420,6 +3462,7 @@ function setupCloudEvents() {
   $("moveChapterDown")?.addEventListener("click", () => moveActiveChapter("down"));
   $("deleteChapter")?.addEventListener("click", deleteActiveChapter);
   $("chapterSelect")?.addEventListener("change", event => selectCloudChapter(event.target.value));
+  $("chapterCharacters")?.addEventListener("change", scheduleCloudSave);
   $("chapterHistoryButton")?.addEventListener("click", showChapterHistory);
   $("chapterHistoryInline")?.addEventListener("click", showChapterHistory);
   $("replaceAll")?.addEventListener("click", () => {
