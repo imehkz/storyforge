@@ -368,3 +368,8 @@ No hosting resources or secrets have been provisioned, and no production deploym
 - Worker validates every linked chapter against the same project on create/update; deleting a chapter removes only that chapter ID from plot links in the same D1 batch.
 - Continuity review flags dangling chapter references, plot threads without chapter links, and soft Canon mismatches between a plot's characters and linked chapters.
 - No external AI, billing, or deployment was enabled.
+
+
+### Next 20 writer-first implementation tasks
+
+See [ROADMAP_NEXT_20.md](./ROADMAP_NEXT_20.md) for the ordered acceptance checklist. Scene Tracker is the first slice; it reuses project-scoped Story Notes with migration 0008 and does not require a new table or paid provider.
