@@ -872,8 +872,12 @@ function validateCloudBackupData(backupProjects) {
           }
         } else if (collection === "world-lore") {
           checkString("category", 80); checkString("title", 200, true); checkString("content", 30000); checkOrder();
+          let refs; try { refs = item.chapter_ids_json == null ? [] : JSON.parse(typeof item.chapter_ids_json === "string" ? item.chapter_ids_json : JSON.stringify(item.chapter_ids_json)); } catch { throw new Error("ข้อมูลโลกมีบทที่อ้างอิงไม่ถูกต้อง"); }
+          if (!Array.isArray(refs) || refs.length > 100 || refs.some(id => typeof id !== "string" || !UUID_RE.test(id) || !chapterIds.has(id)) || new Set(refs).size !== refs.length) throw new Error("ข้อมูลโลกอ้างถึงบทที่ไม่มีอยู่ในโครงการเดียวกัน");
         } else if (collection === "timeline") {
           checkString("title", 200, true); checkString("description", 10000); checkString("story_time", 120); checkOrder();
+          let refs; try { refs = item.chapter_ids_json == null ? [] : JSON.parse(typeof item.chapter_ids_json === "string" ? item.chapter_ids_json : JSON.stringify(item.chapter_ids_json)); } catch { throw new Error("Timeline มีบทที่อ้างอิงไม่ถูกต้อง"); }
+          if (!Array.isArray(refs) || refs.length > 100 || refs.some(id => typeof id !== "string" || !UUID_RE.test(id) || !chapterIds.has(id)) || new Set(refs).size !== refs.length) throw new Error("Timeline อ้างถึงบทที่ไม่มีอยู่ในโครงการเดียวกัน");
         } else if (collection === "notes") {
           checkString("title", 200); checkString("content", 30000); checkString("note_type", 60);
           checkString("scene_type", 40); checkString("scene_status", 40);
