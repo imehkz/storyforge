@@ -821,6 +821,12 @@ function validateCloudBackupData(backupProjects) {
         (project.copyright_text != null && (typeof project.copyright_text !== "string" || project.copyright_text.length > 300)) ||
         (project.foreword != null && (typeof project.foreword !== "string" || project.foreword.length > 10000)) ||
         (project.author_bio != null && (typeof project.author_bio !== "string" || project.author_bio.length > 3000)) ||
+        (project.cover_brief_json != null && (() => {
+          try {
+            const brief = typeof project.cover_brief_json === "string" ? JSON.parse(project.cover_brief_json) : project.cover_brief_json;
+            return !brief || typeof brief !== "object" || Array.isArray(brief) || JSON.stringify(brief).length > 25000 || (brief.projectId != null && brief.projectId !== project.id);
+          } catch { return true; }
+        })()) ||
         (project.status != null && !["active", "archived"].includes(project.status))) {
       throw new Error("ข้อมูลชื่อหรือรายละเอียดโครงการไม่ถูกต้อง");
     }
@@ -963,7 +969,7 @@ async function restoreCloudBackup(backupProjects) {
       const project = entry.project;
       const projectResult = await cloudApi("/api/projects", {
         method: "POST",
-        body: JSON.stringify({ clientId: project.id, title: project.title || "นิยายที่กู้คืน", genre: project.genre || "", synopsis: project.synopsis || "", pen_name: project.pen_name || "", copyright_text: project.copyright_text || "", foreword: project.foreword || "", author_bio: project.author_bio || "" })
+        body: JSON.stringify({ clientId: project.id, title: project.title || "นิยายที่กู้คืน", genre: project.genre || "", synopsis: project.synopsis || "", pen_name: project.pen_name || "", copyright_text: project.copyright_text || "", foreword: project.foreword || "", author_bio: project.author_bio || "", cover_brief_json: project.cover_brief_json || "{}" })
       });
       if (projectResult.created) createdProjects.add(project.id);
       if (project.status === "archived" && projectResult.project?.status !== "archived") {
@@ -1396,7 +1402,12 @@ function renderCoverPreview() {
 }
 function loadCoverBrief() {
   const project = activeCoverProject();
-  const brief = project ? safeJSON(localStorage.getItem(coverBriefKey(project.id)) || "{}", {}) : {};
+  const cloudBrief = project?.cover_brief_json
+    ? safeJSON(typeof project.cover_brief_json === "string" ? project.cover_brief_json : JSON.stringify(project.cover_brief_json), {})
+    : null;
+  const brief = cloudBrief && Object.keys(cloudBrief).length
+    ? cloudBrief
+    : (project ? safeJSON(localStorage.getItem(coverBriefKey(project.id)) || "{}", {}) : {});
   $("coverTitle").value = brief.title || project?.title || "";
   $("coverPenName").value = brief.penName || "";
   $("coverStyle").value = brief.style || "Classic Storybook";
@@ -1447,11 +1458,29 @@ function buildCoverPromptText() {
 function setupCoverStudio() {
   ["coverTitle","coverPenName","coverStyle"].forEach(id => $(id)?.addEventListener("input", renderCoverPreview));
   $("coverStyle")?.addEventListener("change", renderCoverPreview);
-  $("saveCoverBrief")?.addEventListener("click", () => {
+  $("saveCoverBrief")?.addEventListener("click", async () => {
     const brief = readCoverBrief();
     if (!brief.projectId) { $("coverSaveStatus").textContent = "ยังไม่มีนิยายที่เลือก กรุณาไปที่คลังนิยายก่อน"; return; }
-    localStorage.setItem(coverBriefKey(brief.projectId), JSON.stringify(brief));
-    $("coverSaveStatus").textContent = "บันทึกแนวทางปกของนิยายนี้ในอุปกรณ์แล้ว";
+    const serialized = JSON.stringify(brief);
+    localStorage.setItem(coverBriefKey(brief.projectId), serialized);
+    if (cloud.ready && cloud.activeProjectId === brief.projectId) {
+      try {
+        const result = await cloudApi("/api/projects/" + encodeURIComponent(brief.projectId), {
+          method: "PATCH", body: JSON.stringify({ cover_brief_json: serialized })
+        });
+        cloud.projects = cloud.projects.map(project => project.id === brief.projectId ? result.project : project);
+        $("coverSaveStatus").textContent = "บันทึกแนวทางปกลง Cloud และอุปกรณ์นี้แล้ว";
+      } catch (error) {
+        $("coverSaveStatus").textContent = "บันทึก Cloud ไม่สำเร็จ · เก็บสำเนาไว้ในอุปกรณ์แล้ว: " + error.message;
+      }
+    } else {
+      const projects = safeJSON(localStorage.getItem("sf_projects") || "[]", []);
+      if (Array.isArray(projects)) {
+        const updated = projects.map(project => project.id === brief.projectId ? { ...project, cover_brief_json: serialized } : project);
+        localStorage.setItem("sf_projects", JSON.stringify(updated));
+      }
+      $("coverSaveStatus").textContent = "บันทึกแนวทางปกของนิยายนี้ในอุปกรณ์แล้ว";
+    }
   });
   $("resetCoverBrief")?.addEventListener("click", loadCoverBrief);
   $("buildCoverPrompt")?.addEventListener("click", () => {
