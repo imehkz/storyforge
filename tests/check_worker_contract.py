@@ -172,6 +172,8 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("buildStoryAssistantContext()", APP)
         self.assertIn("writingSettingsKey(active.id)", APP)
         self.assertIn("writingSettings.genres", APP)
+        self.assertIn("writingSettings.selectedGenres", APP)
+        self.assertIn("selectedGenres.forEach(genre", APP)
         self.assertIn("writingWordGoalKey(active.id)", APP)
         self.assertIn("context.length > 40000", APP)
         self.assertIn("projectGuardrail", APP)
