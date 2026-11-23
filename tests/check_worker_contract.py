@@ -236,7 +236,9 @@ class WorkerContractTests(unittest.TestCase):
         restore = APP[APP.index("async function restoreCloudBackup"):APP.index("function restoreFromFile")]
         self.assertIn('character_ids_json: ["json_array", 8000]', WORKER)
         self.assertIn('"character_ids_json"', restore)
-        self.assertIn('for (const collection of ["plot-threads", "world-lore", "timeline"])', restore)
+        self.assertIn('"plot-threads": ["title", "summary", "status", "sort_order", "character_ids_json"]', restore)
+        self.assertIn('"world-lore": ["category", "title", "content", "sort_order", "character_ids_json"]', restore)
+        self.assertIn('timeline: ["title", "description", "story_time", "sort_order", "character_ids_json"]', restore)
         self.assertIn('characterIds.has(id)', restore)
 
     def test_relationship_edit_can_reassign_character_endpoints(self):
