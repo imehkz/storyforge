@@ -330,3 +330,12 @@ No hosting resources or secrets have been provisioned, and no production deploym
 - The focus-mode toggle remains inside the editor toolbar; Escape exits focus mode. The editor's existing local recovery and Cloud autosave flows remain unchanged.
 - Added a source-contract regression test for the focus toggle, keyboard exit, and retained editor controls.
 - This is a writing-comfort improvement, not a substitute for Android tablet browser QA or a real save/reload/restore test.
+
+
+### Chapter-level Canon references — 23 November 2026
+
+- Added a per-chapter character selector in Manuscript Studio so each chapter can record which characters appear or play a role in it.
+- Chapter references are stored in D1 with the chapter, validated against characters in the same project, included in revision snapshots, and restored with the chapter.
+- Deleting a character cleans its references from chapters as well as Plot, World, Timeline, and Story Notes.
+- Cloud Backup validation and restore preserve chapter character links and reject missing or cross-project character IDs.
+- The feature is implemented on the test branch only. Migration 0006_chapter_character_references.sql must be applied before this Worker build can run against D1; no live deployment or migration has been performed.
