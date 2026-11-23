@@ -402,19 +402,23 @@ function validateCharacterVaultBackup(records, cloudProjects) {
 async function collectBackup() {
   const cloudProjects = await collectCloudBackup();
   const characterVault = await collectCharacterVaultBackup(cloudProjects);
+  const data = collectLocalBackup();
+  const illustrationLibrary = await collectIllustrationLibraryBackup(cloudProjects, data);
   return {
     app: "STORYFORGE",
-    version: 3,
+    version: 4,
     createdAt: new Date().toISOString(),
     scope: {
       localDeviceData: true,
       cloudProjects: cloud.authenticated && cloud.ready,
       snapshotHistory: false,
-      characterReferenceVault: true
+      characterReferenceVault: true,
+      illustrationLibrary: true
     },
-    data: collectLocalBackup(),
+    data,
     cloud: { projects: cloudProjects },
-    characterVault
+    characterVault,
+    illustrationLibrary
   };
 }
 
@@ -918,7 +922,7 @@ function restoreFromFile() {
   reader.onload = async () => {
     try {
       const backup = JSON.parse(reader.result);
-      if (backup.app !== "STORYFORGE" || ![1, 2, 3].includes(backup.version) ||
+      if (backup.app !== "STORYFORGE" || ![1, 2, 3, 4].includes(backup.version) ||
           !backup.data || typeof backup.data !== "object" || Array.isArray(backup.data)) {
         throw new Error("ไฟล์นี้ไม่ใช่ Backup ของ STORYFORGE");
       }
@@ -931,7 +935,9 @@ function restoreFromFile() {
       if (cloudProjects.length) validateCloudBackupData(cloudProjects);
       const characterVault = backup.version >= 3 ? (backup.characterVault || []) : [];
       if (backup.version >= 3) validateCharacterVaultBackup(characterVault, cloudProjects);
-      if (!entries.length && !cloudProjects.length && !characterVault.length) throw new Error("ไม่พบข้อมูลสำหรับกู้คืน");
+      const illustrationLibrary = backup.version >= 4 ? (backup.illustrationLibrary || []) : [];
+      if (backup.version >= 4) validateIllustrationLibraryBackup(illustrationLibrary, cloudProjects, backup.data);
+      if (!entries.length && !cloudProjects.length && !characterVault.length && !illustrationLibrary.length) throw new Error("ไม่พบข้อมูลสำหรับกู้คืน");
       const confirmed = confirm(
         "ระบบจะดาวน์โหลดข้อมูลปัจจุบันเก็บไว้ก่อน แล้วนำข้อมูลจาก Backup เข้ามาเพิ่ม\n\n" +
         "ข้อมูล Cloud จะถูกรวมด้วยรหัสเดิมโดยไม่ลบโครงการปัจจุบัน และข้อมูลในอุปกรณ์จะถูกแทนที่\n" +
@@ -944,6 +950,7 @@ function restoreFromFile() {
         await restoreCloudBackup(cloudProjects);
       }
       if (characterVault.length) { $("backupStatus").textContent = "กำลังกู้คืนคลังภาพอ้างอิง..."; await restoreCharacterVaultRecords(characterVault); }
+      if (illustrationLibrary.length) { $("backupStatus").textContent = "กำลังกู้คืนคลังภาพประกอบ..."; await restoreIllustrationLibraryRecords(illustrationLibrary); }
       const previousData = collectLocalBackup();
       try {
         for (const key of Object.keys(localStorage)) if (key.startsWith("sf_")) localStorage.removeItem(key);
@@ -1442,6 +1449,55 @@ async function illustrationLibraryRecords(projectId) {
     req.onerror = () => { db.close(); reject(req.error); };
   });
 }
+async function collectIllustrationLibraryBackup(cloudProjects, localData) {
+  const allowed = new Set((cloudProjects || []).map(entry => entry.project?.id).filter(Boolean));
+  const projects = safeJSON(localData?.sf_projects || "[]", []);
+  if (Array.isArray(projects)) projects.forEach(project => { if (project?.id) allowed.add(project.id); });
+  if (localData?.sf_active_project_id) allowed.add(localData.sf_active_project_id);
+  const db = await openCharacterVault();
+  const records = await new Promise((resolve,reject) => {
+    const tx = db.transaction(ILLUSTRATION_LIBRARY_STORE,"readonly");
+    const req = tx.objectStore(ILLUSTRATION_LIBRARY_STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+    tx.oncomplete = () => db.close();
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  });
+  const filtered = records.filter(record => allowed.has(record.projectId));
+  if (filtered.reduce((sum,record) => sum + String(record.dataUrl || "").length,0) > 12*1024*1024) throw new Error("คลังภาพประกอบมีขนาดเกิน 12 MB กรุณาลดจำนวนภาพก่อน Backup");
+  return filtered;
+}
+async function restoreIllustrationLibraryRecords(records) {
+  if (!Array.isArray(records) || !records.length) return;
+  const db = await openCharacterVault();
+  await new Promise((resolve,reject) => {
+    const tx = db.transaction(ILLUSTRATION_LIBRARY_STORE,"readwrite");
+    records.forEach(record => tx.objectStore(ILLUSTRATION_LIBRARY_STORE).put(record));
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error || new Error("กู้คืนคลังภาพประกอบไม่สำเร็จ")); };
+  });
+}
+function validateIllustrationLibraryBackup(records, cloudProjects, localData) {
+  if (!Array.isArray(records) || records.length > 1000) throw new Error("ข้อมูลคลังภาพประกอบใน Backup ไม่ถูกต้อง");
+  const allowed = new Set((cloudProjects || []).map(entry => entry.project?.id).filter(Boolean));
+  const projects = safeJSON(localData?.sf_projects || "[]", []);
+  if (Array.isArray(projects)) projects.forEach(project => { if (project?.id) allowed.add(project.id); });
+  if (localData?.sf_active_project_id) allowed.add(localData.sf_active_project_id);
+  let total = 0;
+  for (const record of records) {
+    if (!record || typeof record !== "object" || !allowed.has(record.projectId) ||
+        typeof record.id !== "string" || record.id.length > 100 ||
+        typeof record.dataUrl !== "string" || !/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(record.dataUrl) || record.dataUrl.length > 130000 ||
+        typeof record.label !== "string" || record.label.length > 100 ||
+        typeof record.caption !== "string" || record.caption.length > 300 ||
+        typeof record.style !== "string" || record.style.length > 80 || !Number.isFinite(record.createdAt)) {
+      throw new Error("พบภาพประกอบที่ไม่ถูกต้องหรือไม่ได้อยู่ในนิยายที่สำรองไว้");
+    }
+    total += record.dataUrl.length;
+  }
+  if (total > 12*1024*1024) throw new Error("คลังภาพประกอบใน Backup มีขนาดเกิน 12 MB");
+}
+
 async function savePendingIllustrationToLibrary() {
   const project = illustrationProject();
   if (!project?.id || !pendingIllustrationData) throw new Error("เลือกนิยายและภาพก่อนบันทึกเข้าคลัง");
