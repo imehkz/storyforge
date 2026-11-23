@@ -121,7 +121,7 @@ class WorkerContractTests(unittest.TestCase):
             "species", "height", "face", "skin", "eyes", "hair", "build",
             "clothing", "accessories", "expressions", "appearance", "personality",
             "motivation", "backstory", "strengths", "weaknesses", "likes", "dislikes",
-            "skills", "family", "secret", "description"
+            "skills", "family", "customFields", "secret", "description"
         ):
             self.assertIn(field + ":", APP)
         for element_id in (
@@ -129,7 +129,7 @@ class WorkerContractTests(unittest.TestCase):
             "characterProfession", "characterLikes", "characterDislikes",
             "characterSkills", "characterFamily", "characterFace", "characterSkin",
             "characterEyes", "characterHair", "characterBuild", "characterClothing",
-            "characterAccessories", "characterExpressions"
+            "characterAccessories", "characterExpressions", "characterCustomFields"
         ):
             self.assertIn(element_id, HTML)
             self.assertIn(element_id, APP)
