@@ -49,8 +49,28 @@ assert.equal(cloudSaveSchedules, 1, "Cloud autosave is still scheduled after loc
 assert.match(elements.saveState.innerHTML, /พื้นที่จัดเก็บในอุปกรณ์ไม่พร้อมใช้งาน/);
 console.log("Editor recovery tests passed: quota errors are contained and Cloud autosave continues.");
 
+const backupValidator = new Function(
+  "UUID_RE", "countWords",
+  extractFunction("validateCloudBackupData") + "\nreturn validateCloudBackupData;"
+)(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i, () => 0);
+const validPlotBackup = [{
+  project: { id: "11111111-1111-4111-8111-111111111111", title: "Plot test" },
+  chapters: [{ id: "22222222-2222-4222-8222-222222222222", title: "บท 1", body: "", sort_order: 0 }],
+  modules: {
+    characters: [], relationships: [],
+    "plot-threads": [{ id: "33333333-3333-4333-8333-333333333333", title: "Main", chapter_ids_json: '["22222222-2222-4222-8222-222222222222"]' }],
+    "world-lore": [], timeline: [], notes: []
+  }
+}];
+assert.equal(backupValidator(validPlotBackup), true, "plot chapter references in a backup are accepted");
+assert.throws(() => backupValidator([{
+  ...validPlotBackup[0],
+  modules: { ...validPlotBackup[0].modules, "plot-threads": [{ ...validPlotBackup[0].modules["plot-threads"][0], chapter_ids_json: '["44444444-4444-4444-8444-444444444444"]' }] }
+}]), /เส้นเรื่องอ้างถึงบทที่ไม่มีอยู่ในโครงการเดียวกัน/);
+console.log("Plot backup validation tests passed: chapter references must resolve within the same project.");
+
 const restoreSource = extractFunction("restoreCloudBackup");
-const makeRestore = (projectCreated, calls) => new Function(
+const makeRestore = (projectCreated, calls, failSecondChapter = true) => new Function(
   "validateCloudBackupData", "cloud", "cloudApi", "countWords",
   restoreSource.replace(/^function /, "async function ") + "\nreturn restoreCloudBackup;"
 )(
@@ -63,9 +83,10 @@ const makeRestore = (projectCreated, calls) => new Function(
     }
     if (path.endsWith("/chapters") && options.method === "POST") {
       const chapterCreates = calls.filter(call => call.path.endsWith("/chapters") && call.method === "POST").length;
-      if (chapterCreates === 2) throw new Error("simulated chapter failure");
+      if (failSecondChapter && chapterCreates === 2) throw new Error("simulated chapter failure");
       return { created: true };
     }
+    if (path.includes("/plot-threads") && options.method === "POST") return { created: true };
     return { ok: true };
   },
   () => 0
@@ -77,8 +98,16 @@ const restoreProject = {
     { id: "44444444-4444-4444-8444-444444444444", title: "บท 2", body: "", sort_order: 1, word_count: 0 }
   ],
   modules: { characters: [{ id: "33333333-3333-4333-8333-333333333333", name: "ตัวละคร" }],
-    relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: [] }
+    relationships: [], "plot-threads": [{ id: "55555555-5555-4555-8555-555555555555", title: "Main", chapter_ids_json: '["22222222-2222-4222-8222-222222222222"]' }], "world-lore": [], timeline: [], notes: [] }
 };
+const successCalls = [];
+await makeRestore(true, successCalls, false)([restoreProject]);
+const lastChapterCreate = successCalls.reduce((last, call, index) =>
+  call.path.endsWith("/chapters") && call.method === "POST" ? index : last, -1);
+const plotLinkPatch = successCalls.findIndex(call =>
+  call.path.endsWith("/plot-threads/55555555-5555-4555-8555-555555555555") && call.method === "PATCH");
+assert.ok(plotLinkPatch > lastChapterCreate, "plot-to-chapter links are restored only after chapters exist");
+console.log("Cloud restore plot-link ordering tests passed.");
 const newProjectCalls = [];
 await assert.rejects(() => makeRestore(true, newProjectCalls)([restoreProject]), /simulated chapter failure/);
 assert.ok(newProjectCalls.some(call => call.path === "/api/projects/11111111-1111-4111-8111-111111111111" && call.method === "DELETE"),
