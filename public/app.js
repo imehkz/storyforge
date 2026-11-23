@@ -419,7 +419,11 @@ async function collectBackup() {
 }
 
 async function makeBackupFile() {
-  return JSON.stringify(await collectBackup(), null, 2);
+  const content = JSON.stringify(await collectBackup(), null, 2);
+  if (new Blob([content]).size > 39 * 1024 * 1024) {
+    throw new Error("ไฟล์ Backup มีขนาดเกินขีดจำกัดที่กู้คืนได้ 40 MB กรุณาลดจำนวนภาพอ้างอิงก่อนสำรองข้อมูล");
+  }
+  return content;
 }
 
 // ==========================================
