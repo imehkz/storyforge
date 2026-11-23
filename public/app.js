@@ -157,10 +157,19 @@ const migrationMapKey = () => "sf_cloud_migration_map_" + (cloud.userId || "owne
 const localChapterDraftKey = chapterId => "sf_cloud_draft_" + chapterId;
 
 function storeLocalChapterDraft(chapterId, draft, revision = 0) {
-  if (!chapterId) return;
-  localStorage.setItem(localChapterDraftKey(chapterId), JSON.stringify({
-    ...draft, revision, updatedAt: new Date().toISOString()
-  }));
+  if (!chapterId) return false;
+  try {
+    localStorage.setItem(localChapterDraftKey(chapterId), JSON.stringify({
+      ...draft, revision, updatedAt: new Date().toISOString()
+    }));
+    return true;
+  } catch (error) {
+    // Storage quota/privacy restrictions must never block the Cloud save path.
+    console.warn("Local chapter recovery draft could not be stored:", error);
+    const hint = $("chapterSaveHint");
+    if (hint) hint.textContent = "พื้นที่จัดเก็บฉบับกู้คืนในอุปกรณ์ไม่พร้อมใช้งาน · ระบบยังพยายามบันทึกบน Cloud";
+    return false;
+  }
 }
 
 async function cloudApi(path, options = {}) {
@@ -1021,8 +1030,18 @@ function updateWordGoal(knownWordCount) {
 }
 
 function save(changedKey = "") {
-  keys.forEach(key => localStorage.setItem(storageKeyFor(key), key === "genre" ? getProjectGenre() : $(key).value));
-  $("saveState").innerHTML = '<span class="status-dot"></span>บันทึกฉบับกู้คืนในอุปกรณ์นี้แล้ว';
+  let localStorageReady = true;
+  keys.forEach(key => {
+    try {
+      localStorage.setItem(storageKeyFor(key), key === "genre" ? getProjectGenre() : $(key).value);
+    } catch (error) {
+      localStorageReady = false;
+      console.warn("Local StoryForge recovery storage failed:", error);
+    }
+  });
+  $("saveState").innerHTML = localStorageReady
+    ? '<span class="status-dot"></span>บันทึกฉบับกู้คืนในอุปกรณ์นี้แล้ว'
+    : '<span class="status-dot"></span>พื้นที่จัดเก็บในอุปกรณ์ไม่พร้อมใช้งาน · กำลังพยายามบันทึก Cloud';
   renderDashboard();
   if (cloud.authenticated && cloud.ready && cloud.activeProjectId && cloud.activeChapterId &&
       ["chapterTitle", "manuscriptBody"].includes(changedKey)) {
