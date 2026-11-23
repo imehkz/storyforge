@@ -176,6 +176,23 @@
     font-size: 14pt !important;
     line-height: 1.75 !important;
   }
+  body.print-manuscript #printManuscriptText .print-book-toc {
+    page-break-after: always !important;
+    break-after: page !important;
+    margin: 0 0 24pt !important;
+  }
+  body.print-manuscript #printManuscriptText .print-book-toc h2 {
+    text-align: center !important;
+    font-size: 18pt !important;
+    margin: 0 0 18pt !important;
+  }
+  body.print-manuscript #printManuscriptText .print-book-toc li {
+    margin: 0 0 6pt !important;
+  }
+  body.print-manuscript #printManuscriptText .print-book-chapter {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
   body.print-manuscript #printManuscriptText .print-book-title {
     margin: 0 0 18pt !important;
     text-align: center !important;
