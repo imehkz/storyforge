@@ -2810,6 +2810,7 @@ function renderModuleLists() {
   const worlds = cloud.modules["world-lore"] || [];
   const timeline = cloud.modules.timeline || [];
   const notes = cloud.modules.notes || [];
+  const scenes = notes.filter(item => item.note_type === "scene");
   const empty = cloud.ready ? "ยังไม่มีรายการในโครงการนี้" : "เข้าสู่ระบบและเลือกโครงการเพื่อดูข้อมูล";
   const render = (id, items, collection, titleOf, detailOf) => {
     const target = $(id);
@@ -2840,8 +2841,26 @@ function renderModuleLists() {
   render("timelineList", timeline, "timeline", item => item.title, item => [item.story_time, item.description, characterReferenceNames(item).length ? "ตัวละคร: " + characterReferenceNames(item).join(", ") : ""].filter(Boolean).join(" · "));
   renderPlotBoard(plots);
   renderTimelineView(timeline);
-  render("storyNoteList", notes.filter(item => item.note_type !== "project_memory"), "notes", item => item.title || "บันทึกไม่มีชื่อ", item => [item.content, characterReferenceNames(item).length ? "ตัวละคร: " + characterReferenceNames(item).join(", ") : ""].filter(Boolean).join(" · "));
+  render("storyNoteList", notes.filter(item => item.note_type !== "project_memory" && item.note_type !== "scene"), "notes", item => item.title || "บันทึกไม่มีชื่อ", item => [item.content, characterReferenceNames(item).length ? "ตัวละคร: " + characterReferenceNames(item).join(", ") : ""].filter(Boolean).join(" · "));
+  const sceneTypeLabels = { setup: "ปูเรื่อง", conflict: "ความขัดแย้ง", turning_point: "จุดเปลี่ยน", climax: "ไคลแมกซ์", resolution: "คลี่คลาย", other: "อื่น ๆ" };
+  const sceneStatusLabels = { planned: "วางแผน", drafting: "กำลังเขียน", written: "เขียนแล้ว", revised: "ปรับแก้แล้ว" };
+  const sceneList = $("sceneTrackerList");
+  if (sceneList) sceneList.innerHTML = scenes.length ? scenes.map(scene => {
+    const chapterIds = safeJSON(scene.chapter_ids_json || "[]", []);
+    const chapters = (cloud.chapters || []).filter(chapter => chapterIds.includes(chapter.id));
+    const charactersInScene = characterReferenceNames(scene);
+    return `<article class="scene-tracker-item">
+      <div class="scene-tracker-item-main"><div class="scene-tracker-tags"><span>${escapeHtml(sceneTypeLabels[scene.scene_type] || "ฉาก")}</span><span>${escapeHtml(sceneStatusLabels[scene.scene_status] || "วางแผน")}</span></div>
+      <b>${escapeHtml(scene.title || "ฉากไม่มีชื่อ")}</b><p>${escapeHtml(scene.content || "")}</p>
+      <small>บท: ${escapeHtml(chapters.map(ch => ch.title || "บทไม่มีชื่อ").join(", ") || "ยังไม่เชื่อมบท")} · ตัวละคร: ${escapeHtml(charactersInScene.join(", ") || "ยังไม่ระบุ")}</small>
+      ${chapters.map(ch => `<button type="button" class="text-link scene-open-chapter" data-scene-chapter="${escapeHtml(ch.id)}">${escapeHtml(ch.title || "เปิดบท")} →</button>`).join(" ")}
+      </div><div class="module-actions"><button type="button" class="outline-button compact" data-module-edit="notes" data-module-id="${escapeHtml(scene.id)}">แก้ไข</button><button type="button" class="outline-button compact" data-module-delete="notes" data-module-id="${escapeHtml(scene.id)}">ลบ</button></div>
+    </article>`;
+  }).join("") : `<p class="muted-note">${empty}</p>`;
   populateModuleCharacterSelectors();
+  populateChapterMultiSelect("sceneChapters");
+  populateModuleCharacterSelector("sceneCharacters");
+  document.querySelectorAll("[data-scene-chapter]").forEach(button => button.addEventListener("click", () => selectCloudChapter(button.dataset.sceneChapter)));
   renderRelationshipOptions();
   renderRelationshipGraph();
   document.querySelectorAll("[data-module-delete]").forEach(button => button.addEventListener("click", () => deleteModuleItem(button.dataset.moduleDelete, button.dataset.moduleId)));
@@ -3175,13 +3194,22 @@ async function editModuleItem(collection, itemId) {
     if (character_ids === null) return;
     payload = { title, story_time, description, character_ids_json: character_ids };
   } else if (collection === "notes") {
-    const title = prompt("หัวข้อ", item.title || "");
+    const title = prompt(item.note_type === "scene" ? "ชื่อฉาก" : "หัวข้อ", item.title || "");
     if (title === null) return;
     const content = prompt("รายละเอียด", item.content || "");
     if (content === null) return;
-    const character_ids = promptCharacterReferences(JSON.parse(item.character_ids_json || "[]"));
+    const character_ids = promptCharacterReferences(safeJSON(item.character_ids_json || "[]", []));
     if (character_ids === null) return;
     payload = { title, content, character_ids_json: character_ids };
+    if (item.note_type === "scene") {
+      const scene_type = prompt("ประเภทฉาก (setup / conflict / turning_point / climax / resolution / other)", item.scene_type || "other");
+      if (scene_type === null) return;
+      const scene_status = prompt("สถานะฉาก (planned / drafting / written / revised)", item.scene_status || "planned");
+      if (scene_status === null) return;
+      const chapter_ids_json = promptChapterReferences(safeJSON(item.chapter_ids_json || "[]", []));
+      if (chapter_ids_json === null) return;
+      Object.assign(payload, { scene_type, scene_status, chapter_ids_json });
+    }
   } else if (collection === "relationships") {
     const characters = cloud.modules.characters || [];
     if (characters.length < 2) return alert("ต้องมีตัวละครอย่างน้อยสองตัวเพื่อแก้ไขความสัมพันธ์");
@@ -3252,8 +3280,58 @@ function setupModuleEvents() {
     createModuleItem("notes", { title, content: $("storyNoteContent").value, note_type: "idea", pinned: false, character_ids_json: selectedModuleCharacterIds("notesCharacters") })
       .then(ok => { if (ok) { $("storyNoteTitle").value = ""; $("storyNoteContent").value = ""; Array.from($("notesCharacters")?.options || []).forEach(option => { option.selected = false; }); } });
   });
+  $("addScene")?.addEventListener("click", async () => {
+    const title = $("sceneTitle")?.value.trim();
+    if (!title) return alert("กรุณาระบุชื่อฉาก");
+    const ok = await createModuleItem("notes", {
+      title, content: $("sceneDescription")?.value || "", note_type: "scene", pinned: false,
+      scene_type: $("sceneType")?.value || "other", scene_status: $("sceneStatus")?.value || "planned",
+      chapter_ids_json: JSON.stringify(selectedModuleChapterIds("sceneChapters")),
+      character_ids_json: JSON.stringify(selectedModuleCharacterIds("sceneCharacters"))
+    });
+    if (ok) {
+      ["sceneTitle", "sceneDescription"].forEach(id => { if ($(id)) $(id).value = ""; });
+      ["sceneChapters", "sceneCharacters"].forEach(id => Array.from($(id)?.options || []).forEach(option => { option.selected = false; }));
+      $("sceneType").value = "setup"; $("sceneStatus").value = "planned";
+    }
+  });
 }
 
+function selectedModuleChapterIds(selectId) {
+  return Array.from($(selectId)?.selectedOptions || []).map(option => option.value).filter(Boolean);
+}
+function populateChapterMultiSelect(selectId) {
+  const select = $(selectId);
+  if (!select) return;
+  const previous = new Set(Array.from(select.selectedOptions || []).map(option => option.value));
+  select.replaceChildren();
+  (cloud.chapters || []).forEach(chapter => {
+    const option = document.createElement("option");
+    option.value = chapter.id;
+    option.textContent = chapter.title || "บทไม่มีชื่อ";
+    option.selected = previous.has(chapter.id);
+    select.appendChild(option);
+  });
+  if (!(cloud.chapters || []).length) {
+    const option = document.createElement("option");
+    option.disabled = true; option.textContent = "ยังไม่มีบทในนิยายนี้"; select.appendChild(option);
+  }
+}
+function populateModuleCharacterSelector(selectId) {
+  const select = $(selectId);
+  if (!select) return;
+  const previous = new Set(Array.from(select.selectedOptions || []).map(option => option.value));
+  select.replaceChildren();
+  (cloud.modules.characters || []).forEach(character => {
+    const option = document.createElement("option");
+    option.value = character.id; option.textContent = character.name || "ตัวละครไม่มีชื่อ";
+    option.selected = previous.has(character.id); select.appendChild(option);
+  });
+  if (!(cloud.modules.characters || []).length) {
+    const option = document.createElement("option"); option.disabled = true;
+    option.textContent = "ยังไม่มีตัวละครในนิยายนี้"; select.appendChild(option);
+  }
+}
 function renderChapterSelect() {
   const canManageChapters = cloud.ready && Boolean(cloud.activeProjectId);
   if ($("continuityPanel")) $("continuityPanel").hidden = !canManageChapters;
