@@ -99,6 +99,8 @@ assert.ok(source.includes("async function exportEntireNovelEpub()"), "whole-nove
 assert.ok(source.includes("function exportWholeNovelEpub(chapters, projectTitle)"), "EPUB package supports multiple chapters");
 assert.ok(source.includes("OEBPS/nav.xhtml"), "whole-novel EPUB includes a navigation document");
 assert.ok(source.includes("function exportManuscriptDocx(chapters = null, projectTitle = null)"), "DOCX export supports a multi-chapter document");
+assert.ok(source.includes("tocParagraphs"), "whole-novel DOCX includes a contents list");
+assert.ok(source.includes("<w:pageBreakBefore/>"), "whole-novel DOCX starts each chapter on a new page");
 assert.ok(source.includes("async function exportEntireNovelPdf()"), "whole-novel print-to-PDF flow is implemented");
 assert.ok(source.includes("totalSize > 12 * 1024 * 1024"), "whole-novel PDF export has a memory safety cap");
 assert.ok(source.includes("print-book-toc"), "whole-novel PDF includes a table of contents");
