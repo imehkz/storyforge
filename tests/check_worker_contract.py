@@ -115,6 +115,27 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('["text-align","font-family","font-size","line-height"].includes(key)', APP)
         self.assertIn(".test(val)) safe.push", APP)
 
+    def test_character_vault_profile_fields_round_trip(self):
+        for field in (
+            "nickname", "gender", "birthday", "profession", "age", "pronouns",
+            "species", "height", "appearance", "personality", "motivation",
+            "backstory", "strengths", "weaknesses", "likes", "dislikes",
+            "skills", "family", "secret", "description"
+        ):
+            self.assertIn(field + ":", APP)
+        for element_id in (
+            "characterNickname", "characterGender", "characterBirthday",
+            "characterProfession", "characterLikes", "characterDislikes",
+            "characterSkills", "characterFamily"
+        ):
+            self.assertIn(element_id, HTML)
+            self.assertIn(element_id, APP)
+
+    def test_relationship_edit_can_reassign_character_endpoints(self):
+        self.assertIn("characters[sourceIndex].id", APP)
+        self.assertIn("characters[targetIndex].id", APP)
+        self.assertIn("targetIndex === sourceIndex", APP)
+
     def test_html_ids_are_unique(self):
         parser = IdCollector()
         parser.feed(HTML)
