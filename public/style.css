@@ -816,6 +816,7 @@ input::placeholder,textarea::placeholder{color:rgba(154,169,190,.66)}
 .writing-settings-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:14px; }
 .genre-level-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 18px; }
 .genre-level { display:grid; grid-template-columns:minmax(90px,1fr) 20px minmax(70px,1.6fr) 42px; gap:9px; align-items:center; padding:7px 0; border-bottom:1px solid var(--line-cool); }
+.genre-level > label { margin:0; }
 .genre-level input { width:100%; accent-color:var(--gold); }
 .genre-level input[type="checkbox"] { width:18px; height:18px; justify-self:center; margin:0; }
 .genre-level input[type="range"]:disabled { opacity:.35; cursor:not-allowed; }
