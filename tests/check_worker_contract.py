@@ -151,6 +151,8 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("cloud.modules || {}", APP)
         self.assertIn("ข้อกำหนด: ใช้ข้อมูลของนิยายนี้เท่านั้น", APP)
         self.assertIn("buildStoryAssistantContext()", APP)
+        self.assertIn("writingSettingsKey(active.id)", APP)
+        self.assertIn("writingSettings.genres", APP)
 
     def test_character_profile_size_is_checked_before_cloud_save(self):
         self.assertIn("JSON.stringify(profile).length > 19000", APP)
