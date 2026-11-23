@@ -801,7 +801,9 @@ function renderDashboard() {
     : "เริ่มต้นสร้างเรื่องราวของคุณ";
   if ($("dashboardProjectTitle")) $("dashboardProjectTitle").textContent = title || "ยังไม่มีนิยายในห้องสมุด";
   if ($("dashboardChapterLine")) $("dashboardChapterLine").textContent = chapter ? "บทล่าสุด · " + chapter : (title ? "เพิ่มชื่อบทและเริ่มเขียนต้นฉบับของคุณ" : "เริ่มต้นสร้างโลกและตัวละครของคุณได้เลย");
-  if ($("dashboardLastEdited")) $("dashboardLastEdited").textContent = active ? (cloud.ready ? "โครงการนี้เชื่อมต่อกับบัญชี Private Beta" : "โครงการนี้บันทึกไว้ในเบราว์เซอร์เครื่องนี้") : "พื้นที่เขียนนิยายส่วนตัว · บันทึกในอุปกรณ์นี้";
+  if ($("dashboardLastEdited")) $("dashboardLastEdited").textContent = active
+    ? (cloud.ready ? "โครงการนี้เชื่อมต่อกับบัญชี Private Beta" : "โครงการนี้บันทึกไว้ในเบราว์เซอร์เครื่องนี้") + (active.id ? " · Project ID: " + active.id : "")
+    : "พื้นที่เขียนนิยายส่วนตัว · บันทึกในอุปกรณ์นี้";
   if ($("dashboardWordCount")) $("dashboardWordCount").textContent = count.toLocaleString("th-TH");
   if ($("dashboardWordGoal")) $("dashboardWordGoal").textContent = "/ " + novelGoal.toLocaleString("th-TH") + " คำ";
   if ($("dashboardProgress")) $("dashboardProgress").style.width = Math.min(100, (count / novelGoal) * 100) + "%";
