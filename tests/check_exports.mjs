@@ -105,7 +105,10 @@ assert.ok(source.includes('["characters", "relationships", "plot-threads", "worl
 assert.ok(source.includes("snapshotHistory: false"), "Backup explicitly discloses that snapshot history is not included");
 assert.ok(source.includes("async function restoreCloudBackup(backupProjects)"), "Cloud backup restore is implemented");
 assert.ok(source.includes("clientId: chapter.id"), "Cloud restore preserves stable chapter IDs");
-assert.ok(source.includes("version: 2"), "New backup format is versioned");
+assert.ok(source.includes("version: 3"), "New backup format is versioned");
+assert.ok(source.includes("async function collectCharacterVaultBackup(cloudProjects)"), "Character references are included in backup");
+assert.ok(source.includes("async function restoreCharacterVaultRecords(records)"), "Character references can be restored");
+assert.ok(source.includes("function validateCharacterVaultBackup(records, cloudProjects)"), "Character reference restore is validated");
 assert.ok(source.includes('field === "pinned" ? Boolean(item[field]) : item[field]'), "Cloud restore normalizes SQLite booleans");
 assert.ok(source.includes('if (project.status === "archived")'), "Cloud restore preserves archived project state");
 
