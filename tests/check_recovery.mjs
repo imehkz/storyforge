@@ -50,7 +50,8 @@ assert.match(elements.saveState.innerHTML, /พื้นที่จัดเก
 console.log("Editor recovery tests passed: quota errors are contained and Cloud autosave continues.");
 
 const restoreSource = extractFunction("restoreCloudBackup");
-const makeRestore = (projectCreated, calls) => new Function(
+const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+const makeRestore = (projectCreated, calls) => new AsyncFunction(
   "validateCloudBackupData", "cloud", "cloudApi", "countWords",
   restoreSource + "\nreturn restoreCloudBackup;"
 )(
