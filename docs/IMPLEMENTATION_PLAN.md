@@ -358,3 +358,13 @@ No hosting resources or secrets have been provisioned, and no production deploym
 - Added a soft warning when a Timeline event references characters that are not linked to any scanned chapter Canon. Future events may legitimately be unlinked; the result is explicitly a review hint, not an error.
 - Extended the continuity test fixture to cover aliases and Timeline-to-chapter cross-links.
 - These checks remain heuristic and project-scoped; they do not rewrite prose or infer semantic contradictions.
+
+
+## Latest implementation update — Plot-to-manuscript tracking
+
+- Added `plot_threads.chapter_ids_json` through migration `0007_plot_thread_chapter_references.sql`; existing plot rows default to an empty array without data loss.
+- Plot Room now lets the author associate one plot thread with multiple chapters, displays linked chapter coverage as a count (not a claim of completion), and offers direct navigation from each plot card to its linked chapter.
+- Plot edit flow can revise chapter associations as well as characters and summary.
+- Worker validates every linked chapter against the same project on create/update; deleting a chapter removes only that chapter ID from plot links in the same D1 batch.
+- Continuity review flags dangling chapter references, plot threads without chapter links, and soft Canon mismatches between a plot's characters and linked chapters.
+- No external AI, billing, or deployment was enabled.
