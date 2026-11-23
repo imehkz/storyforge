@@ -3866,6 +3866,18 @@ function exportManuscriptPdf() {
 // START STORYFORGE
 // ==========================================
 
+function setWritingFocusMode(enabled) {
+  const active = Boolean(enabled);
+  document.body.classList.toggle("writing-focus-mode", active);
+  const button = $("toggleWritingFocus");
+  if (button) {
+    button.setAttribute("aria-pressed", String(active));
+    button.textContent = active ? "× ออกจากโหมดเขียน" : "⛶ โหมดเขียนเต็มจอ";
+    button.title = active ? "กลับสู่หน้าทำงานปกติ" : "ซ่อนเมนูรอบข้างเพื่อเขียนอย่างต่อเนื่อง";
+  }
+  if (active) $("manuscriptEditor")?.focus();
+}
+
 function getManuscriptText() {
   const editor = $("manuscriptEditor");
   return editor ? (editor.innerText || "").replace(/\u00a0/g, " ").trimEnd() : String($("manuscriptBody")?.value || "");
@@ -3925,6 +3937,14 @@ function setupManuscriptEditor() {
   const field = $("manuscriptBody");
   const editor = $("manuscriptEditor");
   if (!field || !editor) return;
+  $("toggleWritingFocus")?.addEventListener("click", () =>
+    setWritingFocusMode(!document.body.classList.contains("writing-focus-mode"))
+  );
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && document.body.classList.contains("writing-focus-mode")) {
+      setWritingFocusMode(false);
+    }
+  });
   const descriptor = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value");
   Object.defineProperty(field, "value", {
     configurable: true,
