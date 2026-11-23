@@ -203,6 +203,15 @@
             <label for="characterSecret">ความลับ / ปมสำคัญ</label><textarea id="characterSecret" rows="2"></textarea>
             <label for="characterProfile">บันทึกเพิ่มเติม</label><textarea id="characterProfile" rows="3" placeholder="ข้อมูลอื่น ๆ ที่ต้องรักษาเป็น Canon..."></textarea>
             <div class="row-actions"><button id="addCharacter" class="gold-button" type="button">บันทึกตัวละคร</button><button id="cancelCharacterEdit" class="outline-button" type="button" hidden>ยกเลิกแก้ไข</button></div>
+            <div class="character-vault-panel" id="characterVaultPanel">
+              <div class="section-heading"><div><h3 class="subsection-title">Character Reference Vault · คลังภาพอ้างอิง</h3><p>เก็บภาพต้นแบบหลายเวอร์ชันและกำหนดภาพ Canon สำหรับตัวละครนี้</p></div></div>
+              <label for="characterReferenceFile">เพิ่มภาพอ้างอิง (PNG / JPG / WEBP)</label>
+              <input id="characterReferenceFile" type="file" accept="image/png,image/jpeg,image/webp" disabled>
+              <div class="character-field-grid"><div><label for="characterReferenceLabel">ชื่อภาพ / เวอร์ชัน</label><input id="characterReferenceLabel" maxlength="100" placeholder="เช่น ชุดพิธีการ · เวอร์ชัน 2"></div><div><label for="characterReferenceNote">หมายเหตุ</label><input id="characterReferenceNote" maxlength="300" placeholder="รายละเอียดที่ต้องคงไว้"></div></div>
+              <p class="form-hint" id="characterVaultStatus" role="status" aria-live="polite">บันทึกข้อมูลตัวละครก่อน จึงจะเพิ่มภาพอ้างอิงได้</p>
+              <div id="characterReferenceGallery" class="character-reference-gallery"><p class="muted-note">ยังไม่มีภาพอ้างอิง</p></div>
+              <div class="ai-notice">คลังภาพนี้จัดเก็บในอุปกรณ์และเบราว์เซอร์นี้ แยกตามนิยายและตัวละคร ไม่ซิงก์ข้ามอุปกรณ์และไม่รวมใน Cloud Backup</div>
+            </div>
           </div>
           <div class="card-frame collection-card"><h2>คลังตัวละคร</h2><div id="characterList" class="module-list">เข้าสู่ระบบและเลือกโครงการเพื่อโหลดตัวละคร</div></div>
         </div>
