@@ -2304,7 +2304,11 @@ function manuscriptHtmlToWord() {
     const style = tag === "H1" ? "Heading1" : tag === "H2" ? "Heading2" : tag === "H3" ? "Heading3" : "";
     const prefixRun = tag === "LI" ? "<w:r><w:t>• </w:t></w:r>" : "";
     const runs = prefixRun + [...node.childNodes].map(child => wordRunsFromNode(child)).join("");
-    const pPr = [style ? `<w:pStyle w:val="${style}"/>` : "", tag === "BLOCKQUOTE" ? '<w:ind w:left="720"/>' : ""].filter(Boolean).join("");
+    const blockStyle = node.getAttribute("style") || "";
+    const alignment = /text-align\s*:\s*center/i.test(blockStyle) ? '<w:jc w:val="center"/>' :
+      /text-align\s*:\s*right/i.test(blockStyle) ? '<w:jc w:val="right"/>' :
+      /text-align\s*:\s*justify/i.test(blockStyle) ? '<w:jc w:val="both"/>' : "";
+    const pPr = [style ? `<w:pStyle w:val="${style}"/>` : "", tag === "BLOCKQUOTE" ? '<w:ind w:left="720"/>' : "", alignment].filter(Boolean).join("");
     return `<w:p>${pPr ? `<w:pPr>${pPr}</w:pPr>` : ""}${runs || "<w:r><w:t/></w:r>"}</w:p>`;
   }).join("");
 }
@@ -2345,6 +2349,8 @@ function exportManuscriptDocx() {
 <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
 <w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:rPr><w:b/><w:sz w:val="36"/></w:rPr></w:style>
 <w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="32"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="28"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="heading 3"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="24"/></w:rPr></w:style>
 </w:styles>` },
     { name: "docProps/core.xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
