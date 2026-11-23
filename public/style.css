@@ -997,3 +997,10 @@ body.writing-focus-mode #manuscript .editor-footer { max-width: 1000px; margin: 
 .chapter-canon-panel select{width:100%;min-height:74px;background:#101827;color:#e8d8b8;border:1px solid #65563d;border-radius:8px;padding:6px}
 .chapter-canon-panel option{padding:4px}
 @media(max-width:680px){.chapter-canon-panel{grid-template-columns:1fr}.chapter-canon-panel select{min-height:92px}}
+
+
+/* Tablet writing ergonomics: keep the format ribbon usable without wrapping into multiple rows. */
+@media (max-width: 900px) {
+  .manuscript-format-toolbar { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; }
+  .manuscript-format-toolbar > * { flex: 0 0 auto; }
+}
