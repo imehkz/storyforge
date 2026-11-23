@@ -1306,13 +1306,32 @@ function buildCoverPromptText() {
   const brief = readCoverBrief();
   const project = activeCoverProject();
   if (!project) throw new Error("กรุณาสร้างหรือเลือกนิยายก่อน");
-  const characterNames = selectedCoverCharacterNames();
+  const characters = cloud.ready && cloud.activeProjectId === project.id ? (cloud.modules.characters || []) : [];
+  const selectedIds = new Set(brief.characterIds);
+  const characterDetails = characters.filter(character => selectedIds.has(character.id)).map(character => {
+    let profile = {};
+    try { profile = typeof character.profile_json === "string" ? JSON.parse(character.profile_json || "{}") : (character.profile_json || {}); } catch {}
+    const details = [
+      profile.age && "age " + profile.age,
+      profile.species && "species " + profile.species,
+      profile.face && "face " + profile.face,
+      profile.skin && "skin " + profile.skin,
+      profile.eyes && "eyes " + profile.eyes,
+      profile.hair && "hair " + profile.hair,
+      profile.build && "build " + profile.build,
+      profile.clothing && "clothing " + profile.clothing,
+      profile.accessories && "accessories " + profile.accessories,
+      profile.appearance && "appearance " + profile.appearance
+    ].filter(Boolean);
+    return character.name + (details.length ? ": " + details.join("; ") : "");
+  });
   return [
     "Book cover illustration for a Thai novel.",
     "Book title: " + (brief.title || project.title || "Untitled"),
     "Author pen name: " + (brief.penName || "Not specified"),
     "Visual style: " + brief.style,
-    "Characters from this project only: " + (characterNames.join(", ") || "No named character selected"),
+    "Selected characters from this project only: " + (characterDetails.join(" | ") || "No named character selected"),
+    "Character consistency: preserve the canonical appearance and do not merge or alter character traits.",
     "Back-cover blurb / story premise: " + (brief.blurb || "Not provided"),
     "Art direction and composition: " + (brief.direction || "Create a balanced, polished literary cover composition."),
     "Design requirements: professional publishing quality, strong focal point, legible title area, coherent lighting and palette, no random lettering, no watermark."
