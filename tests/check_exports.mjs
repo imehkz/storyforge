@@ -55,6 +55,9 @@ const names = [
 const code = names.map(extractFunction).join("\n");
 const values = {
   title: { value: "ห้องสมุดแห่งความทรงจำ" },
+  penName: { value: "ปากกาสีทอง" }, copyrightText: { value: "Copyright © 2026 ปากกาสีทอง" },
+  foreword: { value: "คำนำภาษาไทย" }, authorBio: { value: "ประวัติผู้เขียนภาษาไทย" },
+  context: { value: "เรื่องย่อภาษาไทย" },
   chapterTitle: { value: "บทที่ 1 — ประตูแรก" },
   manuscriptBody: { value: "บรรทัดแรก\nบททดสอบ & <tag>" },
   manuscriptEditor: { innerText: "บรรทัดแรก\nบททดสอบ & <tag>" }
@@ -93,6 +96,7 @@ assert.ok(wholeDocxXml.includes("บทที่หนึ่ง") && wholeDocxXm
 assert.ok(wholeDocxXml.includes("สารบัญ"), "DOCX contains a contents section");
 assert.ok((wholeDocxXml.match(/<w:pageBreakBefore\/>/g) || []).length >= 2, "DOCX starts each chapter on a new page");
 assert.ok(wholeDocxXml.includes("เนื้อหาภาษาไทยบทสอง"), "DOCX preserves later chapter text");
+assert.ok(wholeDocxXml.includes("ปากกาสีทอง") && wholeDocxXml.includes("คำนำภาษาไทย") && wholeDocxXml.includes("ประวัติผู้เขียนภาษาไทย"), "DOCX includes publishing front and back matter");
 
 exportsApi.exportWholeNovelEpub([
   { title: "บทที่หนึ่ง", body: "<p>เนื้อหาภาษาไทยบทหนึ่ง</p>" },
@@ -103,6 +107,8 @@ assert.ok(wholeEpub.has("OEBPS/chapter-1.xhtml") && wholeEpub.has("OEBPS/chapter
 assert.ok(wholeEpub.get("OEBPS/nav.xhtml").includes("บทที่สอง"), "EPUB navigation lists every chapter");
 assert.ok(wholeEpub.get("OEBPS/chapter-2.xhtml").includes("เนื้อหาภาษาไทยบทสอง"), "EPUB preserves Thai chapter text");
 assert.ok(wholeEpub.get("OEBPS/content.opf").includes("<dc:language>th</dc:language>"), "EPUB declares Thai language");
+assert.ok(wholeEpub.get("OEBPS/content.opf").includes("<dc:creator>ปากกาสีทอง</dc:creator>"), "EPUB uses the configured pen name");
+assert.ok(wholeEpub.get("OEBPS/content.opf").includes("Copyright © 2026 ปากกาสีทอง"), "EPUB preserves copyright metadata");
 
 
 exportsApi.exportManuscriptEpub();
@@ -131,7 +137,7 @@ assert.ok(source.includes("async function exportEntireNovelPdf()"), "whole-novel
 const txtDownloads = [];
 const txtCloud = {
   authenticated: true, ready: true, activeProjectId: "project-1", activeChapterId: "chapter-1",
-  saveTimer: null, projects: [{ id: "project-1", title: "ตำนานแห่งแสงจันทร์", genre: "แฟนตาซี" }]
+  saveTimer: null, projects: [{ id: "project-1", title: "ตำนานแห่งแสงจันทร์", genre: "แฟนตาซี", pen_name: "ปากกาสีทอง", copyright_text: "Copyright © 2026 ปากกาสีทอง", foreword: "คำนำภาษาไทย", author_bio: "ประวัติผู้เขียนภาษาไทย" }]
 };
 const txtElements = { exportBookTxt: { disabled: false, textContent: "TXT" }, chapterSaveHint: { textContent: "" } };
 const txtCloudApi = async path => {
@@ -153,6 +159,7 @@ await exportTxt();
 assert.equal(txtDownloads.length, 1);
 assert.ok(txtDownloads[0].name.endsWith("-ทั้งเล่ม.txt"));
 assert.ok(txtDownloads[0].text.includes("ตำนานแห่งแสงจันทร์"));
+assert.ok(txtDownloads[0].text.includes("นามปากกา: ปากกาสีทอง") && txtDownloads[0].text.includes("คำนำภาษาไทย") && txtDownloads[0].text.includes("ประวัติผู้เขียนภาษาไทย"), "TXT includes publishing metadata");
 assert.ok(txtDownloads[0].text.indexOf("คืนแรก") < txtDownloads[0].text.indexOf("แสงรุ่งอรุณ"), "TXT chapters are exported in manuscript order");
 assert.ok(txtDownloads[0].text.includes("บทภาษาไทยที่หนึ่ง") && txtDownloads[0].text.includes("บทภาษาไทยที่สอง"), "TXT preserves complete Thai chapter text");
 assert.match(txtElements.chapterSaveHint.textContent, /2 บท/);
