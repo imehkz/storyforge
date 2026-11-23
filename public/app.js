@@ -805,6 +805,25 @@ function renderDashboard() {
   if ($("dashboardProgress")) $("dashboardProgress").style.width = Math.min(100, (count / novelGoal) * 100) + "%";
   if ($("recentChapterTitle")) $("recentChapterTitle").textContent = chapter || "ยังไม่มีบทที่บันทึก";
   if ($("recentWordCount")) $("recentWordCount").textContent = chapterWords.toLocaleString("th-TH") + " คำ";
+  const recentList = $("dashboardRecentChapters");
+  if (recentList) {
+    const recentChapters = cloud.ready ? cloud.chapters.slice(0, 3) : [];
+    if (recentChapters.length) {
+      recentList.innerHTML = recentChapters.map((item, index) =>
+        `<button type="button" class="recent-row dashboard-recent-row" data-dashboard-chapter="${escapeHtml(item.id)}"><span class="chapter-number">${String(index + 1).padStart(2, "0")}</span><span class="recent-title">${escapeHtml(item.title || "บทไม่มีชื่อ")}</span><span class="recent-detail">${(Number(item.word_count) || 0).toLocaleString("th-TH")} คำ</span><span class="recent-arrow">→</span></button>`
+      ).join("");
+      recentList.querySelectorAll("[data-dashboard-chapter]").forEach(button =>
+        button.addEventListener("click", async () => {
+          await selectCloudChapter(button.dataset.dashboardChapter);
+          showTab("manuscript");
+        })
+      );
+      if ($("dashboardRecentHint")) $("dashboardRecentHint").textContent = "แตะชื่อบทเพื่อกลับไปเขียนต่อ · แสดง 3 บทล่าสุด";
+    } else {
+      recentList.innerHTML = `<div class="recent-row"><span class="chapter-number">01</span><span class="recent-title">${escapeHtml(chapter || "ยังไม่มีบทที่บันทึก")}</span><span class="recent-detail">${chapterWords.toLocaleString("th-TH")} คำ</span></div>`;
+      if ($("dashboardRecentHint")) $("dashboardRecentHint").textContent = active ? "บทปัจจุบันในอุปกรณ์นี้ · เชื่อม Cloud เพื่อจัดการหลายบท" : "สร้างนิยายและเพิ่มบทแรกเพื่อเริ่มต้น";
+    }
+  }
   if ($("manuscriptCount")) $("manuscriptCount").textContent = chapterWords.toLocaleString("th-TH") + " คำ";
   updateWordGoal(chapterWords);
 }
