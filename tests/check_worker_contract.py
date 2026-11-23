@@ -118,15 +118,18 @@ class WorkerContractTests(unittest.TestCase):
     def test_character_vault_profile_fields_round_trip(self):
         for field in (
             "nickname", "gender", "birthday", "profession", "age", "pronouns",
-            "species", "height", "appearance", "personality", "motivation",
-            "backstory", "strengths", "weaknesses", "likes", "dislikes",
+            "species", "height", "face", "skin", "eyes", "hair", "build",
+            "clothing", "accessories", "expressions", "appearance", "personality",
+            "motivation", "backstory", "strengths", "weaknesses", "likes", "dislikes",
             "skills", "family", "secret", "description"
         ):
             self.assertIn(field + ":", APP)
         for element_id in (
             "characterNickname", "characterGender", "characterBirthday",
             "characterProfession", "characterLikes", "characterDislikes",
-            "characterSkills", "characterFamily"
+            "characterSkills", "characterFamily", "characterFace", "characterSkin",
+            "characterEyes", "characterHair", "characterBuild", "characterClothing",
+            "characterAccessories", "characterExpressions"
         ):
             self.assertIn(element_id, HTML)
             self.assertIn(element_id, APP)
