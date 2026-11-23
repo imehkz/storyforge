@@ -430,6 +430,64 @@ async function makeBackupFile() {
 // DOWNLOAD FUNCTIONS
 // ==========================================
 
+function chapterHtmlToPlainText(value) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(String(value || ""), "text/html");
+  doc.body.querySelectorAll("br").forEach(node => node.replaceWith("\n"));
+  doc.body.querySelectorAll("p,div,li,blockquote,h1,h2,h3,figure").forEach(node => {
+    if (node.nextSibling) node.appendChild(doc.createTextNode("\n"));
+  });
+  return (doc.body.textContent || "").replace(/\u00a0/g, " ").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+async function exportEntireNovelTxt() {
+  const projectId = cloud.activeProjectId;
+  if (!cloud.authenticated || !cloud.ready || !projectId) {
+    alert("การส่งออกทั้งเล่มต้องเลือกนิยายที่เชื่อมต่อ Cloud และเข้าสู่ระบบก่อนครับ");
+    return;
+  }
+  const button = $("exportBookTxt");
+  if (button) { button.disabled = true; button.textContent = "กำลังรวบรวมบท..."; }
+  try {
+    if (cloud.saveTimer) { clearTimeout(cloud.saveTimer); cloud.saveTimer = null; }
+    if (cloud.activeChapterId && !(await saveCloudChapter())) {
+      throw new Error("บันทึกบทปัจจุบันไม่สำเร็จ จึงหยุดส่งออกเพื่อป้องกันข้อมูลล่าสุดตกหล่น");
+    }
+    const project = cloud.projects.find(item => item.id === projectId);
+    if (!project) throw new Error("ไม่พบโครงการที่เลือก");
+    const list = await cloudApi("/api/projects/" + encodeURIComponent(projectId) + "/chapters");
+    const chapters = list.chapters || [];
+    if (!chapters.length) throw new Error("นิยายนี้ยังไม่มีบทให้ส่งออก");
+    const full = await Promise.all(chapters.map(async item => {
+      const result = await cloudApi("/api/chapters/" + encodeURIComponent(item.id));
+      if (!result.chapter || result.chapter.project_id !== projectId) {
+        throw new Error("พบข้อมูลบทที่ไม่ตรงกับนิยายที่เลือก ระบบยกเลิกการส่งออก");
+      }
+      return result.chapter;
+    }));
+    full.sort((left, right) => (left.sort_order - right.sort_order) ||
+      String(left.created_at || "").localeCompare(String(right.created_at || "")));
+    const sections = [
+      project.title || "นิยายไม่มีชื่อ",
+      "แนวเรื่อง: " + (project.genre || "ไม่ระบุ"),
+      "จำนวนบท: " + full.length,
+      ""
+    ];
+    full.forEach((chapter, index) => {
+      sections.push("บทที่ " + (index + 1) + " — " + (chapter.title || "บทไม่มีชื่อ"), "");
+      sections.push(chapterHtmlToPlainText(chapter.body) || "");
+      sections.push("", "—".repeat(24), "");
+    });
+    download(exportBaseName() + "-ทั้งเล่ม.txt", sections.join("\n"));
+    const status = $("chapterSaveHint");
+    if (status) status.textContent = "ส่งออกนิยายทั้งเล่มแล้ว · " + full.length + " บท";
+  } catch (error) {
+    alert("ส่งออกทั้งเล่มไม่สำเร็จ: " + error.message);
+  } finally {
+    if (button) { button.disabled = false; button.textContent = "TXT ทั้งเล่ม"; }
+  }
+}
+
 function download(name, text) {
   const isJSON = name.toLowerCase().endsWith(".json");
 
@@ -1604,6 +1662,7 @@ function setupEvents() {
       $("title").value, $("chapterTitle").value, "", getManuscriptText()
     ].join("\n"));
   };
+  $("exportBookTxt")?.addEventListener("click", exportEntireNovelTxt);
   $("exportDocx").onclick = exportManuscriptDocx;
   $("exportEpub").onclick = exportManuscriptEpub;
   $("exportPdf").onclick = exportManuscriptPdf;
