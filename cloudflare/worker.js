@@ -235,7 +235,8 @@ async function api(request, env, url) {
         ok: true,
         service: "storyforge-worker",
         databaseBindingPresent: true,
-        databaseReady: true
+        databaseReady: true,
+        authConfigured: Boolean(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET && env.GITHUB_OWNER_ID)
       });
     } catch {
       return json({ ok: false, error: "DATABASE_UNAVAILABLE" }, 503);
