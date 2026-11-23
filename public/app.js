@@ -35,6 +35,7 @@ const cloud = {
   saveTimer: null,
   saving: false,
   savePromise: null,
+  chapterSelectionToken: 0,
   noteId: "",
   modules: { characters: [], relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: [] },
   editingCharacterId: ""
@@ -3530,6 +3531,7 @@ function renderChapterSelect() {
 }
 
 async function selectCloudChapter(chapterId) {
+  const selectionToken = ++cloud.chapterSelectionToken;
   const item = cloud.chapters.find(chapter => chapter.id === chapterId);
   if (!item) return;
   if (cloud.activeChapterId && cloud.activeChapterId !== chapterId) {
@@ -3538,6 +3540,7 @@ async function selectCloudChapter(chapterId) {
       cloud.saveTimer = null;
     }
     const saved = await saveCloudChapter();
+    if (selectionToken !== cloud.chapterSelectionToken) return;
     if (!saved && !confirm("บทปัจจุบันยังบันทึกขึ้น Cloud ไม่สำเร็จ ต้องการเปลี่ยนบทหรือไม่? ฉบับในเครื่องยังคงอยู่")) {
       renderChapterSelect();
       return;
@@ -3546,8 +3549,13 @@ async function selectCloudChapter(chapterId) {
   let fullChapter;
   try {
     const loaded = await cloudApi("/api/chapters/" + encodeURIComponent(item.id));
+    if (selectionToken !== cloud.chapterSelectionToken) return;
+    if (!loaded.chapter || loaded.chapter.id !== chapterId) {
+      throw new Error("ข้อมูลบทที่ได้รับไม่ตรงกับบทที่เลือก");
+    }
     fullChapter = loaded.chapter;
   } catch (error) {
+    if (selectionToken !== cloud.chapterSelectionToken) return;
     alert("โหลดต้นฉบับบทนี้ไม่สำเร็จ: " + error.message);
     renderChapterSelect();
     return;
