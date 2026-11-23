@@ -53,7 +53,7 @@ const restoreSource = extractFunction("restoreCloudBackup");
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 const makeRestore = (projectCreated, calls) => new AsyncFunction(
   "validateCloudBackupData", "cloud", "cloudApi", "countWords",
-  restoreSource + "\nreturn restoreCloudBackup;"
+  restoreSource.replace(/^function /, "async function ") + "\nreturn restoreCloudBackup;"
 )(
   () => true,
   { authenticated: true, ready: true },
