@@ -3016,7 +3016,7 @@ function sanitizeManuscriptHtml(value) {
         const [name, ...rest] = declaration.split(":");
         const key = (name || "").trim().toLowerCase();
         const val = rest.join(":").trim();
-        if (["text-align","font-family","font-size","line-height","width","max-width","margin"].includes(key) &&
+        if (["text-align","font-family","font-size","line-height","width","max-width","height","display","margin"].includes(key) &&
             /^[\w\s,'"().-]+$/.test(val)) safe.push(key + ":" + val);
       }
       if (safe.length) node.setAttribute("style", safe.join(";"));
