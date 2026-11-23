@@ -180,6 +180,12 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("JSON.stringify(profile).length > 19000", APP)
         self.assertIn("profile_json: profile", APP)
 
+    def test_dashboard_word_goal_uses_active_novel_settings(self):
+        self.assertIn("writingSettingsKey(active?.id)", APP)
+        self.assertIn("configuredNovelGoal", APP)
+        self.assertIn("projectWritingSettings.chapterCount", APP)
+        self.assertIn("projectWritingSettings.wordsPerChapter", APP)
+
     def test_active_project_id_is_visible_in_workspace_and_dashboard(self):
         self.assertIn('" · ID: " + active.id', APP)
         self.assertIn('" · Project ID: " + active.id', APP)
