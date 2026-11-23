@@ -71,7 +71,14 @@ function writingSettingsKey(projectId) { return "sf_writing_settings_" + (projec
 function writingWordGoalKey(projectId) { return "sf_chapter_word_goal_" + (projectId || cloud.activeProjectId || writingSettingsProjectId || localStorage.getItem("sf_active_project_id") || "draft"); }
 function readWritingSettings() {
   const genres = {};
-  document.querySelectorAll("[data-genre-level]").forEach(input => { genres[input.dataset.genreLevel] = Number(input.value) || 1; });
+  const selectedGenres = [];
+  document.querySelectorAll("[data-genre-level]").forEach(input => {
+    const key = input.dataset.genreLevel;
+    genres[key] = Number(input.value) || 1;
+    const toggle = Array.from(document.querySelectorAll("[data-genre-enabled]"))
+      .find(item => item.dataset.genreEnabled === key);
+    if (toggle?.checked) selectedGenres.push(key);
+  });
   return {
     chapterCount: Math.max(1,Math.min(500,Number($("plannedChapterCount")?.value)||20)),
     wordsPerChapter: Math.max(100,Math.min(20000,Number($("plannedWordsPerChapter")?.value)||2000)),
@@ -79,7 +86,8 @@ function readWritingSettings() {
     style: $("writingStyle")?.value || "literary",
     adultContent: $("adultContentMode")?.value || "off",
     extraNotes: $("writingExtraNotes")?.value || "",
-    genres
+    genres,
+    selectedGenres
   };
 }
 function loadWritingSettings(projectId) {
@@ -93,13 +101,29 @@ function loadWritingSettings(projectId) {
   if ($("writingStyle")) $("writingStyle").value=data.style||"literary";
   if ($("adultContentMode")) $("adultContentMode").value=data.adultContent||"off";
   if ($("writingExtraNotes")) $("writingExtraNotes").value=data.extraNotes||"";
+  const savedGenres = Array.isArray(data.selectedGenres)
+    ? new Set(data.selectedGenres)
+    : new Set(Object.keys(data.genres || {}));
+  const hasSavedGenreSelection = Array.isArray(data.selectedGenres) || Object.keys(data.genres || {}).length > 0;
   document.querySelectorAll("[data-genre-level]").forEach(input=>{
     input.value=data.genres?.[input.dataset.genreLevel]||5;
+    const toggle = Array.from(document.querySelectorAll("[data-genre-enabled]"))
+      .find(item => item.dataset.genreEnabled === input.dataset.genreLevel);
+    if (toggle) toggle.checked = hasSavedGenreSelection && savedGenres.has(input.dataset.genreLevel);
+    input.disabled = !toggle?.checked;
     const output=document.querySelector('output[for="'+input.id+'"]');
     if(output) output.textContent=input.value+"/10";
   });
 }
 function setupWritingSettings() {
+  document.querySelectorAll("[data-genre-enabled]").forEach(toggle=>{
+    toggle.addEventListener("change",()=>{
+      const slider = Array.from(document.querySelectorAll("[data-genre-level]"))
+        .find(input => input.dataset.genreLevel === toggle.dataset.genreEnabled);
+      if (slider) slider.disabled = !toggle.checked;
+      localStorage.setItem(writingSettingsKey(),JSON.stringify(readWritingSettings()));
+    });
+  });
   document.querySelectorAll("[data-genre-level]").forEach(input=>{
     input.addEventListener("input",()=>{
       const output=document.querySelector('output[for="'+input.id+'"]');
