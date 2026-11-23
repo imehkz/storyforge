@@ -3200,6 +3200,7 @@ async function deleteActiveChapter() {
     await cloudApi("/api/chapters/" + encodeURIComponent(deletedId), { method: "DELETE" });
     cloud.chapters = cloud.chapters.filter(item => item.id !== deletedId);
     cloud.activeChapterId = "";
+    renderChapterCharacterReferences();
     if (cloud.chapters.length) {
       await selectCloudChapter(cloud.chapters[0].id);
     } else {
