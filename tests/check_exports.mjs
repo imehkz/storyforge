@@ -119,6 +119,8 @@ assert.ok(source.includes('["characters", "relationships", "plot-threads", "worl
 assert.ok(source.includes("snapshotHistory: false"), "Backup explicitly discloses that snapshot history is not included");
 assert.ok(source.includes("async function restoreCloudBackup(backupProjects)"), "Cloud backup restore is implemented");
 assert.ok(source.includes("clientId: chapter.id"), "Cloud restore preserves stable chapter IDs");
+assert.ok(source.includes("character_ids_json: chapter.character_ids_json || \"[]\""), "Cloud restore preserves chapter Canon links");
+assert.ok(source.includes("chapter.character_ids_json"), "Cloud backup preflight validates chapter Canon links");
 assert.ok(source.includes("version: 4"), "New backup format is versioned");
 assert.ok(source.includes("async function collectIllustrationLibraryBackup(cloudProjects, localData)"), "Illustration library is included in backup");
 assert.ok(source.includes("function validateIllustrationLibraryBackup(records, cloudProjects, localData)"), "Illustration library restore is validated");
@@ -140,7 +142,7 @@ const characterId = "22222222-2222-4222-8222-222222222222";
 const chapterId = "33333333-3333-4333-8333-333333333333";
 const validCloudBackup = [{
   project: { id: projectId, title: "ทดสอบ", genre: "แฟนตาซี", synopsis: "", status: "active" },
-  chapters: [{ id: chapterId, title: "บทที่ 1", body: "ทดสอบ", sort_order: 0, word_count: 1 }],
+  chapters: [{ id: chapterId, title: "บทที่ 1", body: "ทดสอบ", sort_order: 0, word_count: 1, character_ids_json: JSON.stringify([characterId]) }],
   modules: {
     characters: [{ id: characterId, name: "ตัวละคร", role: "", profile_json: "{}", sort_order: 0 }],
     relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: []
@@ -156,6 +158,7 @@ expectInvalidBackup(copy => copy.push(JSON.parse(JSON.stringify(copy[0]))), /ร
 expectInvalidBackup(copy => { copy[0].chapters[0].body = 123; }, /ข้อมูลบทนิยาย/);
 expectInvalidBackup(copy => { delete copy[0].modules.notes; }, /โครงสร้างโครงการ/);
 expectInvalidBackup(copy => { copy[0].chapters[0].word_count = 99; }, /ข้อมูลบทนิยาย/);
+expectInvalidBackup(copy => { copy[0].chapters[0].character_ids_json = JSON.stringify(["55555555-5555-4555-8555-555555555555"]); }, /บทนิยายอ้างถึงตัวละคร/);
 expectInvalidBackup(copy => {
   copy[0].modules.relationships.push({
     id: "44444444-4444-4444-8444-444444444444",
