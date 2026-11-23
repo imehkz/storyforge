@@ -697,7 +697,7 @@ async function api(request, env, url) {
         : await validateChapterCharacterReferences(current.project_id, input.character_ids_json);
       const results = await env.DB.batch([
         env.DB.prepare(
-          "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'sort_order', sort_order, 'word_count', word_count, 'character_ids_json', character_ids_json, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
+          "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'synopsis', synopsis, 'writing_status', writing_status, 'sort_order', sort_order, 'word_count', word_count, 'character_ids_json', character_ids_json, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
         ).bind(crypto.randomUUID(), chapterId, input.expectedRevision, ownerId),
         env.DB.prepare(
           "UPDATE chapters SET title = ?, body = ?, synopsis = ?, writing_status = ?, sort_order = ?, word_count = ?, character_ids_json = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, synopsis, writing_status, sort_order, word_count, character_ids_json, revision, updated_at"
