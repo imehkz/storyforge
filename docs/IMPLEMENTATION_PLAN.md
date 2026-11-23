@@ -289,3 +289,10 @@ No hosting resources or secrets have been provisioned, and no production deploym
 - Existing projects and records are not deleted during compensation. Newly created projects are removed as a unit; their child records are left to the project's database cascade behavior.
 - Added executable Node tests for failure during module restore against both a newly created project and an existing project. CI passed on commit 91c387c.
 - This is best-effort compensating rollback, not a single D1 transaction. If the network fails during rollback, the UI reports that manual Cloud review is needed. Live Cloud restore/rollback still requires a controlled test with disposable data.
+
+
+### Canonical character relationship integrity — 23 November 2026
+
+- The Worker now validates both endpoints of a relationship against the active project before create and update. This gives a clear validation failure instead of relying only on the composite D1 foreign key to reject cross-project character references.
+- Added a Worker contract regression test covering both create and edit paths. The D1 composite foreign keys remain the final database-level isolation guard.
+- This hardens Character Studio / Relationship Map data integrity; it does not yet implement automatic cross-references from plot threads, lore, and timeline entries to characters.
