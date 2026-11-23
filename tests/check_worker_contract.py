@@ -145,6 +145,13 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("characters[targetIndex].id", APP)
         self.assertIn("targetIndex === sourceIndex", APP)
 
+    def test_story_context_copy_is_scoped_to_the_active_project(self):
+        self.assertIn('id="copyStoryContext"', HTML)
+        self.assertIn("active.id === cloud.activeProjectId", APP)
+        self.assertIn("cloud.modules || {}", APP)
+        self.assertIn("ข้อกำหนด: ใช้ข้อมูลของนิยายนี้เท่านั้น", APP)
+        self.assertIn("buildStoryAssistantContext()", APP)
+
     def test_character_profile_size_is_checked_before_cloud_save(self):
         self.assertIn("JSON.stringify(profile).length > 19000", APP)
         self.assertIn("profile_json: profile", APP)
