@@ -267,6 +267,11 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("backup.version >= 3", APP)
         self.assertIn("รวมในไฟล์ Backup รุ่น 3", HTML)
 
+    def test_character_reference_images_can_be_inserted_into_manuscript(self):
+        self.assertIn("data-reference-insert", APP)
+        self.assertIn("record.projectId !== cloud.activeProjectId", APP)
+        self.assertIn("insertIllustrationAtCursor();", APP)
+
     def test_html_ids_are_unique(self):
         parser = IdCollector()
         parser.feed(HTML)
