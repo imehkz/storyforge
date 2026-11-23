@@ -101,6 +101,11 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("id=\"saveIllustrationToLibrary\"", HTML)
         self.assertIn(".illustration-library-card", CSS)
 
+    def test_illustration_library_backup_v4_is_project_scoped(self):
+        for fragment in ("collectIllustrationLibraryBackup", "validateIllustrationLibraryBackup", "restoreIllustrationLibraryRecords", "illustrationLibrary", "version: 4", "backup.version >= 4"):
+            self.assertIn(fragment, APP)
+        self.assertIn("[1, 2, 3, 4].includes(backup.version)", APP)
+
     def test_editor_backup_key_is_preserved(self):
         self.assertIn('key === "manuscriptBody" ? "sf_manuscript"', APP)
         self.assertIn("storageKeyFor", APP)
