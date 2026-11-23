@@ -1174,7 +1174,7 @@ function activeChapterDraft() {
     character_ids_json: JSON.stringify(Array.from($("chapterCharacters")?.selectedOptions || []).map(option => option.value).filter(Boolean))
   };
 }
-function save(changedKey = "") {
+function save(changedKey = "", deferCloud = false) {
   let localStorageReady = true;
   keys.forEach(key => {
     try {
@@ -1188,7 +1188,7 @@ function save(changedKey = "") {
     ? '<span class="status-dot"></span>บันทึกฉบับกู้คืนในอุปกรณ์นี้แล้ว'
     : '<span class="status-dot"></span>พื้นที่จัดเก็บในอุปกรณ์ไม่พร้อมใช้งาน · กำลังพยายามบันทึก Cloud';
   renderDashboard();
-  if (cloud.authenticated && cloud.ready && cloud.activeProjectId && cloud.activeChapterId &&
+  if (!deferCloud && cloud.authenticated && cloud.ready && cloud.activeProjectId && cloud.activeChapterId &&
       ["chapterTitle", "manuscriptBody"].includes(changedKey)) {
     storeLocalChapterDraft(cloud.activeChapterId, activeChapterDraft(), cloud.revision);
     scheduleCloudSave();
@@ -4481,6 +4481,19 @@ function setupManuscriptEditor() {
   document.addEventListener("keydown", event => {
     if (event.key === "Escape" && document.body.classList.contains("writing-focus-mode")) {
       setWritingFocusMode(false);
+      return;
+    }
+    if (event.isComposing || !(event.ctrlKey || event.metaKey) || event.altKey) return;
+    if (event.key.toLowerCase() === "s") {
+      event.preventDefault();
+      save("manuscriptBody");
+      if (cloud.activeChapterId) {
+        if (cloud.saveTimer) { clearTimeout(cloud.saveTimer); cloud.saveTimer = null; }
+        saveCloudChapter();
+      }
+    } else if (event.shiftKey && event.key.toLowerCase() === "f") {
+      event.preventDefault();
+      setWritingFocusMode(!document.body.classList.contains("writing-focus-mode"));
     }
   });
   const descriptor = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value");
@@ -4497,7 +4510,11 @@ function setupManuscriptEditor() {
         : "";
     }
   });
-  editor.addEventListener("input", () => {
+  editor.addEventListener("input", event => {
+    descriptor.set.call(field, editor.innerHTML);
+    save("manuscriptBody", Boolean(event.isComposing));
+  });
+  editor.addEventListener("compositionend", () => {
     descriptor.set.call(field, editor.innerHTML);
     save("manuscriptBody");
   });
