@@ -527,7 +527,7 @@ class WorkerContractTests(unittest.TestCase):
             ".save-indicator{font-size:12px;",
             ".chapter-list-item small { display: block; color: var(--muted); margin-top: 3px; font-size: 12px; }",
             ".manuscript-tool-card > small { display: block; margin-top: 8px; color: var(--muted); font-size: 12px; }",
-            "font-size: 12px;\\n  color: rgba(212,183,121,.82);",
+            "font-size: 12px;\n  color: rgba(212,183,121,.82);",
             ".cover-preview-style{font-size:12px;",
             ".character-reference-meta small{color:var(--muted);font-size:12px;",
             "color:var(--gold);font-size:12px}",
