@@ -180,6 +180,13 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("JSON.stringify(profile).length > 19000", APP)
         self.assertIn("profile_json: profile", APP)
 
+    def test_novel_genres_are_explicitly_multi_select_and_project_scoped(self):
+        self.assertIn("data-genre-enabled", HTML)
+        self.assertIn("selectedGenres", APP)
+        self.assertIn('writingSettingsKey()', APP)
+        self.assertIn("input.disabled = !toggle?.checked", APP)
+        self.assertIn("grid-template-columns:minmax(90px,1fr) 20px minmax(70px,1.6fr) 42px", CSS)
+
     def test_dashboard_word_goal_uses_active_novel_settings(self):
         self.assertIn("writingSettingsKey(active?.id)", APP)
         self.assertIn("configuredNovelGoal", APP)
