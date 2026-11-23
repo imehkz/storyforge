@@ -363,7 +363,7 @@ async function api(request, env, url) {
       "plot-threads": { table: "plot_threads", fields: { title: ["string", 200], summary: ["string", 10000], status: ["status", 30], character_ids_json: ["json_array", 8000], sort_order: ["number", 1000000] }, required: ["title"] },
       "world-lore": { table: "world_lore", fields: { category: ["string", 80], title: ["string", 200], content: ["string", 30000], character_ids_json: ["json_array", 8000], sort_order: ["number", 1000000] }, required: ["title"] },
       timeline: { table: "timeline_events", fields: { title: ["string", 200], description: ["string", 10000], story_time: ["string", 120], character_ids_json: ["json_array", 8000], sort_order: ["number", 1000000] }, required: ["title"] },
-      notes: { table: "story_notes", fields: { title: ["string", 200], content: ["string", 30000], note_type: ["string", 60], pinned: ["boolean", 1] }, required: [] }
+      notes: { table: "story_notes", fields: { title: ["string", 200], content: ["string", 30000], note_type: ["string", 60], pinned: ["boolean", 1], character_ids_json: ["json_array", 8000] }, required: [] }
     };
     const config = modules[collection];
     const owned = await env.DB.prepare("SELECT id FROM projects WHERE id = ? AND owner_id = ?").bind(projectId, ownerId).first();
@@ -464,7 +464,7 @@ async function api(request, env, url) {
       for (const field of Object.keys(config.fields)) {
         if (input[field] !== undefined) values[field] = normalize(field, input[field]);
       }
-      if (["plot-threads", "world-lore", "timeline"].includes(collection) && values.character_ids_json !== undefined) {
+      if (["plot-threads", "world-lore", "timeline", "notes"].includes(collection) && values.character_ids_json !== undefined) {
         const existing = await env.DB.prepare(
           "SELECT character_ids_json FROM " + config.table + " WHERE id = ? AND project_id = ?"
         ).bind(itemId, projectId).first();
@@ -492,7 +492,7 @@ async function api(request, env, url) {
     }
     if (itemId && method === "DELETE") {
       if (collection === "characters") {
-        const statements = ["plot_threads", "world_lore", "timeline_events"].map(table =>
+        const statements = ["plot_threads", "world_lore", "timeline_events", "story_notes"].map(table =>
           env.DB.prepare(
             "UPDATE " + table + " SET character_ids_json = COALESCE((SELECT json_group_array(value) FROM json_each(" + table + ".character_ids_json) WHERE value <> ?), '[]'), updated_at = ? WHERE project_id = ? AND EXISTS (SELECT 1 FROM json_each(" + table + ".character_ids_json) WHERE value = ?)"
           ).bind(itemId, nowIso(), projectId, itemId)
@@ -501,7 +501,7 @@ async function api(request, env, url) {
           "DELETE FROM characters WHERE id = ? AND project_id = ? RETURNING id"
         ).bind(itemId, projectId));
         const results = await env.DB.batch(statements);
-        if (!results[3]?.results?.length) throw new Error("NOT_FOUND");
+        if (!results[4]?.results?.length) throw new Error("NOT_FOUND");
         return json({ ok: true, referencesUpdated: true });
       }
       const deleted = await env.DB.prepare(
