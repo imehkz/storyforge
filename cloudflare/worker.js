@@ -491,6 +491,19 @@ async function api(request, env, url) {
       return json({ item: updated });
     }
     if (itemId && method === "DELETE") {
+      if (collection === "characters") {
+        const statements = ["plot_threads", "world_lore", "timeline_events"].map(table =>
+          env.DB.prepare(
+            "UPDATE " + table + " SET character_ids_json = COALESCE((SELECT json_group_array(value) FROM json_each(" + table + ".character_ids_json) WHERE value <> ?), '[]'), updated_at = ? WHERE project_id = ? AND EXISTS (SELECT 1 FROM json_each(" + table + ".character_ids_json) WHERE value = ?)"
+          ).bind(itemId, nowIso(), projectId, itemId)
+        );
+        statements.push(env.DB.prepare(
+          "DELETE FROM characters WHERE id = ? AND project_id = ? RETURNING id"
+        ).bind(itemId, projectId));
+        const results = await env.DB.batch(statements);
+        if (!results[3]?.results?.length) throw new Error("NOT_FOUND");
+        return json({ ok: true, referencesUpdated: true });
+      }
       const deleted = await env.DB.prepare(
         `DELETE FROM ${config.table} WHERE id = ? AND project_id = ? RETURNING id`
       ).bind(itemId, projectId).first();
