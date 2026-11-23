@@ -794,7 +794,12 @@ function renderDashboard() {
   const count = cloud.ready && cloud.activeChapterId
     ? Math.max(0, savedNovelWords - activeSavedWords + chapterWords)
     : chapterWords;
-  const novelGoal = Math.max(1, Number.parseInt(localStorage.getItem("sf_novel_word_goal") || "60000", 10) || 60000);
+  let projectWritingSettings = {};
+  try { projectWritingSettings = JSON.parse(localStorage.getItem(writingSettingsKey(active?.id)) || "{}"); } catch {}
+  const configuredNovelGoal = Number(projectWritingSettings.chapterCount) * Number(projectWritingSettings.wordsPerChapter);
+  const novelGoal = Math.max(1, Number.isFinite(configuredNovelGoal) && configuredNovelGoal > 0
+    ? configuredNovelGoal
+    : (Number.parseInt(localStorage.getItem("sf_novel_word_goal") || "60000", 10) || 60000));
   if ($("sidebarProjectName")) $("sidebarProjectName").textContent = title || "ยังไม่ได้เลือกนิยาย";
   if ($("sidebarProjectMeta")) $("sidebarProjectMeta").textContent = active
     ? (active.genre || "นิยายของฉัน") + (cloud.ready ? " · Private Beta Cloud" : " · บันทึกในอุปกรณ์นี้") + (active.id ? " · ID: " + active.id : "")
