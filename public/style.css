@@ -1142,7 +1142,6 @@ body.writing-focus-mode #manuscript .editor-footer { max-width: 1000px; margin: 
 
 /* STORYFORGE Novel Studio — tablet-first three-column fidelity pass */
 @media (min-width: 981px) and (max-width: 1280px) {
-  #manuscript .content-wrap { padding-left: clamp(14px, 2vw, 26px); padding-right: clamp(14px, 2vw, 26px); }
   #manuscript .manuscript-layout {
     grid-template-columns: minmax(150px, .72fr) minmax(0, 2.1fr) minmax(205px, .96fr);
     gap: 10px;
