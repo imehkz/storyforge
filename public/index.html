@@ -33,7 +33,7 @@
       <button class="nav" data-tab="world"><span class="nav-index">05</span><span>สร้างโลกนิยาย</span></button>
       <button class="nav" data-tab="timeline"><span class="nav-index">06</span><span>ลำดับเหตุการณ์</span></button>
       <button class="nav" data-tab="notes"><span class="nav-index">07</span><span>บันทึกเนื้อเรื่อง</span></button>
-      <button class="nav" data-tab="manuscript"><span class="nav-index">08</span><span>ห้องเขียนต้นฉบับ</span></button>
+      <button class="nav" data-tab="manuscript"><span class="nav-index">08</span><span>Novel Studio</span></button>
       <button class="nav" data-tab="assistant"><span class="nav-index">09</span><span>ผู้ช่วยเขียนนิยาย AI</span></button>
       <button class="nav" data-tab="cover"><span class="nav-index">10</span><span>ห้องออกแบบปก</span></button>
       <button class="nav" data-tab="illustrations"><span class="nav-index">11</span><span>ห้องภาพประกอบ</span></button>
@@ -416,6 +416,29 @@
               </section>
             </div>
           </div>
+          <aside class="studio-insight-rail" aria-label="เครื่องมือประกอบการเขียน">
+            <section class="card-frame studio-rail-card studio-ai-card">
+              <span class="micro-label">✦ STORYFORGE COMPANION</span>
+              <h2>คู่คิดข้างหน้ากระดาษ</h2>
+              <p>เปิดดูบริบทของนิยายและเตรียมคำถามให้ผู้ช่วย โดยคุณเป็นผู้เลือกว่าจะนำอะไรไปใช้</p>
+              <button class="outline-button full-width" data-open-tab="assistant" type="button">เปิดผู้ช่วยเขียน →</button>
+              <small>ยังไม่มีการส่งต้นฉบับไปยัง AI อัตโนมัติ</small>
+            </section>
+            <section class="card-frame studio-rail-card">
+              <div class="section-heading"><h2>โลกของเรื่องนี้</h2><span class="gold-text">✧</span></div>
+              <button class="studio-rail-link" data-open-tab="characters" type="button"><span>♙</span><span><b>Character Vault</b><small>ตัวละครและความสัมพันธ์</small></span><i>→</i></button>
+              <button class="studio-rail-link" data-open-tab="world" type="button"><span>⌖</span><span><b>Worldbuilding Atlas</b><small>สถานที่ กฎ และประวัติศาสตร์</small></span><i>→</i></button>
+              <button class="studio-rail-link" data-open-tab="timeline" type="button"><span>◷</span><span><b>Timeline</b><small>ลำดับเหตุการณ์ในเรื่อง</small></span><i>→</i></button>
+              <button class="studio-rail-link" data-open-tab="plot" type="button"><span>⌘</span><span><b>Plot Threads</b><small>เส้นเรื่องและจุดเปลี่ยน</small></span><i>→</i></button>
+              <button class="studio-rail-link" data-open-tab="scenes" type="button"><span>▤</span><span><b>Scene Cards</b><small>ติดตามฉากสำคัญ</small></span><i>→</i></button>
+            </section>
+            <section class="card-frame studio-rail-card studio-focus-card">
+              <span class="micro-label">WRITER'S DESK</span>
+              <h2>พื้นที่ของคุณ</h2>
+              <p>บันทึกฉบับร่างและประวัติเวอร์ชันอยู่ใกล้มือเสมอ</p>
+              <button id="studioFocusButton" class="outline-button full-width" type="button">⛶ โหมดเขียนเต็มจอ</button>
+            </section>
+          </aside>
         </div>
       </section>
       <section id="cover" class="panel hidden">
