@@ -1427,7 +1427,7 @@ function setupIllustrationStudio() {
       $("insertIllustration").disabled = false;
       $("illustrationStatus").textContent = "เตรียมภาพแล้ว (" + Math.round(data.length * 0.75 / 1024) + " KB โดยประมาณ) — เปิดห้องเขียนและวางเคอร์เซอร์ก่อนแทรก";
     } catch (error) {
-      pendingIllustrationData = ""; $("insertIllustration").disabled = true;
+      pendingIllustrationData = ""; $("insertIllustration").disabled = true; $("saveIllustrationToLibrary").disabled = true;
       $("illustrationStatus").textContent = error.message;
     }
   });
