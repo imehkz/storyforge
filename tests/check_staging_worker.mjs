@@ -12,6 +12,7 @@ assert.equal(healthResponse.status, 200, "staging health endpoint must be availa
 const health = await healthResponse.json();
 assert.equal(health.ok, true, "staging Worker must respond healthy");
 assert.equal(health.databaseReady, true, "staging Worker must reach its isolated D1 database");
+assert.equal(typeof health.authConfigured, "boolean", "health must report OAuth readiness without exposing secrets");
 
 const projectsResponse = await request("/api/projects");
 assert.equal(projectsResponse.status, 401, "project API must reject unauthenticated requests");
