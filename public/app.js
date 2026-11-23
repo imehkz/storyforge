@@ -1580,10 +1580,14 @@ function startEditCharacter(item) {
 async function saveCharacter() {
   const name = $("characterName").value.trim();
   if (!name) return alert("กรุณาระบุชื่อตัวละคร");
+  const profile = characterProfileFromForm();
+  if (JSON.stringify(profile).length > 19000) {
+    return alert("ข้อมูลตัวละครยาวเกินขนาดที่ระบบรองรับ กรุณาย่อรายละเอียดบางส่วนก่อนบันทึก");
+  }
   const payload = {
     name,
     role: $("characterRole").value,
-    profile_json: characterProfileFromForm(),
+    profile_json: profile,
     sort_order: cloud.editingCharacterId
       ? (cloud.modules.characters.find(item => item.id === cloud.editingCharacterId)?.sort_order || 0)
       : cloud.modules.characters.length
