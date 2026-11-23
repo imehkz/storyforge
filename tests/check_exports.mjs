@@ -50,7 +50,7 @@ function crc32(bytes) {
 
 const names = [
   "xmlEscape", "crc32", "createStoredZip", "exportBaseName",
-  "wordParagraph", "countWords", "getManuscriptText", "exportManuscriptDocx", "exportManuscriptEpub"
+  "wordParagraph", "countWords", "getManuscriptText", "manuscriptHtmlToWord", "exportManuscriptDocx", "exportManuscriptEpub"
 ];
 const code = names.map(extractFunction).join("\n");
 const values = {
