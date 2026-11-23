@@ -229,7 +229,17 @@ async function api(request, env, url) {
   const method = request.method;
 
   if (path === "/api/health" && method === "GET") {
-    return json({ ok: true, service: "storyforge-worker", databaseBindingPresent: true });
+    try {
+      await env.DB.prepare("SELECT 1 AS ok").first();
+      return json({
+        ok: true,
+        service: "storyforge-worker",
+        databaseBindingPresent: true,
+        databaseReady: true
+      });
+    } catch {
+      return json({ ok: false, error: "DATABASE_UNAVAILABLE" }, 503);
+    }
   }
   if (path === "/api/telegram-backup" && method === "POST") {
     if (!env.BACKUP_SECRET || !env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
