@@ -2428,8 +2428,10 @@ function setupManuscriptEditor() {
     button.addEventListener("mousedown", event => event.preventDefault());
     button.addEventListener("click", () => {
       editor.focus();
-      document.execCommand(button.dataset.editorCommand, false, null);
-      descriptor.set.call(field, editor.innerHTML);
+      const command = button.dataset.editorCommand;
+      const commandValue = button.dataset.editorValue || null;
+      document.execCommand(command, false, commandValue);
+      descriptor.set.call(field, sanitizeManuscriptHtml(editor.innerHTML));
       save("manuscriptBody");
     });
   });
