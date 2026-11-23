@@ -93,6 +93,17 @@ class D1SchemaTests(unittest.TestCase):
                 "INSERT INTO relationships(id, project_id, source_character_id, target_character_id) VALUES ('r1','p1','a','b')"
             )
 
+    def test_world_and_timeline_store_chapter_reference_arrays(self):
+        for table in ("world_lore", "timeline_events"):
+            columns = {row[1] for row in self.db.execute("PRAGMA table_info(" + table + ")")}
+            self.assertIn("chapter_ids_json", columns)
+        self.seed_project()
+        self.db.execute("INSERT INTO chapters(id, project_id, title) VALUES ('linked-chapter','p1','Linked')")
+        self.db.execute("INSERT INTO world_lore(id, project_id, title, chapter_ids_json) VALUES ('world-link','p1','Place', ?)", ('["linked-chapter"]',))
+        self.db.execute("INSERT INTO timeline_events(id, project_id, title, chapter_ids_json) VALUES ('event-link','p1','Battle', ?)", ('["linked-chapter"]',))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.db.execute("UPDATE timeline_events SET chapter_ids_json = ? WHERE id='event-link'", ("not-json",))
+
     def test_story_notes_store_scene_tracking_fields(self):
         columns = {row[1] for row in self.db.execute("PRAGMA table_info(story_notes)")}
         self.assertTrue({"chapter_ids_json", "scene_type", "scene_status"}.issubset(columns))
