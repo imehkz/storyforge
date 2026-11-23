@@ -914,3 +914,35 @@ body:has(#manuscript:not(.hidden)) [role="separator"] {
 
 /* Project-scoped illustration library */
 .illustration-library-section{margin-top:20px}#illustrationLibraryGallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}#illustrationLibraryGallery .muted-note{grid-column:1/-1}.illustration-library-card{min-width:0}.illustration-library-card>img{width:100%;max-height:220px;object-fit:contain;background:#0d1522}@media(max-width:620px){#illustrationLibraryGallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}@media(max-width:380px){#illustrationLibraryGallery{grid-template-columns:1fr}}
+
+
+/* Distraction-free manuscript mode: keep the editor, formatting tools and save feedback visible. */
+body.writing-focus-mode .sidebar,
+body.writing-focus-mode .topbar,
+body.writing-focus-mode #manuscript > .page-intro,
+body.writing-focus-mode #manuscript .chapter-sidebar,
+body.writing-focus-mode #manuscript .manuscript-tools-grid {
+  display: none !important;
+}
+body.writing-focus-mode .main-area { width: 100%; min-width: 0; }
+body.writing-focus-mode .content-wrap { width: 100%; max-width: none; padding: 12px clamp(10px, 3vw, 42px) 36px; }
+body.writing-focus-mode #manuscript { width: 100%; max-width: 1180px; margin: 0 auto; }
+body.writing-focus-mode #manuscript .manuscript-layout { display: block; width: 100%; }
+body.writing-focus-mode #manuscript .manuscript-main { width: 100%; max-width: none; }
+body.writing-focus-mode #manuscript .manuscript-card { padding: clamp(14px, 3vw, 34px); }
+body.writing-focus-mode #manuscript .manuscript-format-toolbar {
+  position: sticky; top: 0; z-index: 20; padding: 10px;
+  background: rgba(16,24,39,.97); border: 1px solid var(--line);
+  border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.28);
+}
+body.writing-focus-mode #manuscript .manuscript-editor-surface {
+  min-height: max(68vh, 620px); max-width: 850px; margin: 18px auto;
+}
+body.writing-focus-mode #manuscript .editor-footer { max-width: 1000px; margin: 0 auto; }
+.writing-focus-toggle { border-color: var(--gold) !important; color: var(--gold-bright) !important; font-weight: 600; }
+@media (max-width: 760px) {
+  body.writing-focus-mode .content-wrap { padding: 6px 8px 24px; }
+  body.writing-focus-mode #manuscript .manuscript-card { padding: 10px; }
+  body.writing-focus-mode #manuscript .manuscript-editor-surface { min-height: 72vh; margin: 10px auto; }
+  body.writing-focus-mode #manuscript .manuscript-format-toolbar { top: 0; gap: 6px; }
+}
