@@ -12,7 +12,7 @@ function extractFunction(name) {
 const warningLog = [];
 const storageFailure = { setItem() { throw new Error("QuotaExceededError"); } };
 const hint = { textContent: "" };
-const draftStore = new Function("$", "localStorage", "console", extractFunction("storeLocalChapterDraft") + "\\nreturn storeLocalChapterDraft;")(
+const draftStore = new Function("$", "localStorage", "console", extractFunction("storeLocalChapterDraft") + "\nreturn storeLocalChapterDraft;")(
   id => id === "chapterSaveHint" ? hint : null,
   storageFailure,
   { warn: (...args) => warningLog.push(args) }
@@ -31,7 +31,7 @@ let cloudSaveSchedules = 0;
 const save = new Function(
   "keys", "$", "localStorage", "storageKeyFor", "getProjectGenre", "renderDashboard",
   "cloud", "storeLocalChapterDraft", "scheduleCloudSave",
-  extractFunction("save") + "\\nreturn save;"
+  extractFunction("save") + "\nreturn save;"
 )(
   ["chapterTitle", "manuscriptBody"],
   id => elements[id],
