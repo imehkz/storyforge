@@ -79,6 +79,16 @@ class WorkerContractTests(unittest.TestCase):
             2,
         )
 
+    def test_cloud_restore_rolls_back_only_records_created_by_failed_restore(self):
+        restore = APP[APP.index("async function restoreCloudBackup"):APP.index("function restoreFromFile")]
+        self.assertIn("const createdProjects = new Set()", restore)
+        self.assertIn("const createdItems = []", restore)
+        self.assertIn("if (result.created)", restore)
+        self.assertIn('method: "DELETE"', restore)
+        self.assertIn("if (createdProjects.has(item.projectId)) continue", restore)
+        self.assertIn("if (createdProjects.has(project.id)) continue", restore)
+        self.assertIn("rollbackErrors.length", restore)
+
     def test_local_recovery_storage_failure_does_not_block_cloud_autosave(self):
         self.assertIn("function storeLocalChapterDraft(chapterId, draft, revision = 0)", APP)
         self.assertIn("Local chapter recovery draft could not be stored", APP)
