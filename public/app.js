@@ -952,7 +952,10 @@ function buildStoryAssistantContext() {
     "ขอบเขตฉากผู้ใหญ่: " + (writingSettings.adultContent || "off"),
     "ข้อกำหนดเพิ่มเติม: " + (writingSettings.extraNotes || "ไม่มี")
   );
-  Object.entries(writingSettings.genres || {}).forEach(([genre, level]) => lines.push("- " + genre + ": " + level + "/10"));
+  const selectedGenres = Array.isArray(writingSettings.selectedGenres)
+    ? writingSettings.selectedGenres
+    : Object.keys(writingSettings.genres || {});
+  selectedGenres.forEach(genre => lines.push("- " + genre + ": " + (writingSettings.genres?.[genre] || 5) + "/10"));
   lines.push("", "## เรื่องย่อและข้อมูลสำคัญ",
     active.context || "ยังไม่มีข้อมูล",
     ""
