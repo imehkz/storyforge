@@ -25,7 +25,7 @@ The sequence is deliberately writer-first. Status is updated only after code and
 | 17 | Publishing metadata | Add title page, pen name, copyright, foreword and author bio fields | Implemented per-project metadata fields and TXT/DOCX/EPUB metadata export; CI passed; migration 0011 applied and schema-verified on isolated staging D1 |
 | 18 | Cover Studio persistence | Persist cover brief, prompt and selected character references per project; approved artwork selection awaits image assets | Implemented Cloud/local project-scoped brief persistence; migration 0012 applied and schema-verified on isolated staging D1; approved cover asset workflow remains pending |
 | 19 | Illustration asset workflow | Categorize, filter, caption and reinsert project-local illustrations with backup checks | Implemented categories, filtering, captions and reinsert; library remains device-local by design |
-| 20 | Private-beta QA gate | Browser/tablet, isolation, backup/restore, security and accessibility test report | Migrations 0001–0012 applied to isolated staging D1; staging Worker serves branch frontend and is bound to staging D1; database-level cross-project rejection verified; release remains blocked pending staging OAuth, authenticated API, browser/device, and backup-restore drills |
+| 20 | Private-beta QA gate | Browser/tablet, isolation, backup/restore, security and accessibility test report | Migrations 0001–0012 applied to isolated staging D1; staging Worker serves branch frontend and is bound to staging D1; database-level cross-project rejection and live HTTP smoke tests verified; release remains blocked pending staging OAuth, authenticated API, browser/device, and backup-restore drills |
 
 ## Current execution note
 
