@@ -2729,8 +2729,14 @@ function renderPlotBoard(items) {
     { key: "paused", title: "พักไว้" }
   ];
   target.innerHTML = columns.map(column => {
-    const cards = items.filter(item => item.status === column.key).map(item =>
-      `<article class="plot-board-card">
+    const cards = items.filter(item => item.status === column.key).map(item => {
+      const linkedIds = new Set(plotChapterIds(item));
+      const relatedScenes = (cloud.modules.notes || []).filter(scene => {
+        if (scene.note_type !== "scene") return false;
+        const ids = safeJSON(scene.chapter_ids_json || "[]", []);
+        return Array.isArray(ids) && ids.some(id => linkedIds.has(id));
+      });
+      return `<article class="plot-board-card">
         <b>${escapeHtml(item.title)}</b>
         <p>${escapeHtml(item.summary || "ยังไม่มีคำอธิบาย")}</p>
         <div class="plot-linked-chapters"><small>เชื่อมกับบท ${plotChapterIds(item).length}/${(cloud.chapters || []).length} บท</small>
@@ -2739,16 +2745,24 @@ function renderPlotBoard(items) {
             return chapter ? '<button type="button" class="plot-chapter-link" data-plot-chapter="' + escapeHtml(id) + '">' + escapeHtml(chapter.title || "บทไม่มีชื่อ") + '</button>' : '<span class="plot-chapter-missing">บทที่อ้างอิงไม่พบ</span>';
           }).join("") || '<span class="plot-chapter-missing">ยังไม่ได้เชื่อมบท</span>'}
         </div>
+        <div class="plot-linked-scenes"><small>ฉากที่เกี่ยวข้อง</small>
+          ${relatedScenes.map(scene => {
+            const ids = safeJSON(scene.chapter_ids_json || "[]", []);
+            const firstChapter = (cloud.chapters || []).find(chapter => Array.isArray(ids) && ids.includes(chapter.id) && linkedIds.has(chapter.id));
+            return '<span>' + escapeHtml(scene.title || "ฉากไม่มีชื่อ") + '</span>' +
+              (firstChapter ? '<button type="button" class="plot-chapter-link" data-plot-scene-chapter="' + escapeHtml(firstChapter.id) + '">เปิดบทฉาก →</button>' : '');
+          }).join("") || '<span class="plot-chapter-missing">ยังไม่มีฉากที่เชื่อมกับบทของเส้นเรื่องนี้</span>'}
+        </div>
         <select data-plot-status="${escapeHtml(item.id)}" aria-label="เปลี่ยนสถานะเส้นเรื่อง">
           ${columns.map(option => `<option value="${option.key}" ${option.key === item.status ? "selected" : ""}>${option.title}</option>`).join("")}
         </select>
         <div class="module-actions"><button type="button" class="outline-button compact" data-module-edit="plot-threads" data-module-id="${escapeHtml(item.id)}">แก้ไข</button><button type="button" class="outline-button compact" data-module-delete="plot-threads" data-module-id="${escapeHtml(item.id)}">ลบ</button></div>
-      </article>`
-    ).join("");
+      </article>`;
+    }).join("");
     return `<section class="plot-board-column"><header><b>${column.title}</b><span>${items.filter(item => item.status === column.key).length}</span></header>${cards || '<p class="muted-note">ยังไม่มีเส้นเรื่อง</p>'}</section>`;
   }).join("");
-  target.querySelectorAll("[data-plot-chapter]").forEach(button =>
-    button.addEventListener("click", () => selectCloudChapter(button.dataset.plotChapter))
+  target.querySelectorAll("[data-plot-chapter], [data-plot-scene-chapter]").forEach(button =>
+    button.addEventListener("click", () => selectCloudChapter(button.dataset.plotChapter || button.dataset.plotSceneChapter))
   );
   target.querySelectorAll("[data-plot-status]").forEach(select => {
     select.addEventListener("change", async () => {
