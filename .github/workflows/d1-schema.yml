@@ -31,6 +31,7 @@ jobs:
           node tests/check_recovery.mjs
           node tests/check_continuity.mjs
           node tests/check_studio_editor.mjs
+          node tests/check_cloud_save_race.mjs
       - name: Validate D1 schema
         run: python tests/check_d1_schema.py
       - name: Validate Worker security contract
