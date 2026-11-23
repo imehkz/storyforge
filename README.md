@@ -11,6 +11,14 @@ STORYFORGE เป็นพื้นที่ทำงานสำหรับว
 - GitHub Actions ตรวจ syntax, export/recovery/continuity/editor contracts, D1 schema และ Worker security contracts
 - การผ่าน CI ไม่ใช่หลักฐานว่าผ่านการทดสอบบน Browser, Android tablet, live Worker/D1 หรือการกู้คืน Backup จริง
 
+## Staging สำหรับตรวจหน้าจอ
+
+- URL: https://storyforge-staging.jastsadakorn-n.workers.dev/
+- Staging Worker ใช้ฐานข้อมูล storyforge-staging แยกจาก Production และให้บริการไฟล์หน้าเว็บของสาขาพัฒนา
+- ขณะนี้ยังไม่มี Staging GitHub OAuth/owner allowlist จึงยังไม่พร้อมสำหรับการเข้าสู่ระบบหรือทดสอบ Cloud API แบบ authenticated
+- อย่าใส่ข้อมูลนิยายจริงหรือข้อมูลส่วนตัวลงใน Staging จนกว่าจะตั้งค่า Authentication และผ่านการทดสอบความปลอดภัย
+- หลักฐานการเตรียม Staging: docs/STAGING_VERIFICATION_2026-11-23.md
+
 ## ข้อจำกัดที่ต้องทราบ
 
 - ห้าม Deploy สาขาพัฒนาไปยัง Worker จริง หรือรวมเข้า `main` โดยไม่มีการอนุมัติชัดเจน
