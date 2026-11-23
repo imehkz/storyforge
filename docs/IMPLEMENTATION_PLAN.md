@@ -296,3 +296,12 @@ No hosting resources or secrets have been provisioned, and no production deploym
 - The Worker now validates both endpoints of a relationship against the active project before create and update. This gives a clear validation failure instead of relying only on the composite D1 foreign key to reject cross-project character references.
 - Added a Worker contract regression test covering both create and edit paths. The D1 composite foreign keys remain the final database-level isolation guard.
 - This hardens Character Studio / Relationship Map data integrity; it does not yet implement automatic cross-references from plot threads, lore, and timeline entries to characters.
+
+
+### Canonical character references — 23 November 2026
+
+- Added project-scoped character reference arrays to plot threads, world-lore entries, and timeline events.
+- The Worker validates every referenced character against the current project on create and update; empty references remain valid and legacy rows default to an empty array.
+- The Plot, World, and Timeline forms allow selecting multiple characters from the active novel, and list views display the linked character names.
+- Editing these records preserves the current links unless the user changes the selected character list.
+- This establishes explicit character-to-canon references; automatic semantic linking from manuscript prose and cross-reference navigation remain future work.
