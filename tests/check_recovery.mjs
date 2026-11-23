@@ -98,7 +98,8 @@ const restoreProject = {
     { id: "44444444-4444-4444-8444-444444444444", title: "บท 2", body: "", sort_order: 1, word_count: 0 }
   ],
   modules: { characters: [{ id: "33333333-3333-4333-8333-333333333333", name: "ตัวละคร" }],
-    relationships: [], "plot-threads": [{ id: "55555555-5555-4555-8555-555555555555", title: "Main", chapter_ids_json: '["22222222-2222-4222-8222-222222222222"]' }], "world-lore": [], timeline: [], notes: [] }
+    relationships: [], "plot-threads": [{ id: "55555555-5555-4555-8555-555555555555", title: "Main", chapter_ids_json: '["22222222-2222-4222-8222-222222222222"]' }], "world-lore": [], timeline: [],
+    notes: [{ id: "66666666-6666-4666-8666-666666666666", title: "ฉากเปิด", note_type: "scene", scene_type: "setup", scene_status: "planned", chapter_ids_json: '["22222222-2222-4222-8222-222222222222"]' }] }
 };
 const successCalls = [];
 await makeRestore(true, successCalls, false)([restoreProject]);
@@ -108,7 +109,7 @@ const plotLinkPatch = successCalls.findIndex(call =>
   call.path.endsWith("/plot-threads/55555555-5555-4555-8555-555555555555") && call.method === "PATCH");
 assert.ok(plotLinkPatch > lastChapterCreate, "plot-to-chapter links are restored only after chapters exist");
 const sceneLinkPatch = successCalls.findIndex(call =>
-  call.path.endsWith("/notes/55555555-5555-4555-8555-555555555555") && call.method === "PATCH");
+  call.path.endsWith("/notes/66666666-6666-4666-8666-666666666666") && call.method === "PATCH");
 assert.ok(sceneLinkPatch > lastChapterCreate, "scene-to-chapter links are restored only after chapters exist");
 console.log("Cloud restore plot-link ordering tests passed.");
 const newProjectCalls = [];
