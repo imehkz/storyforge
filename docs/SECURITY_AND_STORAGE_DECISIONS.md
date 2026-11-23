@@ -23,7 +23,7 @@ Required behavior:
 - No client-side username, URL parameter, localStorage value, or UI label can grant access.
 - Never commit OAuth client secrets, session secrets, tokens, or database credentials.
 
-Before enabling the OAuth flow, the owner must create a GitHub OAuth App and configure its callback URL and client secret in the hosting provider's secret store. Do not ask the owner to paste secrets into chat or commit them to the public repository.
+The OAuth source flow expects a GitHub OAuth App and server-side client secret/owner allowlist. Verify the configured bindings and callback in an isolated staging Worker before treating authentication as operational. Do not ask the owner to paste secrets into chat or commit them to the public repository.
 
 ## 3. AI provider isolation contract
 
@@ -49,7 +49,7 @@ The initial scaffold is in `cloudflare/` and the full record is in `docs/CLOUDFL
 
 Important:
 - D1 Time Travel is not an independent backup. Encrypted off-site exports are still required before irreplaceable manuscripts are stored.
-- No Cloudflare account, D1 database, secret, custom domain, billing, or deployment has been created by this work.
+- The existing Cloudflare account, D1 database, and Worker are provisioned; the feature branch is not deployed to the active Worker. Do not modify production resources as part of branch QA.
 - No paid service, paid plan, paid add-on, or billing activation is authorized.
 - Use the provider's `.workers.dev` hostname for the first deployment if available; a custom domain may cost extra.
 - Keep the UI's local-recovery and Cloud-sync states distinct. Do not claim live Cloud persistence until the owner provisions D1/OAuth and the deployed integration tests pass.
