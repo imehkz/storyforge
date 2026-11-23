@@ -48,3 +48,42 @@ assert.equal(localDraftCalls, 1, "local recovery draft is attempted");
 assert.equal(cloudSaveSchedules, 1, "Cloud autosave is still scheduled after local storage fails");
 assert.match(elements.saveState.innerHTML, /พื้นที่จัดเก็บในอุปกรณ์ไม่พร้อมใช้งาน/);
 console.log("Editor recovery tests passed: quota errors are contained and Cloud autosave continues.");
+
+const restoreSource = extractFunction("restoreCloudBackup");
+const makeRestore = (projectCreated, calls) => new Function(
+  "validateCloudBackupData", "cloud", "cloudApi", "countWords",
+  restoreSource + "\\nreturn restoreCloudBackup;"
+)(
+  () => true,
+  { authenticated: true, ready: true },
+  async (path, options = {}) => {
+    calls.push({ path, method: options.method || "GET" });
+    if (path === "/api/projects" && options.method === "POST") {
+      return { created: projectCreated, project: { status: "active" } };
+    }
+    if (path.endsWith("/chapters") && options.method === "POST") return { created: true };
+    if (path.endsWith("/characters") && options.method === "POST") throw new Error("simulated module failure");
+    return { ok: true };
+  },
+  () => 0
+);
+const restoreProject = {
+  project: { id: "11111111-1111-4111-8111-111111111111", title: "ทดสอบ", status: "active" },
+  chapters: [{ id: "22222222-2222-4222-8222-222222222222", title: "บท 1", body: "", sort_order: 0, word_count: 0 }],
+  modules: { characters: [{ id: "33333333-3333-4333-8333-333333333333", name: "ตัวละคร" }],
+    relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: [] }
+};
+const newProjectCalls = [];
+await assert.rejects(() => makeRestore(true, newProjectCalls)([restoreProject]), /simulated module failure/);
+assert.ok(newProjectCalls.some(call => call.path === "/api/projects/11111111-1111-4111-8111-111111111111" && call.method === "DELETE"),
+  "new project is removed after failed restore");
+assert.ok(!newProjectCalls.some(call => call.path === "/api/chapters/22222222-2222-4222-8222-222222222222"),
+  "children of a newly created project are left to project cascade cleanup");
+
+const existingProjectCalls = [];
+await assert.rejects(() => makeRestore(false, existingProjectCalls)([restoreProject]), /simulated module failure/);
+assert.ok(existingProjectCalls.some(call => call.path === "/api/chapters/22222222-2222-4222-8222-222222222222" && call.method === "DELETE"),
+  "new chapter is removed from an existing project after failed restore");
+assert.ok(!existingProjectCalls.some(call => call.path === "/api/projects/11111111-1111-4111-8111-111111111111" && call.method === "DELETE"),
+  "existing project is never deleted during rollback");
+console.log("Cloud restore rollback tests passed: newly created data is rolled back without deleting existing projects.");
