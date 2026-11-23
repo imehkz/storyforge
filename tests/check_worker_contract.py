@@ -159,6 +159,11 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("characters[targetIndex].id", APP)
         self.assertIn("targetIndex === sourceIndex", APP)
 
+    def test_ai_assistant_does_not_advertise_copilot(self):
+        self.assertNotIn("Copilot", APP)
+        self.assertNotIn("Copilot", HTML)
+        self.assertIn("ยังไม่มีผู้ให้บริการ AI เชื่อมต่อ", HTML)
+
     def test_story_context_copy_is_scoped_to_the_active_project(self):
         self.assertIn('id="copyStoryContext"', HTML)
         self.assertIn("active.id === cloud.activeProjectId", APP)
