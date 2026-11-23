@@ -5,7 +5,11 @@ const app = await readFile(new URL("../public/app.js", import.meta.url), "utf8")
 const start = app.indexOf("function analyzeStoryContinuity(");
 const end = app.indexOf("function renderContinuityResults(", start);
 assert.ok(start >= 0 && end > start, "continuity analyzer must exist");
-const analyze = new Function(app.slice(start, end) + "\nreturn analyzeStoryContinuity;")();
+const helpers = [
+  "function plotChapterIdsForCheck(plot) { try { const ids = JSON.parse(plot.chapter_ids_json || \"[]\"); return Array.isArray(ids) ? ids : []; } catch { return []; } }",
+  "function chapterCharacterIdsForCheck(chapter) { try { const ids = JSON.parse(chapter.character_ids_json || \"[]\"); return Array.isArray(ids) ? ids : []; } catch { return []; } }"
+].join("\\n");
+const analyze = new Function(helpers + "\\n" + app.slice(start, end) + "\\nreturn analyzeStoryContinuity;")();
 
 const characters = [
   { id: "c1", name: "Mira", profile_json: JSON.stringify({ nickname: "Mi", aliases: "เจ้าหญิงเงา, Mira of Dawn" }) },
@@ -24,7 +28,9 @@ const findings = analyze({
     { title: "เหตุการณ์ก่อน", story_time: "2026-11-01", sort_order: 2 }
   ],
   plotThreads: [
-    { title: "เส้นเรื่องของ Tao", status: "in_progress", character_ids_json: '["c2"]' }
+    { title: "เส้นเรื่องของ Tao", status: "in_progress", character_ids_json: '["c2"]', chapter_ids_json: "[]" },
+    { title: "พล็อตเชื่อมบทที่หายไป", status: "in_progress", character_ids_json: "[]", chapter_ids_json: '["missing-chapter"]' },
+    { title: "พล็อต Mira", status: "in_progress", character_ids_json: '["c1"]', chapter_ids_json: '["ch1"]' }
   ]
 });
 
@@ -35,6 +41,8 @@ assert.ok(findings.some(item => item.title === "ตรวจ Canon ตัวล�
 assert.ok(findings.some(item => item.title === "เหตุการณ์ Timeline ยังไม่เชื่อมกับบท"));
 assert.ok(findings.some(item => item.title === "ลำดับ Timeline อาจไม่ตรงวันที่"));
 assert.ok(findings.some(item => item.title === "เส้นเรื่องยังไม่เชื่อมกับบท"));
+assert.ok(findings.some(item => item.title === "เส้นเรื่องอ้างอิงบทที่ไม่พบ"));
+assert.ok(!findings.some(item => item.title === "ตรวจ Canon ของเส้นเรื่อง" && item.detail.includes("พล็อต “พล็อต Mira”")), "linked plot and chapter canon should match");
 assert.ok(!findings.some(item => item.title === "ตรวจการปรากฏของตัวละคร" && item.chapterId === "ch1"));
 assert.ok(!findings.some(item => item.title === "ตรวจ Canon ตัวละคร" && item.chapterId === "ch1"), "aliases should count as a character mention");
 console.log("Continuity checker tests passed");
