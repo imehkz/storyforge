@@ -56,7 +56,7 @@ const backupValidator = new Function(
   extractFunction("validateCloudBackupData") + "\nreturn validateCloudBackupData;"
 )(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i, () => 0);
 const validPlotBackup = [{
-  project: { id: "11111111-1111-4111-8111-111111111111", title: "Plot test" },
+  project: { id: "11111111-1111-4111-8111-111111111111", title: "Plot test", pen_name: "Pen", copyright_text: "Copyright", foreword: "Foreword", author_bio: "Bio" },
   chapters: [{ id: "22222222-2222-4222-8222-222222222222", title: "บท 1", body: "", synopsis: "สรุปบทแรก", writing_status: "planned", sort_order: 0 }],
   modules: {
     characters: [], relationships: [],
