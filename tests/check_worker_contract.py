@@ -305,6 +305,20 @@ class WorkerContractTests(unittest.TestCase):
         self.assertGreaterEqual(context.count('JSON.parse(item.character_ids_json || "[]")'), 4)
         self.assertIn("ตัวละครที่เกี่ยวข้อง:", context)
 
+    def test_chapter_planning_metadata_is_saved_and_versioned(self):
+        chapter_html = HTML[HTML.index('id="chapterTitle"'):HTML.index('id="manuscriptEditor"')]
+        self.assertIn('id="chapterStatus"', chapter_html)
+        self.assertIn('id="chapterSynopsis"', chapter_html)
+        chapter_routes = WORKER[WORKER.index("const chaptersMatch"):WORKER.index("const chapterMoveMatch")]
+        chapter_detail = WORKER[WORKER.index("const chapterMatch"):WORKER.index('return json({ error: "NOT_FOUND" }, 404);')]
+        self.assertIn("synopsis", chapter_routes)
+        self.assertIn("writing_status", chapter_routes)
+        self.assertIn("INVALID_WRITING_STATUS", chapter_routes + chapter_detail)
+        self.assertIn("'synopsis', synopsis, 'writing_status', writing_status", chapter_detail)
+        self.assertIn("writing_status: chapter.writing_status || \"draft\"", APP)
+        self.assertIn("chapter.synopsis != null", APP)
+        self.assertIn("activeChapterDraft()", APP)
+
     def test_chapter_canon_character_links_are_saved_and_project_scoped(self):
         self.assertIn('id="chapterCharacters"', HTML)
         context = APP[APP.index("function buildStoryAssistantContext"):APP.index("async function copyStoryText")]
