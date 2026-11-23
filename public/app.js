@@ -1411,12 +1411,12 @@ function renderRelationshipGraph() {
   });
   const relationColor = value => {
     const t=String(value||"").toLowerCase();
-    if(/ศัตรู|เกลียด|หักหลัง|คู่แข่ง/.test(t)) return "#c66b70";
-    if(/ครอบครัว|พ่อ|แม่|พี่|น้อง|ลูก/.test(t)) return "#7da7d8";
-    if(/รัก|คนรัก|คู่หมั้น|แอบรัก/.test(t)) return "#d58aa9";
-    if(/พันธมิตร|เพื่อน|ร่วมมือ/.test(t)) return "#83b99a";
-    if(/ธุรกิจ|เจ้านาย|ลูกน้อง/.test(t)) return "#a7adb8";
-    if(/อาจารย์|ผู้ชี้แนะ|ศิษย์/.test(t)) return "#c5a15b";
+    if(/ศัตรู|เกลียด|หักหลัง|คู่แข่ง|enemy|rival|betray|hostile/.test(t)) return "#c66b70";
+    if(/ครอบครัว|พ่อ|แม่|พี่|น้อง|ลูก|family|father|mother|sibling|brother|sister/.test(t)) return "#7da7d8";
+    if(/รัก|คนรัก|คู่หมั้น|แอบรัก|love|romance|partner|fiance/.test(t)) return "#d58aa9";
+    if(/พันธมิตร|เพื่อน|ร่วมมือ|ally|friend|collaborat/.test(t)) return "#83b99a";
+    if(/ธุรกิจ|เจ้านาย|ลูกน้อง|business|boss|employee/.test(t)) return "#a7adb8";
+    if(/อาจารย์|ผู้ชี้แนะ|ศิษย์|mentor|teacher|student/.test(t)) return "#c5a15b";
     return "#b99a62";
   };
   const edges = relationships.map((rel,index) => {
