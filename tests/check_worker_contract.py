@@ -273,6 +273,18 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("c.word_count, c.character_ids_json", WORKER[WORKER.index("const chapterMatch"):WORKER.index("return json({ error: \"NOT_FOUND\" }, 404);")])
         self.assertIn("chapter.character_ids_json", APP[APP.index("function validateCloudBackupData"):APP.index("async function restoreCloudBackup")])
 
+    def test_continuity_checker_is_project_scoped_and_non_destructive(self):
+        self.assertIn('id="continuityPanel"', HTML)
+        self.assertIn('id="runContinuityCheck"', HTML)
+        self.assertIn("function analyzeStoryContinuity(", APP)
+        self.assertIn("function runStoryContinuityCheck()", APP)
+        self.assertIn('cloudApi("/api/chapters/" + encodeURIComponent(item.id))', APP)
+        self.assertIn("ชื่อบทซ้ำ", APP)
+        self.assertIn("ตรวจการปรากฏของตัวละคร", APP)
+        self.assertIn("ลำดับ Timeline อาจไม่ตรงวันที่", APP)
+        self.assertIn("ไม่แก้ไขต้นฉบับให้อัตโนมัติ", HTML)
+        self.assertIn("selectCloudChapter(button.dataset.continuityChapter)", APP)
+
     def test_manuscript_focus_mode_keeps_editor_and_exit_available(self):
         self.assertIn('id="toggleWritingFocus"', HTML)
         self.assertIn("function setWritingFocusMode(enabled)", APP)
