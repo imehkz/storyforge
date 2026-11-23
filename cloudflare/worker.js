@@ -334,7 +334,7 @@ async function api(request, env, url) {
     const projectId = projectMatch[1];
     if (method === "GET") {
       const project = await env.DB.prepare(
-        "SELECT id, title, genre, synopsis, pen_name, copyright_text, foreword, author_bio, status, created_at, updated_at FROM projects WHERE id = ? AND owner_id = ?"
+        "SELECT id, title, genre, synopsis, pen_name, copyright_text, foreword, author_bio, cover_brief_json, status, created_at, updated_at FROM projects WHERE id = ? AND owner_id = ?"
       ).bind(projectId, ownerId).first();
       if (!project) throw new Error("NOT_FOUND");
       return json({ project });
