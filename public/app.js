@@ -3899,7 +3899,11 @@ async function refreshAuthStatus() {
   try {
     const response = await fetch("/api/session", { credentials: "same-origin", cache: "no-store" });
     if (response.status === 503) {
-      state.textContent = "ระบบบัญชียังไม่พร้อม · ต้องตั้งค่า D1 และ GitHub OAuth";
+      let setupError = "";
+      try { setupError = (await response.clone().json()).error || ""; } catch {}
+      state.textContent = setupError === "AUTH_NOT_CONFIGURED"
+        ? "ระบบบัญชียังไม่พร้อม · ต้องตั้งค่า GitHub OAuth"
+        : "ระบบบัญชียังไม่พร้อม · ต้องตั้งค่า D1";
       login.hidden = true;
       logout.hidden = true;
       cloud.authenticated = false;
