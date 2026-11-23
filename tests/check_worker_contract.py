@@ -262,6 +262,9 @@ class WorkerContractTests(unittest.TestCase):
 
     def test_chapter_canon_character_links_are_saved_and_project_scoped(self):
         self.assertIn('id="chapterCharacters"', HTML)
+        context = APP[APP.index("function buildStoryAssistantContext"):APP.index("async function copyStoryText")]
+        self.assertIn("Canon: " + linked.join(", "), context)
+        self.assertIn("ตัวละคร Canon ของบทนี้:", context)
         self.assertIn("function renderChapterCharacterReferences()", APP)
         self.assertIn('character_ids_json: JSON.stringify(Array.from($("chapterCharacters")?.selectedOptions || []).map(option => option.value).filter(Boolean))', APP)
         self.assertIn("validateChapterCharacterReferences", WORKER)
