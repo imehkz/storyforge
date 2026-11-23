@@ -111,6 +111,10 @@ assert.ok(wholeEpub.get("OEBPS/chapter-2.xhtml").includes("เนื้อหา
 assert.ok(wholeEpub.get("OEBPS/content.opf").includes("<dc:language>th</dc:language>"), "EPUB declares Thai language");
 assert.ok(wholeEpub.get("OEBPS/content.opf").includes("<dc:creator>ปากกาสีทอง</dc:creator>"), "EPUB uses the configured pen name");
 assert.ok(wholeEpub.get("OEBPS/content.opf").includes("Copyright © 2026 ปากกาสีทอง"), "EPUB preserves copyright metadata");
+assert.ok(wholeEpub.has("OEBPS/frontmatter.xhtml") && wholeEpub.has("OEBPS/backmatter.xhtml"), "EPUB includes front and back matter pages");
+assert.ok(wholeEpub.get("OEBPS/frontmatter.xhtml").includes("คำนำภาษาไทย"), "EPUB includes foreword content");
+assert.ok(wholeEpub.get("OEBPS/backmatter.xhtml").includes("ประวัติผู้เขียนภาษาไทย"), "EPUB includes author biography page");
+assert.ok(wholeEpub.get("OEBPS/nav.xhtml").includes("หน้าปกในและคำนำ"), "EPUB navigation includes front matter");
 
 
 exportsApi.exportManuscriptEpub();
