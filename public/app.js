@@ -1842,18 +1842,20 @@ function setupEvents() {
     }
   };
 
-  // AI provider remains disabled until a user-approved integration is configured.
+  // OpenAI (ChatGPT) is the planned provider. Keep live requests disabled until API billing is explicitly approved and a server-side secret is configured.
   $("run").disabled = true;
-  $("run").title = "ยังไม่มีผู้ให้บริการ AI เชื่อมต่อในรุ่นทดสอบนี้";
+  $("run").title = "เตรียมเชื่อมต่อ OpenAI (ChatGPT) — ยังไม่เปิดใช้ API";
   $("output").textContent =
-    "ผู้ช่วย AI ยังไม่เชื่อมต่อกับผู้ให้บริการในรุ่นทดสอบส่วนตัวนี้\n\n" +
-    "ระบบจะไม่เรียก API หรือบริการแบบคิดเงินโดยอัตโนมัติ";
+    "ผู้ให้บริการหลักที่วางแผนไว้: OpenAI (ChatGPT)\n" +
+    "สถานะ: ยังไม่เชื่อมต่อ API\n\n" +
+    "คุณสามารถคัดลอกบริบทนิยายไปใช้ใน ChatGPT ได้ทันที\n" +
+    "StoryForge จะไม่ส่งข้อมูลออกไปหรือเรียกบริการแบบคิดเงินโดยอัตโนมัติ";
 
   $("copyStoryContext")?.addEventListener("click", async () => {
     try {
       const context = buildStoryAssistantContext();
       await copyStoryText(context);
-      alert("คัดลอกบริบทของนิยายที่กำลังเลือกแล้วครับ นำไปวางในแชตผู้ช่วยที่ต้องการได้เลย");
+      alert("คัดลอกบริบทนิยายแล้วครับ นำไปวางใน ChatGPT ได้เลย");
     } catch (error) {
       alert("คัดลอกบริบทไม่สำเร็จ: " + error.message);
     }
