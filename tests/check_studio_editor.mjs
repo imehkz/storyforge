@@ -16,7 +16,7 @@ const requiredIds = [
 ];
 
 for (const id of requiredIds) {
-  const matches = html.match(new RegExp('\\\\bid="' + id + '"', "g")) || [];
+  const matches = html.match(new RegExp('\\bid="' + id + '"', "g")) || [];
   assert.equal(matches.length, 1, "HTML must contain exactly one #" + id);
 }
 
@@ -24,22 +24,22 @@ assert.match(html, /id="manuscriptEditor"[^>]*contenteditable="true"/,
   "the visible manuscript surface must be editable");
 assert.match(html, /<textarea id="manuscriptBody"[^>]*hidden/,
   "the legacy storage textarea must remain hidden");
-assert.match(css, /#manuscriptBody\\s*\\[hidden\\]\\s*\\{\\s*display:\\s*none\\s*!important;/,
+assert.match(css, /#manuscriptBody\s*\[hidden\]\s*\{\s*display:\s*none\s*!important;/,
   "the hidden storage field must not override the hidden attribute");
 
 for (const selector of [
-  '$("studioHistoryShortcut")?.addEventListener("click"',
-  '$("studioContinuityShortcut")?.addEventListener("click"',
+  ' $("studioHistoryShortcut")?.addEventListener("click"',
+  ' $("studioContinuityShortcut")?.addEventListener("click"',
   'editor.addEventListener("input"',
   'editor.addEventListener("compositionend"',
   'event.key.toLowerCase() === "s"',
   'event.key.toLowerCase() === "f"',
   '$("autoFormatManuscript")?.addEventListener("click"'
 ]) {
-  assert.ok(app.includes(selector), "missing editor behavior: " + selector);
+  assert.ok(app.includes(selector.trim()), "missing editor behavior: " + selector.trim());
 }
 
-assert.ok(app.includes('panel.hidden = false'), "continuity shortcut must reveal its panel");
+assert.ok(app.includes("panel.hidden = false"), "continuity shortcut must reveal its panel");
 assert.ok(app.includes('$("chapterHistoryButton")?.click()'),
   "history shortcut must activate the existing chapter history control");
 console.log("Novel Studio contract tests passed: shortcut targets, editor controls, hidden storage field, and save handlers are wired.");
