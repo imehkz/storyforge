@@ -926,7 +926,7 @@ function buildStoryAssistantContext() {
   lines.push("", "## เรื่องย่อและข้อมูลสำคัญ",
     active.context || "ยังไม่มีข้อมูล",
     ""
-  ];
+  );
   const projectIsCurrentCloud = cloud.ready && active.id === cloud.activeProjectId;
   if (projectIsCurrentCloud) {
     const modules = cloud.modules || {};
