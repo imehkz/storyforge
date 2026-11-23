@@ -242,6 +242,11 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('timeline: ["title", "description", "story_time", "sort_order", "character_ids_json"]', restore)
         self.assertIn('characterIds.has(id)', validation)
 
+    def test_ai_context_includes_canonical_character_links(self):
+        context = APP[APP.index("function buildStoryAssistantContext"):APP.index("function copyStoryContext")]
+        self.assertGreaterEqual(context.count('JSON.parse(item.character_ids_json || "[]")'), 3)
+        self.assertIn("ตัวละครที่เกี่ยวข้อง:", context)
+
     def test_character_delete_cleans_project_canonical_references(self):
         module_route = WORKER[WORKER.index("const moduleMatch"):WORKER.index("const chaptersMatch")]
         self.assertIn('if (collection === "characters") {', module_route)
