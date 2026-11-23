@@ -127,7 +127,7 @@ assert.ok(source.includes("async function collectCharacterVaultBackup(cloudProje
 assert.ok(source.includes("async function restoreCharacterVaultRecords(records)"), "Character references can be restored");
 assert.ok(source.includes("function validateCharacterVaultBackup(records, cloudProjects)"), "Character reference restore is validated");
 assert.ok(source.includes('field === "pinned" ? Boolean(item[field]) : item[field]'), "Cloud restore normalizes SQLite booleans");
-assert.ok(source.includes('if (project.status === "archived")'), "Cloud restore preserves archived project state");
+assert.ok(source.includes('if (project.status === "archived" && projectResult.project?.status !== "archived")'), "Cloud restore preserves archived project state without unnecessary updates");
 
 assert.ok(source.includes("ถึงขีดจำกัดที่ API ส่งกลับ"), "Backup refuses collections at API result caps instead of silently omitting records");
 assert.ok(source.includes("validateCloudBackupData(cloudProjects)"), "Cloud restore is preflight-validated before confirmation and writes");
