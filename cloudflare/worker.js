@@ -694,12 +694,6 @@ async function api(request, env, url) {
           "UPDATE chapters SET title = ?, body = ?, sort_order = ?, word_count = ?, character_ids_json = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, sort_order, word_count, character_ids_json, revision, updated_at"
         ).bind(title, body, sortOrder, wordCount, characterIds, nowIso(), chapterId, input.expectedRevision, ownerId),
         env.DB.prepare(
-          "UPDATE world_lore SET chapter_ids_json = COALESCE((SELECT json_group_array(value) FROM json_each(world_lore.chapter_ids_json) WHERE value <> ?), '[]'), updated_at = ? WHERE project_id = (SELECT project_id FROM chapters WHERE id = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)) AND EXISTS (SELECT 1 FROM json_each(world_lore.chapter_ids_json) WHERE value = ?)"
-        ).bind(chapterId, nowIso(), chapterId, ownerId, chapterId),
-        env.DB.prepare(
-          "UPDATE timeline_events SET chapter_ids_json = COALESCE((SELECT json_group_array(value) FROM json_each(timeline_events.chapter_ids_json) WHERE value <> ?), '[]'), updated_at = ? WHERE project_id = (SELECT project_id FROM chapters WHERE id = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)) AND EXISTS (SELECT 1 FROM json_each(timeline_events.chapter_ids_json) WHERE value = ?)"
-        ).bind(chapterId, nowIso(), chapterId, ownerId, chapterId),
-        env.DB.prepare(
           "DELETE FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ?) AND id NOT IN (SELECT id FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ?) ORDER BY created_at DESC, id DESC LIMIT 100)"
         ).bind(chapterId, chapterId, chapterId, chapterId)
       ]);
@@ -714,6 +708,12 @@ async function api(request, env, url) {
         ).bind(chapterId, nowIso(), chapterId, ownerId, chapterId),
         env.DB.prepare(
           "UPDATE story_notes SET chapter_ids_json = COALESCE((SELECT json_group_array(value) FROM json_each(story_notes.chapter_ids_json) WHERE value <> ?), '[]'), updated_at = ? WHERE project_id = (SELECT project_id FROM chapters WHERE id = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)) AND EXISTS (SELECT 1 FROM json_each(story_notes.chapter_ids_json) WHERE value = ?)"
+        ).bind(chapterId, nowIso(), chapterId, ownerId, chapterId),
+        env.DB.prepare(
+          "UPDATE world_lore SET chapter_ids_json = COALESCE((SELECT json_group_array(value) FROM json_each(world_lore.chapter_ids_json) WHERE value <> ?), '[]'), updated_at = ? WHERE project_id = (SELECT project_id FROM chapters WHERE id = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)) AND EXISTS (SELECT 1 FROM json_each(world_lore.chapter_ids_json) WHERE value = ?)"
+        ).bind(chapterId, nowIso(), chapterId, ownerId, chapterId),
+        env.DB.prepare(
+          "UPDATE timeline_events SET chapter_ids_json = COALESCE((SELECT json_group_array(value) FROM json_each(timeline_events.chapter_ids_json) WHERE value <> ?), '[]'), updated_at = ? WHERE project_id = (SELECT project_id FROM chapters WHERE id = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)) AND EXISTS (SELECT 1 FROM json_each(timeline_events.chapter_ids_json) WHERE value = ?)"
         ).bind(chapterId, nowIso(), chapterId, ownerId, chapterId),
         env.DB.prepare(
           "DELETE FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?))"
