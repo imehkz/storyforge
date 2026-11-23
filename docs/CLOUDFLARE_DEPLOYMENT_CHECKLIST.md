@@ -14,12 +14,12 @@ This is an owner-operated checklist. Repository changes do not create a Cloudfla
 From the repository root, after installing Node.js and Wrangler locally:
 
 1. Copy cloudflare/wrangler.toml.example to cloudflare/wrangler.toml.
-2. From cloudflare/, run: npx wrangler d1 create storyforge
-3. Copy the returned database ID into cloudflare/wrangler.toml.
-4. Apply migrations locally first: npx wrangler d1 migrations apply storyforge --local
+2. Use only the staging configuration: name storyforge-staging and database_name storyforge-staging. A staging D1 and Worker have already been provisioned in the connected Cloudflare account; do not create or target a database named storyforge from this checklist.
+3. Confirm the staging database ID in Cloudflare and place only that ID in the local staging wrangler.toml..
+4. Apply migrations locally first: npx wrangler d1 migrations apply storyforge-staging --local
 5. Run the schema/security checks from the repository root: python3 tests/check_d1_schema.py and python3 tests/check_worker_contract.py.
 6. Run JavaScript/export checks: node --input-type=module --check < cloudflare/worker.js, node --check public/app.js, and node tests/check_exports.mjs
-7. For an isolated staging D1 database only, apply migrations after verifying its database ID and taking a staging backup. Never point this command at the existing `storyforge` production D1 database. Use a separate staging Wrangler configuration/database binding and verify the target before running any remote migration.
+7. The connected account's isolated storyforge-staging D1 already has migrations 0001–0012 applied and schema-verified. Do not re-run them on the existing production storyforge database. Any future migration must be applied only to staging first, after verifying the database ID and taking a staging backup.
 
 Do not commit cloudflare/wrangler.toml; it contains account-specific resource identifiers. The example file is safe to commit.
 
@@ -31,12 +31,12 @@ The Worker now implements owner-only GitHub OAuth and project/chapter/module API
 
 ## Staging-first migration safety
 
-Read-only inspection on 23 November 2026 found that the existing `storyforge` D1 database has only migrations `0001`–`0003` recorded as applied. The current feature branch contains migrations through `0012`. The existing Worker is serving 100% of traffic and is an earlier build. No isolated staging Worker/D1 was visible during that inspection.
+Read-only inspection on 23 November 2026 found that the production `storyforge` D1 database has only migrations `0001`–`0003` recorded as applied and its Worker is an earlier build. A separate `storyforge-staging` D1 and Worker now exist; staging migrations `0001`–`0012` are applied and verified. The staging Worker serves the branch frontend files, but does not yet have a separate OAuth configuration/owner allowlist.
 
 Therefore:
 - Do not run `wrangler d1 migrations apply storyforge --remote` against the existing production binding.
-- Create a separate staging D1 database and staging Worker first, with no production novel data.
-- Apply migrations `0001`–`0012` to staging in order, verify schema and all API flows, and run the browser/device acceptance suite.
+- Keep the existing storyforge-staging D1/Worker isolated and do not attach production novel data.
+- Configure a separate staging OAuth application and secrets, then verify authenticated API flows and run browser/device acceptance.
 - Keep production unchanged until the owner reviews the staging evidence and explicitly approves a separate production migration and deployment plan.
 
 ## Release gates
@@ -53,7 +53,7 @@ Therefore:
 
 ## Current state
 
-The Worker now serves static assets and owner-authenticated APIs. The browser editor has API integration but also retains device-local recovery copies; live cloud operation requires configuration and deployment. Copilot is not hosted on Workers. This checklist does not authorize paid runtime or shared Copilot credentials.
+The staging Worker now serves embedded branch frontend assets and the branch API source using only the staging D1 binding. Staging OAuth/owner allowlist and authenticated browser testing remain outstanding. Production remains on the earlier Worker build. Copilot is not hosted on Workers. This checklist does not authorize paid runtime or shared Copilot credentials.
 
 
 ## Updated runtime setup
@@ -65,4 +65,4 @@ The current Worker requires D1 and these runtime values before owner login can w
 
 Set the GitHub OAuth App callback URL to the deployed origin plus `/auth/callback`. Store sensitive values with Wrangler secrets; never add them to source files or chat. The Worker and browser editor source now implement the listed authentication and API workflows, but cloud operation remains unavailable until the owner configures and deploys D1, OAuth, and Worker secrets. Do not treat the login control alone as proof that the live service is configured.
 
-Before deployment, run the repository's GitHub Actions checks and test the Worker with local D1. No resource provisioning or deployment is authorized by this checklist.
+Before any production deployment, run the repository's GitHub Actions checks, finish staging OAuth and live API/browser/device tests, complete an independent backup/restore drill, and obtain explicit owner approval. The existing staging Worker deployment does not authorize production changes.
