@@ -15,7 +15,11 @@ const keys = [
   "chapterTitle",
   "manuscriptBody",
   "projectMemory",
-  "globalMemory"
+  "globalMemory",
+  "penName",
+  "copyrightText",
+  "foreword",
+  "authorBio"
 ];
 
 const cloud = {
@@ -809,6 +813,10 @@ function validateCloudBackupData(backupProjects) {
     if (typeof project.title !== "string" || !project.title.trim() || project.title.length > 160 ||
         (project.genre != null && (typeof project.genre !== "string" || project.genre.length > 100)) ||
         (project.synopsis != null && (typeof project.synopsis !== "string" || project.synopsis.length > 10000)) ||
+        (project.pen_name != null && (typeof project.pen_name !== "string" || project.pen_name.length > 120)) ||
+        (project.copyright_text != null && (typeof project.copyright_text !== "string" || project.copyright_text.length > 300)) ||
+        (project.foreword != null && (typeof project.foreword !== "string" || project.foreword.length > 10000)) ||
+        (project.author_bio != null && (typeof project.author_bio !== "string" || project.author_bio.length > 3000)) ||
         (project.status != null && !["active", "archived"].includes(project.status))) {
       throw new Error("ข้อมูลชื่อหรือรายละเอียดโครงการไม่ถูกต้อง");
     }
@@ -951,7 +959,7 @@ async function restoreCloudBackup(backupProjects) {
       const project = entry.project;
       const projectResult = await cloudApi("/api/projects", {
         method: "POST",
-        body: JSON.stringify({ clientId: project.id, title: project.title || "นิยายที่กู้คืน", genre: project.genre || "", synopsis: project.synopsis || "" })
+        body: JSON.stringify({ clientId: project.id, title: project.title || "นิยายที่กู้คืน", genre: project.genre || "", synopsis: project.synopsis || "", pen_name: project.pen_name || "", copyright_text: project.copyright_text || "", foreword: project.foreword || "", author_bio: project.author_bio || "" })
       });
       if (projectResult.created) createdProjects.add(project.id);
       if (project.status === "archived" && projectResult.project?.status !== "archived") {
@@ -1990,7 +1998,11 @@ function setupEvents() {
       id: existing?.id || crypto.randomUUID(),
       title: $("title").value || "โครงการไม่มีชื่อ",
       genre: getProjectGenre(),
-      context: $("context").value
+      context: $("context").value,
+      pen_name: $("penName").value.trim(),
+      copyright_text: $("copyrightText").value.trim(),
+      foreword: $("foreword").value,
+      author_bio: $("authorBio").value
     };
     localStorage.setItem(writingSettingsKey(item.id), JSON.stringify(readWritingSettings()));
     projects = projects.filter(x => x.id !== item.id);
@@ -2005,12 +2017,12 @@ function setupEvents() {
         if (cloud.projects.some(project => project.id === cloud.activeProjectId)) {
           saved = await cloudApi("/api/projects/" + encodeURIComponent(cloud.activeProjectId), {
             method: "PATCH",
-            body: JSON.stringify({ title: item.title, genre: item.genre, synopsis: item.context })
+            body: JSON.stringify({ title: item.title, genre: item.genre, synopsis: item.context, pen_name: item.pen_name, copyright_text: item.copyright_text, foreword: item.foreword, author_bio: item.author_bio })
           });
         } else {
           saved = await cloudApi("/api/projects", {
             method: "POST",
-            body: JSON.stringify({ title: item.title, genre: item.genre, synopsis: item.context })
+            body: JSON.stringify({ title: item.title, genre: item.genre, synopsis: item.context, pen_name: item.pen_name, copyright_text: item.copyright_text, foreword: item.foreword, author_bio: item.author_bio })
           });
         }
         const project = saved.project;
@@ -2048,6 +2060,7 @@ function setupEvents() {
     $("title").value = "";
     setProjectGenre("");
     $("context").value = "";
+    ["penName", "copyrightText", "foreword", "authorBio"].forEach(id => { if ($(id)) $(id).value = ""; });
     $("projectMemory").value = "";
     loadWritingSettings("draft");
     cloud.noteId = "";
@@ -2268,6 +2281,10 @@ async function loadCloudProject(projectId) {
   $("title").value = project.title || "";
   setProjectGenre(project.genre || "");
   $("context").value = project.synopsis || "";
+  $("penName").value = project.pen_name || "";
+  $("copyrightText").value = project.copyright_text || "";
+  $("foreword").value = project.foreword || "";
+  $("authorBio").value = project.author_bio || "";
   const migrationMap = safeJSON(localStorage.getItem(migrationMapKey()) || "{}", {});
   const localProjectMatch = Object.entries(migrationMap).find(([, value]) => value.projectId === project.id);
   if (localProjectMatch) localStorage.setItem("sf_active_project_id", localProjectMatch[0]);
