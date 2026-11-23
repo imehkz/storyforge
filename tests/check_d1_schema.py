@@ -71,6 +71,15 @@ class D1SchemaTests(unittest.TestCase):
                 "INSERT INTO relationships(id, project_id, source_character_id, target_character_id) VALUES ('r1','p1','a','b')"
             )
 
+    def test_plot_world_timeline_store_character_reference_arrays(self):
+        for table in ("plot_threads", "world_lore", "timeline_events"):
+            columns = {row[1] for row in self.db.execute("PRAGMA table_info(" + table + ")")}
+            self.assertIn("character_ids_json", columns)
+        self.seed_project()
+        self.db.execute("INSERT INTO characters(id, project_id, name) VALUES ('char-1','p1','Mira')")
+        self.db.execute("INSERT INTO plot_threads(id, project_id, title, character_ids_json) VALUES ('plot-1','p1','Main', ?)", ('["char-1"]',))
+        self.assertEqual(self.db.execute("SELECT character_ids_json FROM plot_threads WHERE id='plot-1'").fetchone()[0], '["char-1"]')
+
     def test_chapter_snapshot_retention_keeps_latest_100(self):
         self.seed_project()
         self.db.execute(
