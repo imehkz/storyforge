@@ -260,6 +260,15 @@ class WorkerContractTests(unittest.TestCase):
         self.assertGreaterEqual(context.count('JSON.parse(item.character_ids_json || "[]")'), 4)
         self.assertIn("ตัวละครที่เกี่ยวข้อง:", context)
 
+    def test_chapter_canon_character_links_are_saved_and_project_scoped(self):
+        self.assertIn('id="chapterCharacters"', HTML)
+        self.assertIn("function renderChapterCharacterReferences()", APP)
+        self.assertIn('character_ids_json: JSON.stringify(Array.from($("chapterCharacters")?.selectedOptions || []).map(option => option.value).filter(Boolean))', APP)
+        self.assertIn("validateChapterCharacterReferences", WORKER)
+        self.assertIn("INVALID_CHAPTER_CHARACTER_REFERENCE", WORKER)
+        self.assertIn("character_ids_json", WORKER[WORKER.index("const chaptersMatch"):WORKER.index("const chapterMoveMatch")])
+        self.assertIn("chapter.character_ids_json", APP[APP.index("function validateCloudBackupData"):APP.index("async function restoreCloudBackup")])
+
     def test_manuscript_focus_mode_keeps_editor_and_exit_available(self):
         self.assertIn('id="toggleWritingFocus"', HTML)
         self.assertIn("function setWritingFocusMode(enabled)", APP)
@@ -276,6 +285,8 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("const results = await env.DB.batch(statements)", module_route)
         self.assertIn("referencesUpdated: true", module_route)
         self.assertIn('"story_notes"', module_route)
+        self.assertIn('"chapters"].map(table =>', module_route)
+        self.assertIn('results[5]?.results?.length', module_route)
 
     def test_relationship_edit_can_reassign_character_endpoints(self):
         self.assertIn("characters[sourceIndex].id", APP)
