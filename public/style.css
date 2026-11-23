@@ -1696,3 +1696,172 @@ button, input, select, textarea { accent-color: var(--gold); }
   #notes .scene-tracker-form { padding: 11px; }
   #timeline .timeline-view { padding-left: 15px; }
 }
+
+
+/* Cover, illustration and publishing workflow refinement */
+#cover .page-intro,
+#illustrations .page-intro,
+#backup .page-intro { margin-bottom: 22px; }
+#cover .cover-studio-grid,
+#illustrations .illustration-studio-grid { gap: 20px; }
+#cover .cover-studio-grid > .card-frame,
+#illustrations .illustration-studio-grid > .card-frame,
+#illustrations .illustration-library-section,
+#backupContent {
+  border: 1px solid rgba(197,161,91,.2);
+  border-radius: 9px;
+  background: linear-gradient(155deg,rgba(24,37,56,.96),rgba(13,23,38,.98));
+  box-shadow: 0 14px 34px rgba(0,0,0,.16);
+}
+#cover .form-card label,
+#illustrations .form-card label { color: #e0d5bf; font-weight: 500; }
+#cover .form-card input,
+#cover .form-card select,
+#cover .form-card textarea,
+#illustrations .form-card input,
+#illustrations .form-card select,
+#illustrations .form-card textarea {
+  border-color: rgba(148,163,184,.28);
+  background: rgba(8,16,29,.76);
+}
+#cover .form-card input:focus,
+#cover .form-card select:focus,
+#cover .form-card textarea:focus,
+#illustrations .form-card input:focus,
+#illustrations .form-card select:focus,
+#illustrations .form-card textarea:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(197,161,91,.13);
+}
+#coverCharacters,
+#illustrationCharacters { padding: 8px; }
+#coverCharacters option,
+#illustrationCharacters option { padding: 6px 8px; border-radius: 4px; }
+#cover .cover-preview-card { position: sticky; top: 18px; }
+#cover .cover-preview {
+  position: relative;
+  isolation: isolate;
+  aspect-ratio: 2 / 3;
+  width: min(100%, 320px);
+  min-height: 0;
+  padding: 12% 9%;
+  border: 1px solid rgba(232,216,184,.45);
+  outline: 1px solid rgba(197,161,91,.45);
+  outline-offset: 5px;
+  border-radius: 2px;
+  background:
+    radial-gradient(ellipse at 50% 30%,rgba(197,161,91,.24),transparent 42%),
+    linear-gradient(145deg,#26344a 0%,#101827 58%,#382d29 100%);
+  box-shadow: 0 24px 50px rgba(0,0,0,.38), inset 0 0 0 8px rgba(197,161,91,.08);
+}
+#cover .cover-preview::before,
+#cover .cover-preview::after {
+  content: "";
+  position: absolute;
+  inset: 13px;
+  border: 1px solid rgba(197,161,91,.36);
+  pointer-events: none;
+}
+#cover .cover-preview::after { inset: 19px; border-color: rgba(232,216,184,.16); }
+#cover .cover-preview > * { position: relative; z-index: 1; }
+#cover .cover-preview strong { max-width: 100%; font-size: clamp(20px,2.2vw,29px); text-shadow: 0 2px 12px rgba(0,0,0,.6); }
+#cover .cover-preview-mark { text-shadow: 0 0 22px rgba(197,161,91,.45); }
+#cover .cover-preview-style { max-width: 100%; font-size: 10px; letter-spacing: .16em; }
+#coverPrompt,
+#illustrationPrompt {
+  border-color: rgba(197,161,91,.32);
+  background: #0a1422;
+  color: #e8d8b8;
+  tab-size: 2;
+}
+#cover .ai-notice,
+#illustrations .ai-notice { border-radius: 0 6px 6px 0; line-height: 1.75; }
+#cover .row-actions,
+#illustrations .row-actions { align-items: center; }
+#cover .row-actions button,
+#illustrations .row-actions button { min-height: 42px; }
+#illustrations .illustration-library-section { padding: 20px; }
+#illustrations .illustration-library-section .section-heading { align-items: end; gap: 14px; flex-wrap: wrap; }
+#illustrations .illustration-library-section .section-heading h2 { margin-bottom: 5px; }
+#illustrations #illustrationLibraryGallery { grid-template-columns: repeat(auto-fill,minmax(205px,1fr)); gap: 14px; }
+#illustrations .illustration-library-card {
+  overflow: hidden;
+  padding: 10px;
+  border: 1px solid rgba(148,163,184,.2);
+  border-radius: 8px;
+  background: rgba(8,16,29,.64);
+  transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+#illustrations .illustration-library-card:hover {
+  border-color: rgba(197,161,91,.65);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0,0,0,.2);
+}
+#illustrations .illustration-library-card > img {
+  height: 190px;
+  max-height: 240px;
+  border-radius: 5px;
+  background: #080f1b;
+}
+#illustrations .illustration-selected-preview { border-color: rgba(197,161,91,.35); }
+#illustrations .illustration-selected-preview img { max-height: 320px; }
+#backupContent { padding: 22px; }
+#backupPanel {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+#backupPanel h3 { font-size: 24px; letter-spacing: .01em; }
+#backupPanel .hint,
+#backupPanel p { color: #aeb9c8; line-height: 1.75; }
+#backupPanel label { color: #dfd5c3; }
+#backupPanel input:not([type=checkbox]),
+#backupPanel select {
+  max-width: 100%;
+  border-color: rgba(148,163,184,.28);
+  background: #0c1727;
+}
+#backupPanel input[type=file] { padding: 9px; }
+#backupPanel button { min-height: 40px; border-radius: 5px; }
+#backupPanel #telegramBackup { background: #26364d; border: 1px solid rgba(197,161,91,.45); color: var(--parchment); }
+#backupPanel #downloadBackup,
+#backupPanel #restoreBackup { background: rgba(197,161,91,.13); border: 1px solid rgba(197,161,91,.45); color: var(--parchment); }
+#backupPanel hr { border-color: rgba(148,163,184,.2) !important; }
+#backupPanel #backupStatus { padding: 10px 12px; border-left: 2px solid var(--gold); background: rgba(197,161,91,.07); }
+#manuscript .export-actions {
+  width: 100%;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(197,161,91,.24);
+  border-radius: 7px;
+  background: linear-gradient(110deg,rgba(197,161,91,.08),rgba(16,24,39,.48));
+}
+#manuscript .export-actions button {
+  min-height: 36px;
+  border-radius: 4px;
+  letter-spacing: .015em;
+}
+#manuscript #exportBookTxt,
+#manuscript #exportBookPdf { box-shadow: 0 4px 14px rgba(0,0,0,.16); }
+#manuscript .editor-footer { align-items: flex-start; flex-wrap: wrap; }
+@media (max-width: 850px) {
+  #cover .cover-preview-card { position: static; }
+  #cover .cover-preview { width: min(100%,300px); }
+}
+@media (max-width: 620px) {
+  #cover .cover-studio-grid .form-card,
+  #cover .cover-preview-card,
+  #illustrations .illustration-studio-grid .form-card,
+  #illustrations .illustration-library-section,
+  #backupContent { padding: 14px; }
+  #cover .cover-preview { width: min(100%,270px); }
+  #illustrations #illustrationLibraryGallery { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
+  #illustrations .illustration-library-card { padding: 7px; }
+  #illustrations .illustration-library-card > img { height: 130px; }
+  #manuscript .export-actions { padding: 9px; gap: 6px; }
+  #manuscript .export-actions button { flex: 1 1 calc(50% - 6px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #illustrations .illustration-library-card { transition: none; }
+}
