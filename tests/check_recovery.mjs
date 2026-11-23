@@ -52,7 +52,7 @@ console.log("Editor recovery tests passed: quota errors are contained and Cloud 
 const restoreSource = extractFunction("restoreCloudBackup");
 const makeRestore = (projectCreated, calls) => new Function(
   "validateCloudBackupData", "cloud", "cloudApi", "countWords",
-  restoreSource + "\\nreturn restoreCloudBackup;"
+  restoreSource + "\nreturn restoreCloudBackup;"
 )(
   () => true,
   { authenticated: true, ready: true },
