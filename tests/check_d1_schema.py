@@ -48,6 +48,7 @@ class D1SchemaTests(unittest.TestCase):
             row[1] for row in self.db.execute("PRAGMA table_info(chapters)")
         }
         self.assertIn("word_count", columns)
+        self.assertIn("character_ids_json", columns)
 
     def test_child_rows_require_a_real_project(self):
         with self.assertRaises(sqlite3.IntegrityError):
