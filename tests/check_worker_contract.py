@@ -79,6 +79,11 @@ class WorkerContractTests(unittest.TestCase):
             2,
         )
 
+    def test_telegram_backup_requires_owner_session_and_csrf(self):
+        route = WORKER[WORKER.index('if (path === "/api/telegram-backup"'):WORKER.index('if (path === "/api/session"')]
+        self.assertIn("await requireSession(request, env, true)", route)
+        self.assertIn('"X-CSRF-Token": cloud.csrfToken', APP)
+
     def test_automatic_backup_retries_soon_after_failure(self):
         self.assertIn("const AUTO_BACKUP_RETRY_MS = 15 * 60 * 1000", APP)
         self.assertIn("const succeeded = await sendTelegramBackup(true)", APP)
