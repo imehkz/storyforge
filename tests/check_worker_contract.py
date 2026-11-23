@@ -51,6 +51,11 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('headers.append("Set-Cookie", item)', WORKER)
         self.assertIn("revoked_at", WORKER)
 
+    def test_auth_setup_status_identifies_the_missing_dependency(self):
+        self.assertIn('setupError === "AUTH_NOT_CONFIGURED"', APP)
+        self.assertIn("ต้องตั้งค่า GitHub OAuth", APP)
+        self.assertIn("ต้องตั้งค่า D1", APP)
+
     def test_health_endpoint_probes_database_readiness(self):
         self.assertIn('await env.DB.prepare("SELECT 1 AS ok").first()', WORKER)
         self.assertIn('error: "DATABASE_UNAVAILABLE"', WORKER)
