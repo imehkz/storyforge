@@ -8,6 +8,8 @@ This record documents an isolated staging foundation created for the feature/sto
 
 - Staging D1 database: storyforge-staging
 - Staging Worker: storyforge-staging
+- Staging URL: https://storyforge-staging.jastsadakorn-n.workers.dev/
+- workers.dev subdomain enabled for staging only; preview URLs disabled
 - Worker binding: DB → storyforge-staging
 - Worker deployment: one version at 100% traffic for the staging Worker only
 - Worker entry point: cloudflare/worker.js from branch feature/storyforge-studio-80
@@ -50,6 +52,7 @@ A direct attempt to create a relationship in Project A using Project B's charact
 - [x] Temporary QA records cleaned up.
 - [x] Staging Worker uploaded and its D1 binding verified.
 - [x] Staging Worker deployment reports 100% traffic to its own version.
+- [x] Staging workers.dev subdomain enabled; production subdomain and routing untouched.
 
 ## Still not verified
 
