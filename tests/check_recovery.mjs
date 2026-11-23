@@ -55,7 +55,7 @@ const backupValidator = new Function(
 )(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i, () => 0);
 const validPlotBackup = [{
   project: { id: "11111111-1111-4111-8111-111111111111", title: "Plot test" },
-  chapters: [{ id: "22222222-2222-4222-8222-222222222222", title: "บท 1", body: "", sort_order: 0 }],
+  chapters: [{ id: "22222222-2222-4222-8222-222222222222", title: "บท 1", body: "", synopsis: "สรุปบทแรก", writing_status: "planned", sort_order: 0 }],
   modules: {
     characters: [], relationships: [],
     "plot-threads": [{ id: "33333333-3333-4333-8333-333333333333", title: "Main", chapter_ids_json: '["22222222-2222-4222-8222-222222222222"]' }],
@@ -67,6 +67,11 @@ assert.throws(() => backupValidator([{
   ...validPlotBackup[0],
   modules: { ...validPlotBackup[0].modules, "plot-threads": [{ ...validPlotBackup[0].modules["plot-threads"][0], chapter_ids_json: '["44444444-4444-4444-8444-444444444444"]' }] }
 }]), /เส้นเรื่องอ้างถึงบทที่ไม่มีอยู่ในโครงการเดียวกัน/);
+assert.throws(() => backupValidator([{
+  ...validPlotBackup[0],
+  chapters: [{ ...validPlotBackup[0].chapters[0], writing_status: "broken" }]
+}]), /ข้อมูลบทนิยายใน Backup ไม่ถูกต้อง/);
+
 console.log("Plot backup validation tests passed: chapter references must resolve within the same project.");
 
 const restoreSource = extractFunction("restoreCloudBackup");
