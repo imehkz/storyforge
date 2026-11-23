@@ -1705,6 +1705,7 @@ function setupIllustrationStudio() {
     }
   });
   $("insertIllustration")?.addEventListener("click", insertIllustrationAtCursor);
+  $("illustrationLibraryFilter")?.addEventListener("change", renderIllustrationLibrary);
   $("saveIllustrationToLibrary")?.addEventListener("click", async () => { try { await savePendingIllustrationToLibrary(); } catch (error) { $("illustrationStatus").textContent = error.message; } });
   $("illustrationFile")?.addEventListener("click", () => {
     const selection = window.getSelection();
@@ -1764,7 +1765,8 @@ function validateIllustrationLibraryBackup(records, cloudProjects, localData) {
         typeof record.dataUrl !== "string" || !/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(record.dataUrl) || record.dataUrl.length > 130000 ||
         typeof record.label !== "string" || record.label.length > 100 ||
         typeof record.caption !== "string" || record.caption.length > 300 ||
-        typeof record.style !== "string" || record.style.length > 80 || !Number.isFinite(record.createdAt)) {
+        typeof record.style !== "string" || record.style.length > 80 || !Number.isFinite(record.createdAt) ||
+        (record.category != null && !["scene", "character", "location", "object", "cover", "other"].includes(record.category))) {
       throw new Error("พบภาพประกอบที่ไม่ถูกต้องหรือไม่ได้อยู่ในนิยายที่สำรองไว้");
     }
     total += record.dataUrl.length;
@@ -1780,9 +1782,10 @@ async function savePendingIllustrationToLibrary() {
   if (rows.length >= 100 || rows.reduce((n,r) => n + (r.dataUrl || "").length,0) + pendingIllustrationData.length > 12*1024*1024) throw new Error("คลังภาพถึงขีดจำกัดแล้ว กรุณาลบภาพเก่าก่อน");
   const db = await openCharacterVault();
   const caption = $("illustrationCaption")?.value.trim() || "";
+  const category = $("illustrationCategory")?.value || "other";
   await new Promise((resolve,reject) => {
     const tx = db.transaction(ILLUSTRATION_LIBRARY_STORE,"readwrite");
-    tx.objectStore(ILLUSTRATION_LIBRARY_STORE).put({id:crypto.randomUUID(),projectId:project.id,dataUrl:pendingIllustrationData,label:caption.slice(0,100)||"ภาพประกอบ "+(rows.length+1),caption:caption.slice(0,300),style:$("illustrationStyle")?.value||"",createdAt:Date.now()});
+    tx.objectStore(ILLUSTRATION_LIBRARY_STORE).put({id:crypto.randomUUID(),projectId:project.id,dataUrl:pendingIllustrationData,label:caption.slice(0,100)||"ภาพประกอบ "+(rows.length+1),caption:caption.slice(0,300),category,style:$("illustrationStyle")?.value||"",createdAt:Date.now()});
     tx.oncomplete = () => { db.close(); resolve(); };
     tx.onerror = () => { db.close(); reject(tx.error); };
   });
@@ -1798,8 +1801,11 @@ async function renderIllustrationLibrary() {
     const rows = await illustrationLibraryRecords(project.id);
     if (illustrationProject()?.id !== project.id) return;
     target.replaceChildren();
-    if (!rows.length) { target.textContent = "คลังภาพของนิยายนี้ยังว่าง"; return; }
-    rows.forEach(record => {
+    const category = $("illustrationLibraryFilter")?.value || "all";
+    const visibleRows = rows.filter(record => category === "all" || (record.category || "other") === category);
+    if (!visibleRows.length) { target.textContent = rows.length ? "ไม่มีภาพในหมวดที่เลือก" : "คลังภาพของนิยายนี้ยังว่าง"; return; }
+    const categoryLabels = { scene: "ฉากสำคัญ", character: "ตัวละคร", location: "สถานที่", object: "สิ่งของ", cover: "ปก / โปรโมต", other: "อื่น ๆ" };
+    visibleRows.forEach(record => {
       const card = document.createElement("article"); card.className = "character-reference-card illustration-library-card";
       const img = document.createElement("img"); img.src = record.dataUrl; img.alt = record.caption || record.label; img.loading = "lazy";
       const title = document.createElement("b"); title.textContent = record.label;
@@ -1808,6 +1814,7 @@ async function renderIllustrationLibrary() {
       select.addEventListener("click", () => {
         if (illustrationProject()?.id !== project.id) return;
         pendingIllustrationData = record.dataUrl; $("illustrationCaption").value = record.caption || "";
+        if ($("illustrationCategory")) $("illustrationCategory").value = record.category || "other";
         $("insertIllustration").disabled = false; $("saveIllustrationToLibrary").disabled = false;
         const preview = $("illustrationSelectedPreview"); preview.replaceChildren();
         const p = document.createElement("img"); p.src = record.dataUrl; p.alt = "ภาพที่เลือก"; preview.appendChild(p); preview.hidden = false;
@@ -1822,7 +1829,8 @@ async function renderIllustrationLibrary() {
         await new Promise((resolve,reject) => { const tx=db.transaction(ILLUSTRATION_LIBRARY_STORE,"readwrite"); tx.objectStore(ILLUSTRATION_LIBRARY_STORE).delete(record.id); tx.oncomplete=()=>{db.close();resolve();}; tx.onerror=()=>{db.close();reject(tx.error);}; });
         await renderIllustrationLibrary();
       });
-      const meta = document.createElement("div"); meta.className = "character-reference-meta"; meta.append(title,caption);
+      const categoryTag = document.createElement("small"); categoryTag.className = "illustration-category-tag"; categoryTag.textContent = categoryLabels[record.category || "other"] || "อื่น ๆ";
+      const meta = document.createElement("div"); meta.className = "character-reference-meta"; meta.append(title,categoryTag,caption);
       const actions = document.createElement("div"); actions.className = "module-actions"; actions.append(select,remove);
       card.append(img,meta,actions); target.appendChild(card);
     });
