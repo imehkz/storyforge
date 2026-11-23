@@ -113,7 +113,7 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("function sanitizeManuscriptHtml(value)", APP)
         self.assertIn('new Set(["P","DIV","BR","STRONG","B","EM","I","U","H1","H2","H3","BLOCKQUOTE","UL","OL","LI","SPAN","FIGURE","FIGCAPTION","IMG"])', APP)
         self.assertIn('if (attr.name !== "style") node.removeAttribute(attr.name);', APP)
-        self.assertIn('["text-align","font-family","font-size","line-height"].includes(key)', APP)
+        self.assertIn('["text-align","font-family","font-size","line-height","width","max-width","height","display","margin"].includes(key)', APP)
         self.assertIn(".test(val)) safe.push", APP)
 
     def test_character_vault_profile_fields_round_trip(self):
