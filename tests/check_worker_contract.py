@@ -134,6 +134,12 @@ class WorkerContractTests(unittest.TestCase):
             self.assertIn(element_id, HTML)
             self.assertIn(element_id, APP)
 
+    def test_relationship_map_keeps_interactive_nodes_accessible(self):
+        self.assertIn('id="relationshipGraph" class="relationship-graph" role="region"', HTML)
+        self.assertIn('role="group" aria-label="แผนผังสายใยความสัมพันธ์ของตัวละคร"', APP)
+        self.assertIn('role="button" aria-label="ตัวละคร ', APP)
+        self.assertIn('edge.setAttribute("role","button")', APP)
+
     def test_relationship_edit_can_reassign_character_endpoints(self):
         self.assertIn("characters[sourceIndex].id", APP)
         self.assertIn("characters[targetIndex].id", APP)
