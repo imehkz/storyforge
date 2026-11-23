@@ -227,6 +227,16 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('ยังไม่มีผู้ให้บริการสร้างภาพเชื่อมต่อ', HTML)
         self.assertIn('.illustration-studio-grid', CSS)
 
+    def test_manuscript_illustrations_are_embedded_in_exports(self):
+        self.assertIn("function wordImageRun(node)", APP)
+        self.assertIn("word/document.xml.rels", APP)
+        self.assertIn("word/media/", APP)
+        self.assertIn("function exportManuscriptEpub()", APP)
+        self.assertIn("OEBPS/images/", APP)
+        self.assertIn("epubImages.map", APP)
+        self.assertIn("function exportManuscriptPdf()", APP)
+        self.assertIn("sanitizeManuscriptHtml(editor.innerHTML)", APP)
+
     def test_html_ids_are_unique(self):
         parser = IdCollector()
         parser.feed(HTML)
