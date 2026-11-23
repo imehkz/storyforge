@@ -80,6 +80,21 @@ class D1SchemaTests(unittest.TestCase):
         self.db.execute("INSERT INTO plot_threads(id, project_id, title, character_ids_json) VALUES ('plot-1','p1','Main', ?)", ('["char-1"]',))
         self.assertEqual(self.db.execute("SELECT character_ids_json FROM plot_threads WHERE id='plot-1'").fetchone()[0], '["char-1"]')
 
+    def test_character_delete_removes_stale_canonical_references(self):
+        self.seed_project()
+        self.db.execute("INSERT INTO characters(id, project_id, name) VALUES ('char-1','p1','Mira')")
+        self.db.execute("INSERT INTO plot_threads(id, project_id, title, character_ids_json) VALUES ('plot-1','p1','Main', ?)", ('["char-1"]',))
+        self.db.execute("INSERT INTO world_lore(id, project_id, title, character_ids_json) VALUES ('world-1','p1','Kingdom', ?)", ('["char-1"]',))
+        self.db.execute("INSERT INTO timeline_events(id, project_id, title, character_ids_json) VALUES ('event-1','p1','Battle', ?)", ('["char-1"]',))
+        for table in ("plot_threads", "world_lore", "timeline_events"):
+            self.db.execute(
+                "UPDATE " + table + " SET character_ids_json = COALESCE((SELECT json_group_array(value) FROM json_each(" + table + ".character_ids_json) WHERE value <> ?), '[]') WHERE project_id = ? AND EXISTS (SELECT 1 FROM json_each(" + table + ".character_ids_json) WHERE value = ?)",
+                ("char-1", "p1", "char-1"),
+            )
+        self.db.execute("DELETE FROM characters WHERE id='char-1' AND project_id='p1'")
+        for table, row_id in (("plot_threads", "plot-1"), ("world_lore", "world-1"), ("timeline_events", "event-1")):
+            self.assertEqual(self.db.execute("SELECT character_ids_json FROM " + table + " WHERE id=?", (row_id,)).fetchone()[0], "[]")
+
     def test_chapter_snapshot_retention_keeps_latest_100(self):
         self.seed_project()
         self.db.execute(
