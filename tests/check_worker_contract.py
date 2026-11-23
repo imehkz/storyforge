@@ -175,7 +175,12 @@ class WorkerContractTests(unittest.TestCase):
     def test_ai_assistant_does_not_advertise_copilot(self):
         self.assertNotIn("Copilot", APP)
         self.assertNotIn("Copilot", HTML)
-        self.assertIn("ยังไม่มีผู้ให้บริการ AI เชื่อมต่อ", HTML)
+        self.assertIn("OpenAI (ChatGPT)", HTML)
+        self.assertIn("ยังไม่เชื่อมต่อ API", HTML)
+        self.assertIn("คัดลอกบริบทไปใช้กับ ChatGPT", HTML)
+        self.assertIn("ผู้ให้บริการหลักที่วางแผนไว้: OpenAI (ChatGPT)", APP)
+        self.assertIn("ยังไม่เปิดใช้ API", APP)
+        self.assertNotIn("Copilot", APP + HTML)
 
     def test_story_context_copy_is_scoped_to_the_active_project(self):
         self.assertIn('id="copyStoryContext"', HTML)
