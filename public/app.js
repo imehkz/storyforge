@@ -938,6 +938,7 @@ async function restoreCloudBackup(backupProjects) {
     for (const entry of backupProjects) {
       const createdPlotChapterLinks = [];
       const createdSceneChapterLinks = [];
+      const createdCanonChapterLinks = [];
       if (!entry?.project?.id || !Array.isArray(entry.chapters) || !entry.modules || typeof entry.modules !== "object") {
         throw new Error("โครงสร้างข้อมูลโครงการใน Backup ไม่ถูกต้อง");
       }
@@ -964,12 +965,12 @@ async function restoreCloudBackup(backupProjects) {
             characters: ["name", "role", "profile_json", "sort_order"],
             relationships: ["source_character_id", "target_character_id", "relationship_type", "description"],
             "plot-threads": ["title", "summary", "status", "sort_order", "character_ids_json"],
-            "world-lore": ["category", "title", "content", "sort_order", "character_ids_json"],
-            timeline: ["title", "description", "story_time", "sort_order", "character_ids_json"],
+            "world-lore": ["category", "title", "content", "sort_order", "character_ids_json", "chapter_ids_json"],
+            timeline: ["title", "description", "story_time", "sort_order", "character_ids_json", "chapter_ids_json"],
             notes: ["title", "content", "note_type", "pinned", "character_ids_json", "chapter_ids_json", "scene_type", "scene_status"]
           }[collection];
           for (const field of allowed) {
-            if (field === "chapter_ids_json" && collection === "notes" && item.note_type === "scene") continue;
+            if (field === "chapter_ids_json" && ((collection === "notes" && item.note_type === "scene") || collection === "world-lore" || collection === "timeline")) continue;
             if (item[field] !== undefined) payload[field] = field === "pinned" ? Boolean(item[field]) : item[field];
           }
           const result = await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/" + collection, {
@@ -989,6 +990,11 @@ async function restoreCloudBackup(backupProjects) {
               let chapterIds = [];
               try { chapterIds = Array.isArray(item.chapter_ids_json) ? item.chapter_ids_json : JSON.parse(item.chapter_ids_json || "[]"); } catch {}
               if (Array.isArray(chapterIds) && chapterIds.length) createdSceneChapterLinks.push({ id: item.id, chapterIds });
+            }
+            if (["world-lore", "timeline"].includes(collection)) {
+              let chapterIds = [];
+              try { chapterIds = Array.isArray(item.chapter_ids_json) ? item.chapter_ids_json : JSON.parse(item.chapter_ids_json || "[]"); } catch {}
+              if (Array.isArray(chapterIds) && chapterIds.length) createdCanonChapterLinks.push({ collection, id: item.id, chapterIds });
             }
           }
         }
@@ -1018,6 +1024,12 @@ async function restoreCloudBackup(backupProjects) {
         await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/notes/" + encodeURIComponent(scene.id), {
           method: "PATCH",
           body: JSON.stringify({ chapter_ids_json: scene.chapterIds })
+        });
+      }
+      for (const canon of createdCanonChapterLinks) {
+        await cloudApi("/api/projects/" + encodeURIComponent(project.id) + "/" + canon.collection + "/" + encodeURIComponent(canon.id), {
+          method: "PATCH",
+          body: JSON.stringify({ chapter_ids_json: canon.chapterIds })
         });
       }
     }
@@ -2882,8 +2894,12 @@ function renderModuleLists() {
       " · เชื่อมกับบท " + linked.length + "/" + (cloud.chapters || []).length +
       (linked.length ? " · " + linked.join(", ") : " · ยังไม่เชื่อมบท");
   });
-  render("worldList", worlds, "world-lore", item => item.title, item => [item.category, item.content, characterReferenceNames(item).length ? "ตัวละคร: " + characterReferenceNames(item).join(", ") : ""].filter(Boolean).join(" · "));
-  render("timelineList", timeline, "timeline", item => item.title, item => [item.story_time, item.description, characterReferenceNames(item).length ? "ตัวละคร: " + characterReferenceNames(item).join(", ") : ""].filter(Boolean).join(" · "));
+  const chapterNamesFor = item => {
+    const ids = safeJSON(item.chapter_ids_json || "[]", []);
+    return (cloud.chapters || []).filter(chapter => Array.isArray(ids) && ids.includes(chapter.id)).map(chapter => chapter.title || "บทไม่มีชื่อ");
+  };
+  render("worldList", worlds, "world-lore", item => item.title, item => [item.category, item.content, characterReferenceNames(item).length ? "ตัวละคร: " + characterReferenceNames(item).join(", ") : "", chapterNamesFor(item).length ? "บท: " + chapterNamesFor(item).join(", ") : "ยังไม่เชื่อมบท"].filter(Boolean).join(" · "));
+  render("timelineList", timeline, "timeline", item => item.title, item => [item.story_time, item.description, characterReferenceNames(item).length ? "ตัวละคร: " + characterReferenceNames(item).join(", ") : "", chapterNamesFor(item).length ? "บท: " + chapterNamesFor(item).join(", ") : "ยังไม่เชื่อมบท"].filter(Boolean).join(" · "));
   renderPlotBoard(plots);
   renderTimelineView(timeline);
   render("storyNoteList", notes.filter(item => item.note_type !== "project_memory" && item.note_type !== "scene"), "notes", item => item.title || "บันทึกไม่มีชื่อ", item => [item.content, characterReferenceNames(item).length ? "ตัวละคร: " + characterReferenceNames(item).join(", ") : ""].filter(Boolean).join(" · "));
@@ -2903,7 +2919,7 @@ function renderModuleLists() {
     </article>`;
   }).join("") : `<p class="muted-note">${empty}</p>`;
   populateModuleCharacterSelectors();
-  populateChapterMultiSelect("sceneChapters");
+  ["sceneChapters", "worldChapters", "timelineChapters"].forEach(populateChapterMultiSelect);
   populateModuleCharacterSelector("sceneCharacters");
   document.querySelectorAll("[data-scene-chapter]").forEach(button => button.addEventListener("click", () => selectCloudChapter(button.dataset.sceneChapter)));
   renderRelationshipOptions();
@@ -3225,9 +3241,11 @@ async function editModuleItem(collection, itemId) {
     if (title === null) return;
     const content = prompt("รายละเอียด", item.content || "");
     if (content === null) return;
-    const character_ids = promptCharacterReferences(JSON.parse(item.character_ids_json || "[]"));
+    const character_ids = promptCharacterReferences(safeJSON(item.character_ids_json || "[]", []));
     if (character_ids === null) return;
-    payload = { category, title, content, character_ids_json: character_ids };
+    const chapter_ids = promptChapterReferences(safeJSON(item.chapter_ids_json || "[]", []));
+    if (chapter_ids === null) return;
+    payload = { category, title, content, character_ids_json: character_ids, chapter_ids_json: chapter_ids };
   } else if (collection === "timeline") {
     const title = prompt("ชื่อเหตุการณ์", item.title);
     if (title === null) return;
@@ -3235,9 +3253,11 @@ async function editModuleItem(collection, itemId) {
     if (story_time === null) return;
     const description = prompt("รายละเอียด", item.description || "");
     if (description === null) return;
-    const character_ids = promptCharacterReferences(JSON.parse(item.character_ids_json || "[]"));
+    const character_ids = promptCharacterReferences(safeJSON(item.character_ids_json || "[]", []));
     if (character_ids === null) return;
-    payload = { title, story_time, description, character_ids_json: character_ids };
+    const chapter_ids = promptChapterReferences(safeJSON(item.chapter_ids_json || "[]", []));
+    if (chapter_ids === null) return;
+    payload = { title, story_time, description, character_ids_json: character_ids, chapter_ids_json: chapter_ids };
   } else if (collection === "notes") {
     const title = prompt(item.note_type === "scene" ? "ชื่อฉาก" : "หัวข้อ", item.title || "");
     if (title === null) return;
@@ -3310,14 +3330,14 @@ function setupModuleEvents() {
   $("addWorld")?.addEventListener("click", () => {
     const title = $("worldTitle").value.trim();
     if (!title) return alert("กรุณาระบุชื่อข้อมูลโลก");
-    createModuleItem("world-lore", { category: $("worldCategory").value, title, content: $("worldContent").value, character_ids_json: selectedModuleCharacterIds("worldCharacters"), sort_order: cloud.modules["world-lore"].length })
-      .then(ok => { if (ok) { $("worldTitle").value = ""; $("worldContent").value = ""; } });
+    createModuleItem("world-lore", { category: $("worldCategory").value, title, content: $("worldContent").value, character_ids_json: JSON.stringify(selectedModuleCharacterIds("worldCharacters")), chapter_ids_json: JSON.stringify(selectedModuleChapterIds("worldChapters")), sort_order: cloud.modules["world-lore"].length })
+      .then(ok => { if (ok) { $("worldTitle").value = ""; $("worldContent").value = ""; ["worldCharacters", "worldChapters"].forEach(id => Array.from($(id)?.options || []).forEach(option => { option.selected = false; })); } });
   });
   $("addTimeline")?.addEventListener("click", () => {
     const title = $("timelineTitle").value.trim();
     if (!title) return alert("กรุณาระบุชื่อเหตุการณ์");
-    createModuleItem("timeline", { title, story_time: $("timelineTime").value, description: $("timelineDescription").value, character_ids_json: selectedModuleCharacterIds("timelineCharacters"), sort_order: cloud.modules.timeline.length })
-      .then(ok => { if (ok) { $("timelineTitle").value = ""; $("timelineTime").value = ""; $("timelineDescription").value = ""; } });
+    createModuleItem("timeline", { title, story_time: $("timelineTime").value, description: $("timelineDescription").value, character_ids_json: JSON.stringify(selectedModuleCharacterIds("timelineCharacters")), chapter_ids_json: JSON.stringify(selectedModuleChapterIds("timelineChapters")), sort_order: cloud.modules.timeline.length })
+      .then(ok => { if (ok) { $("timelineTitle").value = ""; $("timelineTime").value = ""; $("timelineDescription").value = ""; ["timelineCharacters", "timelineChapters"].forEach(id => Array.from($(id)?.options || []).forEach(option => { option.selected = false; })); } });
   });
   $("addStoryNote")?.addEventListener("click", () => {
     const title = $("storyNoteTitle").value.trim();
