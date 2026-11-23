@@ -79,6 +79,12 @@ class WorkerContractTests(unittest.TestCase):
             2,
         )
 
+    def test_automatic_backup_retries_soon_after_failure(self):
+        self.assertIn("const AUTO_BACKUP_RETRY_MS = 15 * 60 * 1000", APP)
+        self.assertIn("const succeeded = await sendTelegramBackup(true)", APP)
+        self.assertIn("Date.now() + AUTO_BACKUP_RETRY_MS", APP)
+        self.assertIn("Backup อัตโนมัติไม่สำเร็จ ระบบจะลองใหม่ใน 15 นาที", APP)
+
     def test_chapter_history_and_revision_are_atomic(self):
         self.assertGreaterEqual(WORKER.count("env.DB.batch(["), 2)
         self.assertIn("expectedRevision", WORKER)
