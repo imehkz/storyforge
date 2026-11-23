@@ -12,7 +12,7 @@ This record documents an isolated staging foundation created for the feature/sto
 - Worker deployment: one version at 100% traffic for the staging Worker only
 - Worker entry point: cloudflare/worker.js from branch feature/storyforge-studio-80
 - Worker compatibility date: 2026-11-22
-- Worker is API-only at this stage: no static asset binding, GitHub OAuth credentials, owner allowlist, or production secrets were copied.
+- The three frontend files (index.html, app.js, style.css) are embedded in the staging Worker and served by a small static fallback. No separate Workers Assets binding is used. GitHub OAuth credentials, owner allowlist, and production secrets were not copied.
 
 ## D1 migration results
 
@@ -55,7 +55,7 @@ A direct attempt to create a relationship in Project A using Project B's charact
 
 - [ ] Configure a separate staging GitHub OAuth application/callback and owner allowlist. Do not change the production OAuth app callback.
 - [ ] Configure staging-only secrets without copying or exposing production secrets.
-- [ ] Attach the frontend static assets to the staging Worker.
+- [x] Serve the branch frontend files (index.html, app.js, style.css) from the staging Worker. The files are embedded for this isolated QA deployment; production Worker code and assets are untouched.
 - [ ] Execute live HTTP/API tests against the staging Worker, including owner auth, CSRF, project isolation, chapter autosave, snapshots, restore, and module CRUD.
 - [ ] Browser end-to-end tests and Android tablet portrait/landscape QA.
 - [ ] Full application backup and restore drill, including device-local character/illustration assets.
@@ -64,7 +64,7 @@ A direct attempt to create a relationship in Project A using Project B's charact
 
 ## Important limitation
 
-The staging Worker is deployed with the branch Worker source and a staging D1 binding, but it is not yet a complete staging website. It has no static assets or OAuth configuration. Cloudflare API inspection confirmed the Worker version and binding; direct HTTP requests from the available Cloudflare execution environment were blocked by that environment's network policy, so no live API/browser success is claimed here.
+The staging Worker is deployed with the branch Worker API source, the staging D1 binding, and embedded copies of the branch frontend files. It is not yet a complete authenticated staging environment because it has no separate OAuth configuration or owner allowlist. Cloudflare API inspection confirmed the Worker version and binding; direct HTTP requests from the available Cloudflare execution environment and web reader were blocked by their network policies, so no live API/browser success is claimed here.
 
 ## Production safety
 
