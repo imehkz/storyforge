@@ -1116,6 +1116,7 @@ function insertIllustrationAtCursor() {
   const image = document.createElement("img");
   image.src = pendingIllustrationData;
   image.alt = $("illustrationCaption")?.value.trim() || "ภาพประกอบนิยาย";
+  image.width = Math.max(1, image.naturalWidth || 1200); image.height = Math.max(1, image.naturalHeight || 800);
   image.style.cssText = "display:block;width:" + ($("illustrationWidth")?.value || "100%") + ";max-width:100%;height:auto;margin:0 auto;";
   figure.appendChild(image);
   const captionText = $("illustrationCaption")?.value.trim();
@@ -2832,6 +2833,25 @@ function wordParagraph(text, style = "") {
   return `<w:p>${styleXml}<w:r><w:t xml:space="preserve">${xmlEscape(text)}</w:t></w:r></w:p>`;
 }
 
+let docxImageAssets = [];
+function wordImageRun(node) {
+  const src = node.getAttribute("src") || "";
+  const match = src.match(/^data:image\\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/);
+  if (!match) return "";
+  const bytes = Uint8Array.from(atob(match[2]), char => char.charCodeAt(0));
+  const extension = match[1] === "jpeg" ? "jpg" : match[1];
+  const index = docxImageAssets.length + 1;
+  const relationshipId = "rId" + (index + 1);
+  const fileName = "image" + index + "." + extension;
+  docxImageAssets.push({ fileName, extension, bytes, relationshipId });
+  const width = Math.max(1, Number(node.getAttribute("width")) || 1200);
+  const height = Math.max(1, Number(node.getAttribute("height")) || 800);
+  const cx = Math.min(5486400, Math.round(7120000 * width / height));
+  const cy = Math.min(7120000, Math.round(cx * height / width));
+  const label = xmlEscape(node.getAttribute("alt") || "StoryForge illustration");
+  return '<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="' + cx + '" cy="' + cy + '"/><wp:docPr id="' + index + '" name="' + fileName + '" descr="' + label + '"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="' + index + '" name="' + fileName + '"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="' + relationshipId + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cx + '" cy="' + cy + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
+}
+
 function wordRunsFromNode(node, inherited = {}) {
   if (node.nodeType === Node.TEXT_NODE) {
     if (!node.nodeValue) return "";
@@ -2844,6 +2864,7 @@ function wordRunsFromNode(node, inherited = {}) {
   }
   if (node.nodeType !== Node.ELEMENT_NODE) return "";
   if (node.tagName === "BR") return "<w:r><w:br/></w:r>";
+  if (node.tagName === "IMG") return wordImageRun(node);
   const next = { ...inherited };
   if (["B","STRONG"].includes(node.tagName)) next.bold = true;
   if (["I","EM"].includes(node.tagName)) next.italic = true;
@@ -2876,11 +2897,12 @@ function manuscriptHtmlToWord() {
 }
 
 function exportManuscriptDocx() {
+  docxImageAssets = [];
   const title = $("title").value || "StoryForge Manuscript";
   const chapter = $("chapterTitle").value || "ต้นฉบับ";
   const paragraphs = manuscriptHtmlToWord();
   const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
 <w:body>${wordParagraph(title, "Title")}${wordParagraph(chapter, "Heading1")}${paragraphs}
 <w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr>
 </w:body></w:document>`;
@@ -2888,7 +2910,7 @@ function exportManuscriptDocx() {
     { name: "[Content_Types].xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
 <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-<Default Extension="xml" ContentType="application/xml"/>
+<Default Extension="xml" ContentType="application/xml"/><Default Extension="jpg" ContentType="image/jpeg"/><Default Extension="png" ContentType="image/png"/><Default Extension="webp" ContentType="image/webp"/>
 <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
 <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
 <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
@@ -2904,6 +2926,7 @@ function exportManuscriptDocx() {
     { name: "word/_rels/document.xml.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
 <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+${docxImageAssets.map(asset => '<Relationship Id="' + asset.relationshipId + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/' + asset.fileName + '"/>').join("")}
 </Relationships>` },
     { name: "word/styles.xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
@@ -2921,6 +2944,7 @@ function exportManuscriptDocx() {
     { name: "docProps/app.xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>StoryForge</Application></Properties>` }
   ];
+  docxImageAssets.forEach(asset => files.push({ name: "word/media/" + asset.fileName, data: asset.bytes }));
   downloadBlob(exportBaseName() + ".docx", createStoredZip(files));
 }
 
@@ -2931,7 +2955,22 @@ function exportManuscriptEpub() {
   const editor = $("manuscriptEditor");
   const richBody = editor && editor.innerHTML && typeof DOMParser !== "undefined"
     ? sanitizeManuscriptHtml(editor.innerHTML) : "";
-  const paragraphs = richBody || getManuscriptText().split(/\r?\n/).map(line =>
+  const epubImages = [];
+  let paragraphs = richBody;
+  if (richBody) {
+    const epubDoc = new DOMParser().parseFromString(richBody, "text/html");
+    epubDoc.querySelectorAll("img").forEach((img, index) => {
+      const match = (img.getAttribute("src") || "").match(/^data:image\\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/);
+      if (!match) return;
+      const extension = match[1] === "jpeg" ? "jpg" : match[1];
+      const fileName = "illustration-" + (index + 1) + "." + extension;
+      epubImages.push({ fileName, extension, bytes: Uint8Array.from(atob(match[2]), char => char.charCodeAt(0)) });
+      img.setAttribute("src", "images/" + fileName);
+      img.removeAttribute("loading");
+    });
+    paragraphs = epubDoc.body.innerHTML;
+  }
+  paragraphs = paragraphs || getManuscriptText().split(/\r?\n/).map(line =>
     line ? `<p>${xmlEscape(line)}</p>` : '<p class="blank">&#160;</p>'
   ).join("");
   const files = [
@@ -2941,14 +2980,15 @@ function exportManuscriptEpub() {
     { name: "OEBPS/content.opf", data: `<?xml version="1.0" encoding="UTF-8"?>
 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid" xml:lang="th">
 <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">${identifier}</dc:identifier><dc:title>${xmlEscape(title)} - ${xmlEscape(chapter)}</dc:title><dc:language>th</dc:language><dc:creator>StoryForge</dc:creator><meta property="dcterms:modified">${new Date().toISOString().replace(/\.\d{3}Z$/, "Z")}</meta></metadata>
-<manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="chapter" href="chapter.xhtml" media-type="application/xhtml+xml"/><item id="css" href="style.css" media-type="text/css"/></manifest>
+<manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="chapter" href="chapter.xhtml" media-type="application/xhtml+xml"/><item id="css" href="style.css" media-type="text/css"/>${epubImages.map((item,index) => '<item id="illustration' + (index + 1) + '" href="images/' + item.fileName + '" media-type="image/' + (item.extension === "jpg" ? "jpeg" : item.extension) + '"/>').join("")}</manifest>
 <spine><itemref idref="chapter"/></spine></package>` },
     { name: "OEBPS/nav.xhtml", data: `<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="th"><head><title>สารบัญ</title></head><body><nav epub:type="toc" id="toc"><h1>สารบัญ</h1><ol><li><a href="chapter.xhtml">${xmlEscape(chapter)}</a></li></ol></nav></body></html>` },
     { name: "OEBPS/chapter.xhtml", data: `<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="th"><head><title>${xmlEscape(chapter)}</title><link rel="stylesheet" type="text/css" href="style.css"/></head><body><h1>${xmlEscape(title)}</h1><h2>${xmlEscape(chapter)}</h2>${paragraphs}</body></html>` },
-    { name: "OEBPS/style.css", data: "body{font-family:serif;line-height:1.65;margin:5%;}h1,h2{line-height:1.3;}p{margin:0 0 0.8em;text-indent:1.2em}.blank{height:0.8em}" }
+    { name: "OEBPS/style.css", data: "body{font-family:serif;line-height:1.65;margin:5%;}h1,h2{line-height:1.3;}p{margin:0 0 0.8em;text-indent:1.2em}.blank{height:0.8em}figure{margin:1.5em auto;text-align:center;break-inside:avoid}img{max-width:100%;height:auto}figcaption{font-style:italic;text-align:center}" }
   ];
+  epubImages.forEach(item => files.push({ name: "OEBPS/images/" + item.fileName, data: item.bytes }));
   downloadBlob(exportBaseName() + ".epub", createStoredZip(files));
 }
 
@@ -3001,6 +3041,11 @@ function sanitizeManuscriptHtml(value) {
       if (!safeImage) { node.replaceWith(doc.createTextNode(alt)); return; }
       node.setAttribute("src", src);
       node.setAttribute("alt", alt);
+      const imageWidth = Number(node.getAttribute("width"));
+      const imageHeight = Number(node.getAttribute("height"));
+      [...node.attributes].filter(attr => attr.name !== "src" && attr.name !== "alt").forEach(attr => node.removeAttribute(attr.name));
+      if (Number.isInteger(imageWidth) && imageWidth > 0 && imageWidth <= 10000) node.setAttribute("width", String(imageWidth));
+      if (Number.isInteger(imageHeight) && imageHeight > 0 && imageHeight <= 10000) node.setAttribute("height", String(imageHeight));
       node.setAttribute("loading", "lazy");
       node.style.maxWidth = "100%";
       node.style.height = "auto";
