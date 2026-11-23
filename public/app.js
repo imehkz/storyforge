@@ -796,7 +796,9 @@ function renderDashboard() {
     : chapterWords;
   const novelGoal = Math.max(1, Number.parseInt(localStorage.getItem("sf_novel_word_goal") || "60000", 10) || 60000);
   if ($("sidebarProjectName")) $("sidebarProjectName").textContent = title || "ยังไม่ได้เลือกนิยาย";
-  if ($("sidebarProjectMeta")) $("sidebarProjectMeta").textContent = active ? (active.genre || "นิยายของฉัน") + (cloud.ready ? " · Private Beta Cloud" : " · บันทึกในอุปกรณ์นี้") : "เริ่มต้นสร้างเรื่องราวของคุณ";
+  if ($("sidebarProjectMeta")) $("sidebarProjectMeta").textContent = active
+    ? (active.genre || "นิยายของฉัน") + (cloud.ready ? " · Private Beta Cloud" : " · บันทึกในอุปกรณ์นี้") + (active.id ? " · ID: " + active.id : "")
+    : "เริ่มต้นสร้างเรื่องราวของคุณ";
   if ($("dashboardProjectTitle")) $("dashboardProjectTitle").textContent = title || "ยังไม่มีนิยายในห้องสมุด";
   if ($("dashboardChapterLine")) $("dashboardChapterLine").textContent = chapter ? "บทล่าสุด · " + chapter : (title ? "เพิ่มชื่อบทและเริ่มเขียนต้นฉบับของคุณ" : "เริ่มต้นสร้างโลกและตัวละครของคุณได้เลย");
   if ($("dashboardLastEdited")) $("dashboardLastEdited").textContent = active ? (cloud.ready ? "โครงการนี้เชื่อมต่อกับบัญชี Private Beta" : "โครงการนี้บันทึกไว้ในเบราว์เซอร์เครื่องนี้") : "พื้นที่เขียนนิยายส่วนตัว · บันทึกในอุปกรณ์นี้";
