@@ -1706,13 +1706,25 @@ function buildStoryAssistantContext() {
     });
     lines.push("", "## เส้นเรื่อง");
     if (!plots.length) lines.push("ยังไม่มีเส้นเรื่อง");
-    plots.forEach(item => lines.push("- " + item.title + " [" + (item.status || "ไม่ระบุสถานะ") + "]: " + (item.summary || "")));
+    plots.forEach(item => {
+      let refs = []; try { refs = JSON.parse(item.character_ids_json || "[]"); } catch {}
+      const linked = refs.map(id => characters.find(character => character.id === id)?.name).filter(Boolean);
+      lines.push("- " + item.title + " [" + (item.status || "ไม่ระบุสถานะ") + "]: " + (item.summary || "") + (linked.length ? " | ตัวละครที่เกี่ยวข้อง: " + linked.join(", ") : ""));
+    });
     lines.push("", "## World Building");
     if (!worlds.length) lines.push("ยังไม่มีข้อมูลโลก");
-    worlds.forEach(item => lines.push("- [" + (item.category || "other") + "] " + item.title + ": " + (item.content || "")));
+    worlds.forEach(item => {
+      let refs = []; try { refs = JSON.parse(item.character_ids_json || "[]"); } catch {}
+      const linked = refs.map(id => characters.find(character => character.id === id)?.name).filter(Boolean);
+      lines.push("- [" + (item.category || "other") + "] " + item.title + ": " + (item.content || "") + (linked.length ? " | ตัวละครที่เกี่ยวข้อง: " + linked.join(", ") : ""));
+    });
     lines.push("", "## Timeline");
     if (!timeline.length) lines.push("ยังไม่มีเหตุการณ์");
-    timeline.forEach(item => lines.push("- " + (item.story_time || "ไม่ระบุเวลา") + " — " + item.title + ": " + (item.description || "")));
+    timeline.forEach(item => {
+      let refs = []; try { refs = JSON.parse(item.character_ids_json || "[]"); } catch {}
+      const linked = refs.map(id => characters.find(character => character.id === id)?.name).filter(Boolean);
+      lines.push("- " + (item.story_time || "ไม่ระบุเวลา") + " — " + item.title + ": " + (item.description || "") + (linked.length ? " | ตัวละครที่เกี่ยวข้อง: " + linked.join(", ") : ""));
+    });
     lines.push("", "## บันทึกเนื้อเรื่อง");
     if (!notes.length) lines.push("ยังไม่มีบันทึก");
     notes.forEach(item => lines.push("- " + (item.title || "บันทึก") + ": " + (item.content || "")));
