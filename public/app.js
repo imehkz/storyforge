@@ -2289,9 +2289,12 @@ function chapterCharacterIds(chapter = null) {
   } catch { return []; }
 }
 
-function analyzeStoryContinuity({ chapters = [], characters = [], timeline = [], plotThreads = [] } = {}) {
+function analyzeStoryContinuity({ chapters = [], characters = [], timeline = [], plotThreads = [], scenes = [] } = {}) {
   const plotChapterIdsForCheck = plot => {
     try { const ids = JSON.parse(plot.chapter_ids_json || "[]"); return Array.isArray(ids) ? ids : []; } catch { return []; }
+  };
+  const sceneChapterIdsForCheck = scene => {
+    try { const ids = JSON.parse(scene.chapter_ids_json || "[]"); return Array.isArray(ids) ? ids : []; } catch { return []; }
   };
   const chapterCharacterIdsForCheck = chapter => {
     try { const ids = JSON.parse(chapter.character_ids_json || "[]"); return Array.isArray(ids) ? ids : []; } catch { return []; }
@@ -2398,6 +2401,21 @@ function analyzeStoryContinuity({ chapters = [], characters = [], timeline = [],
       if (!hasCanon) add("hint", "ตรวจ Canon ของเส้นเรื่อง", "บทที่เชื่อมกับพล็อต “" + plot.title + "” ยังไม่มีตัวละครที่ระบุไว้ในเส้นเรื่องใน Canon ของบท");
     }
   }
+  for (const scene of scenes) {
+    const linkedChapterIds = sceneChapterIdsForCheck(scene);
+    const missingChapterIds = linkedChapterIds.filter(id => !chapterById.has(id));
+    if (missingChapterIds.length) {
+      add("review", "ฉากอ้างอิงบทที่ไม่พบ", "ฉาก “" + scene.title + "” เชื่อมกับบทที่ไม่มีอยู่ในนิยายนี้แล้ว ควรตรวจการอ้างอิง");
+    }
+    if (!linkedChapterIds.length && !["written", "revised"].includes(scene.scene_status)) {
+      add("hint", "ฉากยังไม่เชื่อมกับบท", "ฉาก “" + scene.title + "” ยังไม่ได้ระบุบทที่เกิดขึ้น เหมาะสำหรับตรวจแผนก่อนลงมือเขียน");
+    }
+    const linked = linkedChapterIds.filter(id => chapterById.has(id));
+    if (linked.length && scene.scene_status === "written") {
+      const hasText = linked.some(id => String(chapterById.get(id)?.text || chapterById.get(id)?.body || "").trim().length > 0);
+      if (!hasText) add("hint", "ฉากเขียนแล้วแต่บทว่าง", "ฉาก “" + scene.title + "” ถูกทำเครื่องหมายว่าเขียนแล้ว แต่บทที่เชื่อมยังไม่มีข้อความ");
+    }
+  }
   return findings;
 }
 
@@ -2478,7 +2496,8 @@ async function runStoryContinuityCheck() {
       chapters,
       characters: cloud.modules.characters || [],
       timeline: cloud.modules.timeline || [],
-      plotThreads: cloud.modules["plot-threads"] || []
+      plotThreads: cloud.modules["plot-threads"] || [],
+      scenes: (cloud.modules.notes || []).filter(note => note.note_type === "scene")
     });
     const partial = [
       candidates.length < cloud.chapters.length ? "จำกัดการตรวจไว้ 40 บท" : "",
