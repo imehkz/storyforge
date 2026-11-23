@@ -79,9 +79,12 @@ const saveEnd = app.indexOf("\nasync function createCloudChapter", saveStart);
 assert.ok(saveStart >= 0 && saveEnd > saveStart,
   "Cloud chapter save handler must remain discoverable");
 const saveHandler = app.slice(saveStart, saveEnd);
-assert.ok(saveHandler.includes("const currentDraft = activeChapterDraft();") &&
+const currentDraftCheck = saveHandler.indexOf("const currentDraft = activeChapterDraft();");
+const conditionalDraftStore = saveHandler.indexOf("if (saveStillCurrent) {");
+const guardedDraftStore = saveHandler.indexOf("storeLocalChapterDraft(", conditionalDraftStore);
+assert.ok(currentDraftCheck >= 0 &&
   saveHandler.includes("const saveStillCurrent = currentDraft.title === draft.title") &&
-  saveHandler.includes("if (saveStillCurrent) {\\n        storeLocalChapterDraft("),
+  conditionalDraftStore > currentDraftCheck && guardedDraftStore > conditionalDraftStore,
   "a stale Cloud save response must not overwrite a newer local recovery draft");
 
 const historyStart = app.indexOf("async function showChapterHistory()");
