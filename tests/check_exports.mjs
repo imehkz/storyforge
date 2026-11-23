@@ -74,8 +74,10 @@ class ExportDOMParser {
     return { body: { innerHTML: String(html), querySelectorAll: () => [] } };
   }
 }
-const exportsApi = new Function("$", "downloadBlob", "crypto", "DOMParser", "sanitizeManuscriptHtml", code +
-  "\nreturn { exportManuscriptDocx, exportManuscriptEpub, exportWholeNovelEpub };")($, downloadBlob, mockCrypto, ExportDOMParser, value => String(value || ""));
+const exportsApi = new Function("$", "downloadBlob", "crypto", code +
+  "\nreturn { exportManuscriptDocx, exportManuscriptEpub };")($, downloadBlob, mockCrypto);
+const epubApi = new Function("$", "downloadBlob", "crypto", "DOMParser", "sanitizeManuscriptHtml", code +
+  "\nreturn { exportWholeNovelEpub };")($, downloadBlob, mockCrypto, ExportDOMParser, value => String(value || ""));
 
 exportsApi.exportManuscriptDocx();
 const docx = downloads.pop();
@@ -98,7 +100,7 @@ assert.ok((wholeDocxXml.match(/<w:pageBreakBefore\/>/g) || []).length >= 2, "DOC
 assert.ok(wholeDocxXml.includes("เนื้อหาภาษาไทยบทสอง"), "DOCX preserves later chapter text");
 assert.ok(wholeDocxXml.includes("ปากกาสีทอง") && wholeDocxXml.includes("คำนำภาษาไทย") && wholeDocxXml.includes("ประวัติผู้เขียนภาษาไทย"), "DOCX includes publishing front and back matter");
 
-exportsApi.exportWholeNovelEpub([
+epubApi.exportWholeNovelEpub([
   { title: "บทที่หนึ่ง", body: "<p>เนื้อหาภาษาไทยบทหนึ่ง</p>" },
   { title: "บทที่สอง", body: "<p>เนื้อหาภาษาไทยบทสอง</p>" }
 ], "นิยายทดสอบ");
