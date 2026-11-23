@@ -369,6 +369,14 @@ async function api(request, env, url) {
     const owned = await env.DB.prepare("SELECT id FROM projects WHERE id = ? AND owner_id = ?").bind(projectId, ownerId).first();
     if (!owned) throw new Error("NOT_FOUND");
 
+    const validateRelationshipEndpoints = async (sourceId, targetId) => {
+      if (!sourceId || !targetId || sourceId === targetId) throw new Error("INVALID_RELATIONSHIP");
+      const endpoints = await env.DB.prepare(
+        "SELECT id FROM characters WHERE project_id = ? AND id IN (?, ?)"
+      ).bind(projectId, sourceId, targetId).all();
+      if ((endpoints.results || []).length !== 2) throw new Error("INVALID_RELATIONSHIP_CHARACTER");
+    };
+
     const normalize = (field, value) => {
       const [type, limit] = config.fields[field];
       if (type === "string") return optionalString(value, limit, field);
@@ -410,7 +418,7 @@ async function api(request, env, url) {
         if (input[field] !== undefined) values[field] = normalize(field, input[field]);
         else if (config.required.includes(field)) throw new Error("INVALID_" + field.toUpperCase());
       }
-      if (collection === "relationships" && values.source_character_id === values.target_character_id) throw new Error("INVALID_RELATIONSHIP");
+      if (collection === "relationships") await validateRelationshipEndpoints(values.source_character_id, values.target_character_id);
       const clientId = input.clientId;
       if (clientId !== undefined && (typeof clientId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(clientId))) {
         throw new Error("INVALID_CLIENTID");
@@ -442,7 +450,7 @@ async function api(request, env, url) {
         if (!existing) throw new Error("NOT_FOUND");
         const source = values.source_character_id ?? existing.source_character_id;
         const target = values.target_character_id ?? existing.target_character_id;
-        if (source === target) throw new Error("INVALID_RELATIONSHIP");
+        await validateRelationshipEndpoints(source, target);
       }
       const sets = Object.keys(values).map(field => field + " = ?");
       const params = [...Object.values(values), nowIso(), itemId, projectId];
