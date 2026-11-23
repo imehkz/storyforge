@@ -986,7 +986,8 @@ async function restoreCloudBackup(backupProjects) {
               createdPlotChapterLinks.push({ id: item.id, chapterIds: JSON.parse(item.chapter_ids_json) });
             }
             if (collection === "notes" && item.note_type === "scene") {
-              const chapterIds = Array.isArray(item.chapter_ids_json) ? item.chapter_ids_json : safeJSON(item.chapter_ids_json || "[]", []);
+              let chapterIds = [];
+              try { chapterIds = Array.isArray(item.chapter_ids_json) ? item.chapter_ids_json : JSON.parse(item.chapter_ids_json || "[]"); } catch {}
               if (Array.isArray(chapterIds) && chapterIds.length) createdSceneChapterLinks.push({ id: item.id, chapterIds });
             }
           }
