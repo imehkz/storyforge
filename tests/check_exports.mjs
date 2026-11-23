@@ -143,7 +143,7 @@ assert.ok(source.includes("async function exportEntireNovelPdf()"), "whole-novel
 
 const printHelpers = ["printPlainTextParagraphs", "buildWholeNovelPrintHtml"].map(extractFunction).join("\n");
 const printHtmlBuilder = new Function("escapeHtml", "sanitizeManuscriptHtml", printHelpers +
-  "\nreturn buildWholeNovelPrintHtml;")(
+  "; return buildWholeNovelPrintHtml;")(
   value => String(value).replace(/[&<>"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char]),
   value => String(value || "")
 );
