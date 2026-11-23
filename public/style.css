@@ -373,6 +373,11 @@
 .plot-board-card > b { color: var(--parchment); font: 500 16px var(--serif); }
 .plot-board-card > p { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 6px 0 8px; }
 .plot-board-card > select { width: 100%; margin: 0 0 8px; font-size: 14px; padding: 6px; }
+.plot-linked-chapters { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 8px 0 10px; }
+.plot-linked-chapters small { width: 100%; color: var(--muted); font-size: 12px; }
+.plot-chapter-link { border: 1px solid var(--line-cool); border-radius: 3px; padding: 4px 7px; background: #26364b; color: var(--parchment); font: inherit; font-size: 12px; cursor: pointer; }
+.plot-chapter-link:hover { border-color: var(--gold); color: var(--gold); }
+.plot-chapter-missing { color: var(--muted); font-size: 12px; }
 .timeline-view { margin-top: 14px; padding: 18px; border: 1px solid var(--line-cool); border-radius: 5px; background: #111d2d; }
 .timeline-track { position: relative; display: grid; gap: 14px; }
 .timeline-track::before { content: ""; position: absolute; top: 14px; bottom: 14px; left: 17px; width: 1px; background: var(--gold); opacity: .55; }
