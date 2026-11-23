@@ -43,6 +43,15 @@ class D1SchemaTests(unittest.TestCase):
         }
         self.assertTrue(expected.issubset(actual), expected - actual)
 
+    def test_chapters_store_synopsis_and_writing_status(self):
+        columns = {row[1] for row in self.db.execute("PRAGMA table_info(chapters)")}
+        self.assertTrue({"synopsis", "writing_status"}.issubset(columns))
+        self.seed_project()
+        self.db.execute("INSERT INTO chapters(id, project_id, title) VALUES ('planned-1','p1','Planned')")
+        self.assertEqual(self.db.execute("SELECT synopsis, writing_status FROM chapters WHERE id='planned-1'").fetchone(), ("", "draft"))
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.db.execute("UPDATE chapters SET writing_status = 'unknown' WHERE id='planned-1'")
+
     def test_chapters_store_word_counts_and_character_references(self):
         columns = {
             row[1] for row in self.db.execute("PRAGMA table_info(chapters)")
