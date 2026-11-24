@@ -23,19 +23,8 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - name: Check JavaScript syntax
-        run: |
-          node --input-type=module --check < cloudflare/worker.js
-          node --check public/app.js
-          node tests/check_exports.mjs
-          node tests/check_recovery.mjs
-          node tests/check_continuity.mjs
-          node tests/check_studio_editor.mjs
-          node tests/check_cloud_save_race.mjs
+      - name: Run unit, schema, and security validation
+        run: npm test
       - name: Smoke test isolated staging Worker
         if: github.ref == 'refs/heads/feature/storyforge-studio-80' || github.head_ref == 'feature/storyforge-studio-80'
-        run: node tests/check_staging_worker.mjs
-      - name: Validate D1 schema
-        run: python tests/check_d1_schema.py
-      - name: Validate Worker security contract
-        run: python tests/check_worker_contract.py
+        run: npm run test:staging
