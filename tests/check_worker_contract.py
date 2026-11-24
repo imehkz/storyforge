@@ -51,6 +51,21 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('headers.append("Set-Cookie", item)', WORKER)
         self.assertIn("revoked_at", WORKER)
 
+    def test_session_lookup_rejects_expired_revoked_or_non_owner_sessions(self):
+        lookup = WORKER[WORKER.index("async function getSession"):WORKER.index("async function requireSession")]
+        self.assertIn("s.revoked_at IS NULL", lookup)
+        self.assertIn("s.expires_at > ?", lookup)
+        self.assertIn("u.role = 'owner'", lookup)
+        self.assertIn("sha256(raw)", lookup)
+
+    def test_oauth_callback_binds_state_to_browser_cookie_and_discards_github_token(self):
+        callback = WORKER[WORKER.index("async function oauthCallback"):WORKER.index("async function api")]
+        self.assertIn("safeEqual(state, stateCookie)", callback)
+        self.assertIn("DELETE FROM oauth_states", callback)
+        self.assertIn("if (!consumed)", callback)
+        self.assertIn("The GitHub access token is intentionally discarded", callback)
+        self.assertNotIn("access_token:", callback)
+
     def test_csrf_token_is_only_released_to_a_matching_authenticated_session(self):
         session_route = WORKER[WORKER.index('if (path === "/api/session"'):WORKER.index('if (path === "/api/logout"')]
         self.assertIn("const session = await getSession(request, env)", session_route)
