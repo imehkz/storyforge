@@ -51,6 +51,31 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn('headers.append("Set-Cookie", item)', WORKER)
         self.assertIn("revoked_at", WORKER)
 
+    def test_csrf_token_is_only_released_to_a_matching_authenticated_session(self):
+        session_route = WORKER[WORKER.index('if (path === "/api/session"'):WORKER.index('if (path === "/api/logout"')]
+        self.assertIn("const session = await getSession(request, env)", session_route)
+        self.assertIn("cookieValue(request, CSRF_COOKIE)", session_route)
+        self.assertIn("safeEqual(await sha256(csrfToken), session.csrf_hash)", session_route)
+        self.assertLess(session_route.index("safeEqual(await sha256(csrfToken), session.csrf_hash)"),
+                        session_route.index("csrfToken }"))
+
+    def test_logout_revokes_the_current_session_before_clearing_cookies(self):
+        logout_route = WORKER[WORKER.index('if (path === "/api/logout"'):WORKER.index("const session = await requireSession(request, env")]
+        self.assertIn("await requireSession(request, env, true)", logout_route)
+        self.assertIn("UPDATE sessions SET revoked_at = ?", logout_route)
+        self.assertIn("session.session_hash", logout_route)
+        self.assertIn("clearCookie(SESSION_COOKIE)", logout_route)
+        self.assertIn("clearCookie(CSRF_COOKIE)", logout_route)
+
+    def test_mutating_routes_require_exact_same_origin_and_double_submit_csrf(self):
+        guard = WORKER[WORKER.index("async function requireSession"):WORKER.index("async function oauthLogin")]
+        self.assertIn('request.headers.get("Origin")', guard)
+        self.assertIn('origin !== new URL(request.url).origin', guard)
+        self.assertIn('request.headers.get("X-CSRF-Token")', guard)
+        self.assertIn("cookieValue(request, CSRF_COOKIE)", guard)
+        self.assertIn("safeEqual(await sha256(supplied), session.csrf_hash)", guard)
+        self.assertIn('!["GET", "HEAD"].includes(method)', WORKER)
+
     def test_auth_setup_status_identifies_the_missing_dependency(self):
         self.assertIn('setupError === "AUTH_NOT_CONFIGURED"', APP)
         self.assertIn("ต้องตั้งค่า GitHub OAuth", APP)
