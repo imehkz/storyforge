@@ -2,7 +2,10 @@ const JSON_HEADERS = {
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "no-store",
   "X-Content-Type-Options": "nosniff",
-  "Referrer-Policy": "same-origin"
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "same-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  "Cross-Origin-Resource-Policy": "same-origin"
 };
 const SESSION_COOKIE = "__Host-storyforge_session";
 const CSRF_COOKIE = "__Host-storyforge_csrf";
