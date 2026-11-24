@@ -60,7 +60,9 @@ class WorkerContractTests(unittest.TestCase):
                         session_route.index("csrfToken }"))
 
     def test_logout_revokes_the_current_session_before_clearing_cookies(self):
-        logout_route = WORKER[WORKER.index('if (path === "/api/logout"'):WORKER.index("const session = await requireSession(request, env")]
+        logout_start = WORKER.index('if (path === "/api/logout"')
+        logout_end = WORKER.index("const ownerId = session.user_id;", logout_start)
+        logout_route = WORKER[logout_start:logout_end]
         self.assertIn("await requireSession(request, env, true)", logout_route)
         self.assertIn("UPDATE sessions SET revoked_at = ?", logout_route)
         self.assertIn("session.session_hash", logout_route)
