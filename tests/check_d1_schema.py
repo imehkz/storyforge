@@ -63,6 +63,20 @@ class D1SchemaTests(unittest.TestCase):
         with self.assertRaises(sqlite3.IntegrityError):
             self.db.execute("UPDATE chapters SET writing_status = 'unknown' WHERE id='planned-1'")
 
+    def test_chapters_store_workflow_status_targets_and_author_notes(self):
+        columns = {row[1] for row in self.db.execute("PRAGMA table_info(chapters)")}
+        self.assertTrue({"workflow_status", "target_word_count", "author_notes"}.issubset(columns))
+        self.seed_project()
+        self.db.execute("INSERT INTO chapters(id, project_id, title, workflow_status, target_word_count, author_notes) VALUES ('workflow-1','p1','Workflow', 'pending_approval', 4500, 'Keep canon unchanged')")
+        self.assertEqual(
+            self.db.execute("SELECT workflow_status, target_word_count, author_notes FROM chapters WHERE id='workflow-1'").fetchone(),
+            ("pending_approval", 4500, "Keep canon unchanged"),
+        )
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.db.execute("UPDATE chapters SET workflow_status = 'unknown' WHERE id='workflow-1'")
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.db.execute("UPDATE chapters SET target_word_count = -1 WHERE id='workflow-1'")
+
     def test_chapters_store_word_counts_and_character_references(self):
         columns = {
             row[1] for row in self.db.execute("PRAGMA table_info(chapters)")
