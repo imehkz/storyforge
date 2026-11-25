@@ -1989,3 +1989,16 @@ button, input, select, textarea { accent-color: var(--gold); }
     min-width: 54px;
   }
 }
+
+
+/* The project form is the primary workflow: give it the wider column and
+   prevent the empty project-list card from stretching to the form's full height. */
+#projects > .two-column {
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr);
+  align-items: start;
+}
+@media (max-width: 980px) {
+  #projects > .two-column {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
