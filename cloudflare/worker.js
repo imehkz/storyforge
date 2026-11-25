@@ -587,7 +587,7 @@ async function api(request, env, url) {
     if (!owned) throw new Error("NOT_FOUND");
     if (method === "GET") {
       const rows = await env.DB.prepare(
-        "SELECT id, project_id, title, synopsis, writing_status, sort_order, word_count, character_ids_json, revision, created_at, updated_at FROM chapters WHERE project_id = ? ORDER BY sort_order, created_at LIMIT 500"
+        "SELECT id, project_id, title, synopsis, writing_status, workflow_status, target_word_count, author_notes, sort_order, word_count, character_ids_json, revision, created_at, updated_at FROM chapters WHERE project_id = ? ORDER BY sort_order, created_at LIMIT 500"
       ).bind(projectId).all();
       return json({ chapters: rows.results || [] });
     }
@@ -687,7 +687,7 @@ async function api(request, env, url) {
         "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'synopsis', synopsis, 'writing_status', writing_status, 'workflow_status', workflow_status, 'target_word_count', target_word_count, 'author_notes', author_notes, 'sort_order', sort_order, 'word_count', word_count, 'character_ids_json', character_ids_json, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
       ).bind(crypto.randomUUID(), chapterId, current.revision, ownerId),
       env.DB.prepare(
-        "UPDATE chapters SET title = ?, body = ?, synopsis = ?, writing_status = ?, workflow_status = ?, target_word_count = ?, author_notes = ?, sort_order = ?, word_count = ?, character_ids_json = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, synopsis, writing_status, sort_order, word_count, character_ids_json, revision, updated_at"
+        "UPDATE chapters SET title = ?, body = ?, synopsis = ?, writing_status = ?, workflow_status = ?, target_word_count = ?, author_notes = ?, sort_order = ?, word_count = ?, character_ids_json = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, synopsis, writing_status, workflow_status, target_word_count, author_notes, sort_order, word_count, character_ids_json, revision, updated_at"
       ).bind(title, body, synopsis, writingStatus, workflowStatus, targetWordCount, authorNotes, sortOrder, wordCount, characterIds, nowIso(), chapterId, current.revision, ownerId),
       env.DB.prepare(
         "DELETE FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ?) AND id NOT IN (SELECT id FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ?) ORDER BY created_at DESC, id DESC LIMIT 100)"
@@ -712,7 +712,7 @@ async function api(request, env, url) {
       const input = await readJson(request, 2 * 1024 * 1024);
       if (!Number.isInteger(input.expectedRevision) || input.expectedRevision < 1) throw new Error("INVALID_EXPECTEDREVISION");
       const current = await env.DB.prepare(
-        "SELECT c.id, c.project_id, c.title, c.body, c.synopsis, c.writing_status, c.sort_order, c.character_ids_json, c.revision FROM chapters c JOIN projects p ON p.id = c.project_id WHERE c.id = ? AND p.owner_id = ?"
+        "SELECT c.id, c.project_id, c.title, c.body, c.synopsis, c.writing_status, c.workflow_status, c.target_word_count, c.author_notes, c.sort_order, c.character_ids_json, c.revision FROM chapters c JOIN projects p ON p.id = c.project_id WHERE c.id = ? AND p.owner_id = ?"
       ).bind(chapterId, ownerId).first();
       if (!current) throw new Error("NOT_FOUND");
       if (current.revision !== input.expectedRevision) throw new Error("CONFLICT");
@@ -733,11 +733,11 @@ async function api(request, env, url) {
         : await validateChapterCharacterReferences(current.project_id, input.character_ids_json);
       const results = await env.DB.batch([
         env.DB.prepare(
-          "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'synopsis', synopsis, 'writing_status', writing_status, 'sort_order', sort_order, 'word_count', word_count, 'character_ids_json', character_ids_json, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
+          "INSERT INTO snapshots (id, project_id, resource_type, resource_id, content_json) SELECT ?, project_id, 'chapter', id, json_object('title', title, 'body', body, 'synopsis', synopsis, 'writing_status', writing_status, 'workflow_status', workflow_status, 'target_word_count', target_word_count, 'author_notes', author_notes, 'sort_order', sort_order, 'word_count', word_count, 'character_ids_json', character_ids_json, 'revision', revision) FROM chapters WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?)"
         ).bind(crypto.randomUUID(), chapterId, input.expectedRevision, ownerId),
         env.DB.prepare(
-          "UPDATE chapters SET title = ?, body = ?, synopsis = ?, writing_status = ?, sort_order = ?, word_count = ?, character_ids_json = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, synopsis, writing_status, sort_order, word_count, character_ids_json, revision, updated_at"
-        ).bind(title, body, synopsis, writingStatus, sortOrder, wordCount, characterIds, nowIso(), chapterId, input.expectedRevision, ownerId),
+          "UPDATE chapters SET title = ?, body = ?, synopsis = ?, writing_status = ?, workflow_status = ?, target_word_count = ?, author_notes = ?, sort_order = ?, word_count = ?, character_ids_json = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ? AND EXISTS (SELECT 1 FROM projects WHERE projects.id = chapters.project_id AND projects.owner_id = ?) RETURNING id, project_id, title, body, synopsis, writing_status, workflow_status, target_word_count, author_notes, sort_order, word_count, character_ids_json, revision, updated_at"
+        ).bind(title, body, synopsis, writingStatus, workflowStatus, targetWordCount, authorNotes, sortOrder, wordCount, characterIds, nowIso(), chapterId, input.expectedRevision, ownerId),
         env.DB.prepare(
           "DELETE FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ?) AND id NOT IN (SELECT id FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ? AND project_id = (SELECT project_id FROM chapters WHERE id = ?) ORDER BY created_at DESC, id DESC LIMIT 100)"
         ).bind(chapterId, chapterId, chapterId, chapterId)
