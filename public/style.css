@@ -2023,3 +2023,14 @@ button, input, select, textarea { accent-color: var(--gold); }
   overflow-wrap: normal;
   word-break: normal;
 }
+
+
+/* Chapter workflow and word-goal controls */
+#manuscript .chapter-meta-grid { grid-template-columns: minmax(150px,.75fr) minmax(150px,.65fr) minmax(0,1.5fr); }
+#manuscript .chapter-meta-grid .chapter-notes-field { grid-column: 1 / -1; }
+#manuscript .chapter-word-progress { margin: 4px 0 18px; padding: 12px 14px; }
+.chapter-word-progress > div { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.chapter-word-progress > div span, .chapter-word-progress small { color:var(--muted); font-size:13px; }
+.chapter-word-progress .progress-track { height:7px; overflow:hidden; border-radius:99px; background:rgba(120,135,155,.2); margin:8px 0; }
+.chapter-word-progress .progress-track span { display:block; width:0; height:100%; border-radius:inherit; background:var(--gold); transition:width .2s ease; }
+@media (max-width:760px) { #manuscript .chapter-meta-grid { grid-template-columns:1fr; } #manuscript .chapter-meta-grid .chapter-notes-field { grid-column:auto; } }
