@@ -854,12 +854,12 @@ input::placeholder,textarea::placeholder{color:rgba(154,169,190,.66)}
 .writing-settings h3 { margin:18px 0 4px; color:var(--parchment); font:500 16px var(--serif); }
 .writing-settings-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:14px; }
 .genre-level-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 18px; }
-.genre-level { display:grid; grid-template-columns:minmax(90px,1fr) 20px minmax(70px,1.6fr) 42px; gap:9px; align-items:center; padding:7px 0; border-bottom:1px solid var(--line-cool); }
-.genre-level > label { margin:0; }
-.genre-level input { width:100%; accent-color:var(--gold); }
+.genre-level { display:grid; grid-template-columns:minmax(0,1fr) 20px minmax(56px,1fr) 68px; gap:8px; align-items:center; min-width:0; padding:7px 0; border-bottom:1px solid var(--line-cool); }
+.genre-level > label { min-width:0; margin:0; overflow-wrap:anywhere; }
+.genre-level input { width:100%; min-width:0; accent-color:var(--gold); }
 .genre-level input[type="checkbox"] { width:18px; height:18px; justify-self:center; margin:0; }
 .genre-level input[type="range"]:disabled { opacity:.35; cursor:not-allowed; }
-.genre-level output { color:var(--gold-bright); text-align:right; font-variant-numeric:tabular-nums; }
+.genre-level output { min-width:68px; color:var(--gold-bright); text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
 .relationship-graph-tools { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; color:var(--muted); font-size:13px; }
 .relationship-legend { display:flex; flex-wrap:wrap; gap:8px 14px; margin-top:10px; color:var(--muted); font-size:12px; }
 .relationship-legend span { display:inline-flex; align-items:center; gap:6px; }
@@ -867,7 +867,7 @@ input::placeholder,textarea::placeholder{color:rgba(154,169,190,.66)}
 .relationship-node:focus rect { stroke:#fff; stroke-width:2.5; }
 @media(max-width:760px) {
  .writing-settings-grid,.genre-level-grid { grid-template-columns:1fr; }
- .genre-level { grid-template-columns:minmax(90px,1fr) 20px minmax(70px,1.6fr) 42px; }
+ .genre-level { grid-template-columns:minmax(0,1fr) 20px minmax(56px,1fr) 68px; }
  .relationship-graph-tools { align-items:flex-start; flex-direction:column; }
 }
 
