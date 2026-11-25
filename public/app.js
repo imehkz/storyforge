@@ -3611,7 +3611,9 @@ async function selectCloudChapter(chapterId) {
   const hasRecoverableDraft = Boolean(localDraft &&
     (localDraft.title !== (fullChapter.title || "") || localDraft.body !== (fullChapter.body || "") ||
       (localDraft.synopsis || "") !== (fullChapter.synopsis || "") ||
-      (localDraft.writing_status || "draft") !== (fullChapter.writing_status || "draft") ||
+      (localDraft.workflow_status || "not_started") !== (fullChapter.workflow_status || "not_started") ||
+      Number(localDraft.target_word_count || 4500) !== Number(fullChapter.target_word_count || 4500) ||
+      (localDraft.author_notes || "") !== (fullChapter.author_notes || "") ||
       JSON.stringify(chapterCharacterIds({ character_ids_json: localDraft.character_ids_json })) !== JSON.stringify(chapterCharacterIds(fullChapter))));
   if ($("recoverLocalDraft")) {
     $("recoverLocalDraft").hidden = !hasRecoverableDraft;
@@ -4697,6 +4699,7 @@ function setupManuscriptEditor() {
     }
   });
   editor.addEventListener("input", event => {
+    renderChapterWordProgress();
     descriptor.set.call(field, editor.innerHTML);
     save("manuscriptBody", Boolean(event.isComposing));
   });
