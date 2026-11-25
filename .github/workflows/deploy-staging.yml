@@ -1,0 +1,65 @@
+name: Deploy StoryForge Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_staging:
+        description: "ยืนยัน Deploy ไปยัง Staging เท่านั้น"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: storyforge-staging-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy-staging:
+    if: github.ref == 'refs/heads/feature/storyforge-studio-80' && inputs.confirm_staging == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: "7d4171b932ef86a317c8fa286789df02"
+    steps:
+      - name: Check out staging branch
+        uses: actions/checkout@v7
+        with:
+          ref: feature/storyforge-studio-80
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Verify deployment credentials
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::Missing repository secret CLOUDFLARE_API_TOKEN."
+            exit 1
+          fi
+          if ! grep -q '^name = "storyforge-staging"$' wrangler.toml; then
+            echo "::error::Refusing to deploy: Wrangler config is not the isolated staging Worker."
+            exit 1
+          fi
+          if ! grep -q 'database_name = "storyforge-staging"' wrangler.toml; then
+            echo "::error::Refusing to deploy: D1 binding is not the staging database."
+            exit 1
+          fi
+
+      - name: Run unit, schema, and security tests
+        run: npm test
+
+      - name: Deploy Worker and static assets to Staging
+        run: npx --yes wrangler@4 deploy --config wrangler.toml
+
+      - name: Smoke test deployed Staging
+        run: npm run test:staging
