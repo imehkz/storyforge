@@ -859,6 +859,9 @@ function validateCloudBackupData(backupProjects) {
           typeof chapter.body !== "string" || chapter.body.length > 500000 ||
           (chapter.synopsis != null && (typeof chapter.synopsis !== "string" || chapter.synopsis.length > 3000)) ||
           (chapter.writing_status != null && !["planned", "draft", "revised", "final"].includes(chapter.writing_status)) ||
+          (chapter.workflow_status != null && !["not_started", "outlining", "writing", "first_draft", "editing", "pending_approval", "approved"].includes(chapter.workflow_status)) ||
+          (chapter.target_word_count != null && (!Number.isInteger(chapter.target_word_count) || chapter.target_word_count < 0 || chapter.target_word_count > 100000)) ||
+          (chapter.author_notes != null && (typeof chapter.author_notes !== "string" || chapter.author_notes.length > 10000)) ||
           (chapter.sort_order != null && (!Number.isInteger(chapter.sort_order) || chapter.sort_order < 0 || chapter.sort_order > 1000000)) ||
           (chapter.word_count != null && (!Number.isInteger(chapter.word_count) || chapter.word_count < 0 || chapter.word_count > 10000000 ||
             chapter.word_count !== countWords(chapter.body)))) {
@@ -1055,6 +1058,9 @@ async function restoreCloudBackup(backupProjects) {
             body: chapter.body || "",
             synopsis: chapter.synopsis || "",
             writing_status: chapter.writing_status || "draft",
+            workflow_status: chapter.workflow_status || "not_started",
+            target_word_count: Number.isInteger(chapter.target_word_count) ? chapter.target_word_count : 0,
+            author_notes: chapter.author_notes || "",
             sortOrder: Number.isInteger(chapter.sort_order) ? chapter.sort_order : 0,
             wordCount: Number.isInteger(chapter.word_count) ? chapter.word_count : countWords(chapter.body || ""),
             character_ids_json: chapter.character_ids_json || "[]"
