@@ -1940,3 +1940,23 @@ button, input, select, textarea { accent-color: var(--gold); }
 .form-card .row-actions > .gold-button {
   margin-top: 0;
 }
+
+
+/* Shared alignment contract for grouped actions across Studio panels.
+   Single standalone form buttons keep their intentional top spacing. */
+.row-actions,
+.project-form-actions,
+.module-actions,
+.export-actions {
+  align-items: center;
+}
+.form-card .row-actions > .gold-button,
+.form-card .project-form-actions > .gold-button {
+  margin-top: 0;
+}
+.row-actions > button,
+.project-form-actions > button,
+.module-actions > button,
+.export-actions > button {
+  flex: 0 0 auto;
+}
