@@ -1933,3 +1933,10 @@ button, input, select, textarea { accent-color: var(--gold); }
     column-gap: 0;
   }
 }
+
+
+/* Keep action-row buttons level: form-card primary buttons otherwise inherit the
+   standalone form submit margin and sit lower than adjacent outline actions. */
+.form-card .row-actions > .gold-button {
+  margin-top: 0;
+}
