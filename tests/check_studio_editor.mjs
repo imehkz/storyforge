@@ -148,3 +148,7 @@ assert.match(css, /#projects\s*>\s*\.two-column\s*\{[^}]*grid-template-columns:\
   "project form must receive the wider column and the empty list card must not stretch vertically");
 assert.match(css, /@media\s*\(max-width:\s*980px\)[\s\S]*?#projects\s*>\s*\.two-column\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\);/,
   "project form and saved novel list must stack on tablet portrait and narrow screens");
+
+
+assert.match(css, /\.genre-level\s*>\s*label\s*\{[^}]*overflow-wrap:\s*normal;[^}]*word-break:\s*normal;/s,
+  "genre labels must never wrap Thai words character-by-character in any Studio view");
