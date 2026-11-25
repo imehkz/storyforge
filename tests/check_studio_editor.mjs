@@ -114,3 +114,11 @@ assert.match(css, /@media \(max-width: 620px\)[\s\S]*?#manuscript \.chapter-list
 assert.match(css, /#manuscript \.manuscript-main\s*\{\s*min-width:\s*0;/,
   "manuscript column must be allowed to shrink without forcing page overflow");
 console.log("Novel Studio contract tests passed: shortcut targets, editor controls, hidden storage field, and save handlers are wired.");
+
+
+assert.match(css, /\.genre-level\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) 22px minmax\(90px, \.85fr\) 92px/s,
+  "genre scoring rows must reserve a dedicated score column");
+assert.match(css, /\.genre-level output\s*\{[^}]*width:\s*92px;[^}]*min-width:\s*92px;/s,
+  "genre score output must have enough fixed width for the numeric label");
+assert.match(css, /@media\s*\(max-width:\s*1280px\)[\s\S]*?\.genre-level-grid\s*\{\s*grid-template-columns:\s*minmax\(0, 1fr\)/,
+  "tablet layouts must stack genre scoring rows to prevent adjacent score overlap");
