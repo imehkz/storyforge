@@ -12,7 +12,8 @@ const requiredIds = [
   "continuityPanel", "runContinuityCheck", "studioContinuityShortcut",
   "manuscriptEditor", "manuscriptBody", "editorFont", "editorSize",
   "editorLineHeight", "editorPageMargin", "autoFormatManuscript",
-  "aiFormatManuscript"
+  "aiFormatManuscript", "chapterStatus", "chapterTargetWords", "chapterSynopsis",
+  "chapterAuthorNotes", "chapterWordProgressText", "chapterWordProgressBar", "projectWordProgressText"
 ];
 
 for (const id of requiredIds) {
@@ -113,7 +114,13 @@ assert.match(css, /@media \(max-width: 620px\)[\s\S]*?#manuscript \.chapter-list
   "mobile chapter navigation must remain horizontally scrollable");
 assert.match(css, /#manuscript \.manuscript-main\s*\{\s*min-width:\s*0;/,
   "manuscript column must be allowed to shrink without forcing page overflow");
-console.log("Novel Studio contract tests passed: shortcut targets, editor controls, hidden storage field, and save handlers are wired.");
+assert.match(html, /value="pending_approval"/, "chapter workflow must include the approval queue");
+assert.match(html, /value="approved"/, "chapter workflow must include the approved state");
+assert.ok(app.includes("workflow_status:") && app.includes("target_word_count:") && app.includes("author_notes:"),
+  "chapter workflow metadata must be included in the autosave payload");
+assert.ok(app.includes("renderChapterWordProgress") && app.includes("190,000 คำ"),
+  "chapter and project word-goal progress must be rendered");
+console.log("Novel Studio contract tests passed: editor, workflow, synopsis, notes, word goals, recovery, and autosave.");
 
 
 assert.match(css, /\.genre-level\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) 22px minmax\(90px, \.85fr\) 92px/s,
