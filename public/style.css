@@ -2011,3 +2011,15 @@ button, input, select, textarea { accent-color: var(--gold); }
   word-break: normal;
   min-width: 0;
 }
+
+
+/* Preserve Thai word wrapping in descriptive content. Reserve anywhere-wrapping
+   for identifiers/status tokens; prose should use the browser's Thai line breaker. */
+.module-item small,
+.scene-tracker-item-main p,
+.plot-linked-scenes > span,
+.character-reference-meta small,
+.project-meta {
+  overflow-wrap: normal;
+  word-break: normal;
+}
