@@ -142,3 +142,9 @@ assert.match(css, /#projects\s+\.genre-level\s*>\s*label\s*\{[^}]*overflow-wrap:
   "Thai genre labels must not break character-by-character in narrow cards");
 assert.match(css, /#projects\s+\.genre-level\s*\{[^}]*grid-template-columns:\s*minmax\(112px,\s*1\.2fr\) 22px minmax\(96px,\s*\.9fr\) 58px;/s,
   "project genre row must reserve readable label, checkbox, slider, and score tracks");
+
+
+assert.match(css, /#projects\s*>\s*\.two-column\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1\.25fr\) minmax\(280px,\s*\.75fr\);[^}]*align-items:\s*start;/s,
+  "project form must receive the wider column and the empty list card must not stretch vertically");
+assert.match(css, /@media\s*\(max-width:\s*980px\)[\s\S]*?#projects\s*>\s*\.two-column\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\);/,
+  "project form and saved novel list must stack on tablet portrait and narrow screens");
