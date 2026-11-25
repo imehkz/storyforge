@@ -1954,3 +1954,38 @@ button, input, select, textarea { accent-color: var(--gold); }
 .form-card .project-form-actions > .gold-button {
   margin-top: 0;
 }
+
+
+/* Project setup: genre controls live inside a constrained form column even on
+   wide tablets. Keep each genre on a full-width row and never split Thai labels
+   character-by-character to make the controls fit. */
+#projects .genre-level-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+#projects .genre-level {
+  grid-template-columns: minmax(112px, 1.2fr) 22px minmax(96px, .9fr) 58px;
+  gap: 10px;
+  align-items: center;
+}
+#projects .genre-level > label {
+  min-width: 0;
+  overflow-wrap: normal;
+  word-break: normal;
+  line-height: 1.55;
+}
+#projects .genre-level output {
+  width: 58px;
+  min-width: 58px;
+  padding-left: 0;
+}
+@media (max-width: 560px) {
+  #projects .genre-level {
+    grid-template-columns: minmax(0, 1fr) 22px minmax(72px, .8fr) 54px;
+    gap: 7px;
+  }
+  #projects .genre-level output {
+    width: 54px;
+    min-width: 54px;
+  }
+}
