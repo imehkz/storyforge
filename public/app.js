@@ -1210,9 +1210,23 @@ function activeChapterDraft() {
     title: $("chapterTitle")?.value || "",
     body: $("manuscriptBody")?.value || "",
     synopsis: $("chapterSynopsis")?.value || "",
-    writing_status: $("chapterStatus")?.value || "draft",
+    writing_status: "draft",
+    workflow_status: $("chapterStatus")?.value || "not_started",
+    target_word_count: Math.max(0, Math.min(100000, Number.parseInt($("chapterTargetWords")?.value || "4500", 10) || 0)),
+    author_notes: $("chapterAuthorNotes")?.value || "",
     character_ids_json: JSON.stringify(Array.from($("chapterCharacters")?.selectedOptions || []).map(option => option.value).filter(Boolean))
   };
+}
+
+function renderChapterWordProgress() {
+  const currentWords = countWords($("manuscriptBody")?.value || "");
+  const target = Math.max(0, Number.parseInt($("chapterTargetWords")?.value || "0", 10) || 0);
+  const total = cloud.chapters.reduce((sum, item) =>
+    sum + (item.id === cloud.activeChapterId ? currentWords : (Number(item.word_count) || countWords(item.body || ""))), 0);
+  const format = value => Number(value || 0).toLocaleString("th-TH");
+  if ($("chapterWordProgressText")) $("chapterWordProgressText").textContent = format(currentWords) + " / " + format(target) + " คำ";
+  if ($("chapterWordProgressBar")) $("chapterWordProgressBar").style.width = (target > 0 ? Math.min(100, currentWords / target * 100) : 0) + "%";
+  if ($("projectWordProgressText")) $("projectWordProgressText").textContent = "ยอดรวมทั้งโครงการ " + format(total) + " / 190,000 คำ";
 }
 function save(changedKey = "", deferCloud = false) {
   let localStorageReady = true;
@@ -3537,7 +3551,7 @@ function renderChapterSelect() {
         const sceneCount = (cloud.modules.notes || []).filter(scene =>
           scene.note_type === "scene" && safeJSON(scene.chapter_ids_json || "[]", []).includes(item.id)
         ).length;
-        return `<button type="button" class="chapter-list-item ${item.id === cloud.activeChapterId ? "active" : ""}" data-chapter-item="${escapeHtml(item.id)}"><span>${String(index + 1).padStart(2, "0")}</span><div><b>${escapeHtml(item.title || "บทไม่มีชื่อ")}</b><small>${({ planned: "วางแผน", draft: "ฉบับร่าง", revised: "ปรับแก้แล้ว", final: "ฉบับสมบูรณ์" })[item.writing_status || "draft"]} · ${(Number(item.word_count) || 0).toLocaleString("th-TH")} คำ · ${sceneCount} ฉาก</small>${item.synopsis ? '<small class="chapter-outline-summary">' + escapeHtml(item.synopsis) + '</small>' : '<small class="chapter-outline-summary muted">ยังไม่มีสรุปย่อ</small>'}</div></button>`;
+        return `<button type="button" class="chapter-list-item ${item.id === cloud.activeChapterId ? "active" : ""}" data-chapter-item="${escapeHtml(item.id)}"><span>${String(index + 1).padStart(2, "0")}</span><div><b>${escapeHtml(item.title || "บทไม่มีชื่อ")}</b><small>${({ not_started: "ยังไม่เริ่ม", outlining: "วางโครงเรื่อง", writing: "กำลังเขียน", first_draft: "ร่างแรกเสร็จ", editing: "กำลังตรวจแก้", pending_approval: "รออนุมัติ", approved: "อนุมัติแล้ว" })[item.workflow_status || "not_started"]} · ${(Number(item.word_count) || 0).toLocaleString("th-TH")} คำ · ${sceneCount} ฉาก</small>${item.synopsis ? '<small class="chapter-outline-summary">' + escapeHtml(item.synopsis) + '</small>' : '<small class="chapter-outline-summary muted">ยังไม่มีสรุปย่อ</small>'}</div></button>`;
       }).join("");
       list.querySelectorAll("[data-chapter-item]").forEach(button =>
         button.addEventListener("click", () => selectCloudChapter(button.dataset.chapterItem))
@@ -3588,7 +3602,10 @@ async function selectCloudChapter(chapterId) {
   $("chapterTitle").value = fullChapter.title || "";
   $("manuscriptBody").value = fullChapter.body || "";
   $("chapterSynopsis").value = fullChapter.synopsis || "";
-  $("chapterStatus").value = fullChapter.writing_status || "draft";
+  $("chapterStatus").value = fullChapter.workflow_status || "not_started";
+  $("chapterTargetWords").value = String(fullChapter.target_word_count || 4500);
+  $("chapterAuthorNotes").value = fullChapter.author_notes || "";
+  renderChapterWordProgress();
   renderChapterCharacterReferences();
   const localDraft = safeJSON(localStorage.getItem(localChapterDraftKey(item.id)) || "null", null);
   const hasRecoverableDraft = Boolean(localDraft &&
@@ -3625,7 +3642,10 @@ async function saveCloudChapter() {
   };
   const lastSaved = cloud.chapters.find(item => item.id === chapterId);
   if (lastSaved && lastSaved.title === draft.title && lastSaved.body === draft.body &&
-      (lastSaved.synopsis || "") === draft.synopsis && (lastSaved.writing_status || "draft") === draft.writing_status &&
+      (lastSaved.synopsis || "") === draft.synopsis &&
+      (lastSaved.workflow_status || "not_started") === draft.workflow_status &&
+      Number(lastSaved.target_word_count || 4500) === draft.target_word_count &&
+      (lastSaved.author_notes || "") === draft.author_notes &&
       JSON.stringify(chapterCharacterIds(lastSaved)) === draft.character_ids_json) return true;
   cloud.saving = true;
   cloud.savePromise = (async () => {
@@ -3642,10 +3662,12 @@ async function saveCloudChapter() {
       const currentDraft = activeChapterDraft();
       const saveStillCurrent = currentDraft.title === draft.title &&
         currentDraft.body === draft.body && currentDraft.synopsis === draft.synopsis &&
-        currentDraft.writing_status === draft.writing_status &&
+        currentDraft.workflow_status === draft.workflow_status &&
+        currentDraft.target_word_count === draft.target_word_count &&
+        currentDraft.author_notes === draft.author_notes &&
         currentDraft.character_ids_json === draft.character_ids_json;
       if (saveStillCurrent) {
-        storeLocalChapterDraft(chapterId, { title: result.chapter.title, body: result.chapter.body, synopsis: result.chapter.synopsis || "", writing_status: result.chapter.writing_status || "draft", character_ids_json: result.chapter.character_ids_json || "[]" }, result.chapter.revision);
+        storeLocalChapterDraft(chapterId, { title: result.chapter.title, body: result.chapter.body, synopsis: result.chapter.synopsis || "", writing_status: result.chapter.writing_status || "draft", workflow_status: result.chapter.workflow_status || "not_started", target_word_count: result.chapter.target_word_count || 4500, author_notes: result.chapter.author_notes || "", character_ids_json: result.chapter.character_ids_json || "[]" }, result.chapter.revision);
       }
       renderChapterCharacterReferences();
       if (saveStillCurrent && $("recoverLocalDraft")) $("recoverLocalDraft").hidden = true;
@@ -3676,7 +3698,9 @@ async function saveCloudChapter() {
       cloud.savePromise = null;
       if (cloud.activeChapterId === chapterId &&
           ($("chapterTitle").value !== draft.title || $("manuscriptBody").value !== draft.body ||
-          $("chapterSynopsis").value !== draft.synopsis || $("chapterStatus").value !== draft.writing_status ||
+          $("chapterSynopsis").value !== draft.synopsis || $("chapterStatus").value !== draft.workflow_status ||
+          Number($("chapterTargetWords").value || 0) !== draft.target_word_count ||
+          $("chapterAuthorNotes").value !== draft.author_notes ||
           JSON.stringify(Array.from($("chapterCharacters")?.selectedOptions || []).map(option => option.value).filter(Boolean)) !== draft.character_ids_json)) {
         scheduleCloudSave();
       }
@@ -3733,7 +3757,10 @@ async function recoverLocalChapterDraft() {
     $("chapterTitle").value = draft.title || "";
     $("manuscriptBody").value = draft.body || "";
     $("chapterSynopsis").value = draft.synopsis || "";
-    $("chapterStatus").value = draft.writing_status || "draft";
+    $("chapterStatus").value = draft.workflow_status || "not_started";
+    $("chapterTargetWords").value = String(draft.target_word_count || 4500);
+    $("chapterAuthorNotes").value = draft.author_notes || "";
+    renderChapterWordProgress();
     const selectedCharacterIds = new Set(Array.isArray(draft.character_ids_json) ? draft.character_ids_json : chapterCharacterIds({ character_ids_json: draft.character_ids_json }));
     Array.from($("chapterCharacters")?.options || []).forEach(option => { option.selected = selectedCharacterIds.has(option.value); });
     if ($("recoverLocalDraft")) $("recoverLocalDraft").hidden = true;
@@ -4068,14 +4095,15 @@ function setupCloudEvents() {
   $("deleteChapter")?.addEventListener("click", deleteActiveChapter);
   $("chapterSelect")?.addEventListener("change", event => selectCloudChapter(event.target.value));
   $("chapterCharacters")?.addEventListener("change", scheduleCloudSave);
-  $("chapterSynopsis")?.addEventListener("input", () => {
+  ["chapterSynopsis", "chapterAuthorNotes"].forEach(id => $(id)?.addEventListener("input", () => {
     if (cloud.activeChapterId) storeLocalChapterDraft(cloud.activeChapterId, activeChapterDraft(), cloud.revision);
     scheduleCloudSave();
-  });
-  $("chapterStatus")?.addEventListener("change", () => {
+  }));
+  ["chapterStatus", "chapterTargetWords"].forEach(id => $(id)?.addEventListener("change", () => {
+    renderChapterWordProgress();
     if (cloud.activeChapterId) storeLocalChapterDraft(cloud.activeChapterId, activeChapterDraft(), cloud.revision);
     scheduleCloudSave();
-  });
+  }));
   $("runContinuityCheck")?.addEventListener("click", runStoryContinuityCheck);
   $("chapterHistoryButton")?.addEventListener("click", showChapterHistory);
   $("chapterHistoryInline")?.addEventListener("click", showChapterHistory);
