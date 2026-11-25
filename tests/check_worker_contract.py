@@ -484,8 +484,10 @@ class WorkerContractTests(unittest.TestCase):
         self.assertIn("selectedGenres", APP)
         self.assertIn('writingSettingsKey()', APP)
         self.assertIn("input.disabled = !toggle?.checked", APP)
-        self.assertIn("grid-template-columns:minmax(90px,1fr) 20px minmax(70px,1.6fr) 42px", CSS)
-        self.assertGreaterEqual(CSS.count("grid-template-columns:minmax(90px,1fr) 20px minmax(70px,1.6fr) 42px"), 2)
+        self.assertIn("grid-template-columns:minmax(0,1fr) 20px minmax(56px,1fr) 68px", CSS)
+        self.assertGreaterEqual(CSS.count("grid-template-columns:minmax(0,1fr) 20px minmax(56px,1fr) 68px"), 2)
+        self.assertIn("min-width:68px", CSS)
+        self.assertIn("white-space:nowrap", CSS)
 
     def test_dashboard_word_goal_uses_active_novel_settings(self):
         self.assertIn("writingSettingsKey(active?.id)", APP)
