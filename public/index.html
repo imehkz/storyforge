@@ -346,8 +346,17 @@
             <div class="card-frame manuscript-card studio-paper-card">
               <label class="studio-title-label" for="chapterTitle">ชื่อบท</label><input id="chapterTitle" class="studio-chapter-title-input" placeholder="เช่น บทที่ 1 — จุดเริ่มต้น">
               <div class="chapter-meta-grid">
-                <div><label for="chapterStatus">สถานะการเขียน</label><select id="chapterStatus"><option value="planned">วางแผน</option><option value="draft" selected>ฉบับร่าง</option><option value="revised">ปรับแก้แล้ว</option><option value="final">ฉบับสมบูรณ์</option></select></div>
-                <div><label for="chapterSynopsis">สรุปย่อของบท</label><textarea id="chapterSynopsis" rows="2" maxlength="3000" placeholder="สรุปเหตุการณ์สำคัญของบทนี้ เพื่อใช้วางแผนและทบทวนเรื่อง"></textarea></div>
+                <div><label for="chapterStatus">สถานะการเขียน</label><select id="chapterStatus">
+                  <option value="not_started">ยังไม่เริ่ม</option><option value="outlining">วางโครงเรื่อง</option><option value="writing">กำลังเขียน</option><option value="first_draft">ร่างแรกเสร็จ</option><option value="editing">กำลังตรวจแก้</option><option value="pending_approval">รออนุมัติ</option><option value="approved">อนุมัติแล้ว</option>
+                </select></div>
+                <div><label for="chapterTargetWords">จำนวนคำเป้าหมายของบท</label><input id="chapterTargetWords" type="number" min="0" max="100000" step="100" value="4500" inputmode="numeric"></div>
+                <div class="chapter-synopsis-field"><label for="chapterSynopsis">บทย่อของบท</label><textarea id="chapterSynopsis" rows="3" maxlength="3000" placeholder="สรุปเหตุการณ์สำคัญ ตัวละคร พัฒนาการทางอารมณ์ และจุดเชื่อมไปบทถัดไป"></textarea></div>
+                <div class="chapter-notes-field"><label for="chapterAuthorNotes">หมายเหตุจากผู้เขียน</label><textarea id="chapterAuthorNotes" rows="2" maxlength="10000" placeholder="สิ่งที่ Forge ต้องรักษา ระวัง หรือยังห้ามเปลี่ยนในบทนี้"></textarea></div>
+              </div>
+              <div class="chapter-word-progress card-frame" aria-live="polite">
+                <div><b>ความคืบหน้าบทนี้</b><span id="chapterWordProgressText">0 / 4,500 คำ</span></div>
+                <div class="progress-track"><span id="chapterWordProgressBar"></span></div>
+                <small id="projectWordProgressText">ยอดรวมทั้งโครงการ 0 / 190,000 คำ</small>
               </div>
               <label class="studio-body-label" for="manuscriptEditor">ต้นฉบับ</label>
               <div class="manuscript-format-toolbar studio-format-toolbar" role="toolbar" aria-label="เครื่องมือจัดรูปแบบต้นฉบับ">
