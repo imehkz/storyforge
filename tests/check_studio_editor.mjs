@@ -152,3 +152,7 @@ assert.match(css, /@media\s*\(max-width:\s*980px\)[\s\S]*?#projects\s*>\s*\.two-
 
 assert.match(css, /\.genre-level\s*>\s*label\s*\{[^}]*overflow-wrap:\s*normal;[^}]*word-break:\s*normal;/s,
   "genre labels must never wrap Thai words character-by-character in any Studio view");
+
+
+assert.match(css, /\.module-item small\s*,\s*\.scene-tracker-item-main p\s*,\s*\.plot-linked-scenes > span\s*,\s*\.character-reference-meta small\s*,\s*\.project-meta\s*\{\s*overflow-wrap:\s*normal;\s*word-break:\s*normal;/,
+  "Thai descriptive prose across project, scene, plot, and character cards must wrap at natural word boundaries");
