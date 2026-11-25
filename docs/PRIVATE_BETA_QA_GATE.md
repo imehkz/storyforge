@@ -72,3 +72,21 @@ The following remain release blockers until evidenced as passed:
 ## Evidence policy
 
 A checkbox is complete only when the run, device, environment, result, and date are recorded. Passing GitHub Actions unit/schema/contract checks does not substitute for browser, device, live D1, or independent backup/restore evidence.
+
+
+## Staging deployment update — 26 November 2026
+
+This update supersedes the earlier staging-foundation status in Release blocker 1.
+
+- [x] Root Wrangler configuration committed at `b8e978cda7d19d7744bc6d063ecf1d12911274f1`; it targets only Worker `storyforge-staging` and D1 `storyforge-staging`.
+- [x] Cloudflare Workers Build completed successfully; deployed version `e06f6008-9cbd-426a-9f53-ac9f449b18e9` receives 100% of staging Worker traffic.
+- [x] GitHub Actions unit, schema, security, and live staging smoke tests passed on the PR merge checkout for this commit.
+- [x] Live staging smoke test verified `/api/health`, D1 readiness, auth readiness behavior, unauthenticated API rejection, GitHub OAuth login redirect behavior when configured, and homepage/JS/CSS delivery.
+- [x] Staging Worker settings were re-inspected: `DB` points to the staging D1 ID; `ASSETS` is the configured static-assets binding. No Production Worker or D1 settings were changed.
+- [ ] Complete interactive owner OAuth sign-in and verify `/api/session` authenticated state.
+- [ ] Test a separate non-owner account is denied, then verify logout revokes the session.
+- [ ] Complete browser/device E2E, export rendering, backup/restore, and tablet QA.
+
+**Evidence references:** Cloudflare build `65c6f21c-2e4b-448c-b391-a84379eb13bb`; deployed version `e06f6008-9cbd-426a-9f53-ac9f449b18e9`; GitHub validation job IDs `139380816004` and `139380876581`. The live smoke test output was: “Staging Worker smoke tests passed: D1 health, auth readiness, fail-closed session/login behavior, and frontend assets.”
+
+The Worker has OAuth bindings configured, but this smoke test does not prove an interactive owner login, non-owner denial, or session revocation. Do not mark those acceptance gates complete until exercised with the intended accounts. Production remains blocked and untouched.
