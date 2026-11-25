@@ -75,3 +75,18 @@ The staging Worker is deployed with the branch Worker API source, the staging D1
 ## Production safety
 
 The existing production D1 database and active production Worker were not modified. Do not apply migrations 0004–0012 to production or deploy this branch to the production Worker without explicit owner approval and a reviewed rollout/rollback plan.
+
+## Deployment and live smoke-test addendum — 26 November 2026
+
+This addendum records the follow-up deployment from branch commit `b8e978cda7d19d7744bc6d063ecf1d12911274f1`. It supersedes earlier statements above that the staging Worker had no OAuth configuration or that the current deployment did not use a static-assets binding.
+
+- Root `wrangler.toml` now explicitly targets `storyforge-staging`, binds D1 database `storyforge-staging`, and configures the `ASSETS` binding from `./public`.
+- Cloudflare Workers Build `65c6f21c-2e4b-448c-b391-a84379eb13bb` completed successfully.
+- Deployed Worker version: `e06f6008-9cbd-426a-9f53-ac9f449b18e9`, with 100% traffic assigned to that version.
+- Worker settings were re-read after deployment. The `DB` binding still points to the staging D1 database ID; `ASSETS` is present; OAuth Client ID, Client Secret, and owner-ID bindings are present. Secret values were not read or disclosed.
+- GitHub Actions unit, schema, and security validation passed. The live staging smoke test also passed against the deployed Worker, including health/D1 readiness, auth readiness and login/session behavior, unauthenticated project API rejection, and homepage/JavaScript/CSS delivery.
+- Evidence: GitHub validation job IDs `139380816004` and `139380876581`; live smoke test output: “Staging Worker smoke tests passed: D1 health, auth readiness, fail-closed session/login behavior, and frontend assets.”
+
+**Still not verified:** interactive owner OAuth completion, non-owner denial, logout revocation, browser autosave/revision/restore, multi-project end-to-end isolation, Android tablet QA, actual DOCX/EPUB/PDF rendering, and independent encrypted backup/restore. The existence of OAuth bindings and a successful redirect smoke test is not equivalent to completing authenticated user acceptance tests.
+
+No Production Worker, Production D1, Production OAuth application, or Production data was modified in this deployment.
