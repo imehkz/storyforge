@@ -1,0 +1,613 @@
+"""Static security and frontend contract checks.
+
+These source-level checks are not a substitute for integration tests against a
+Cloudflare Worker and D1 database.
+"""
+from collections import Counter
+from html.parser import HTMLParser
+from pathlib import Path
+import unittest
+
+ROOT = Path(__file__).resolve().parents[1]
+WORKER = (ROOT / "cloudflare" / "worker.js").read_text(encoding="utf-8")
+APP = (ROOT / "public" / "app.js").read_text(encoding="utf-8")
+HTML = (ROOT / "public" / "index.html").read_text(encoding="utf-8")
+WRANGLER = (ROOT / "cloudflare" / "wrangler.toml.example").read_text(encoding="utf-8")
+CSS = (ROOT / "public" / "style.css").read_text(encoding="utf-8")
+
+
+class IdCollector(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.ids = []
+
+    def handle_starttag(self, tag, attrs):
+        for key, value in attrs:
+            if key == "id" and value:
+                self.ids.append(value)
+
+
+class WorkerContractTests(unittest.TestCase):
+    def test_owner_allowlist_is_required_and_enforced(self):
+        self.assertIn("env.GITHUB_OWNER_ID", WORKER)
+        self.assertIn('String(githubUser.id) !== String(env.GITHUB_OWNER_ID)', WORKER)
+        self.assertIn("role = 'owner'", WORKER)
+
+    def test_oauth_state_is_hashed_expiring_and_single_use(self):
+        self.assertIn("sha256(state)", WORKER)
+        self.assertIn("DELETE FROM oauth_states", WORKER)
+        self.assertIn("RETURNING state_hash", WORKER)
+        self.assertIn("STATE_TTL_SECONDS", WORKER)
+        self.assertIn('redirect_uri: new URL("/auth/callback", request.url).toString()', WORKER)
+
+    def test_sessions_are_hashed_and_csrf_protected(self):
+        self.assertIn("sha256(sessionToken)", WORKER)
+        self.assertIn("HttpOnly; SameSite=Lax", WORKER)
+        self.assertIn("X-CSRF-Token", WORKER)
+        self.assertIn('request.headers.get("Origin")', WORKER)
+        self.assertIn("__Host-storyforge_csrf", WORKER)
+        self.assertIn("cookieValue(request, CSRF_COOKIE)", WORKER)
+        self.assertIn("HttpOnly; SameSite=Strict", WORKER)
+        self.assertIn('headers.append("Set-Cookie", item)', WORKER)
+        self.assertIn("revoked_at", WORKER)
+
+    def test_session_lookup_rejects_expired_revoked_or_non_owner_sessions(self):
+        lookup = WORKER[WORKER.index("async function getSession"):WORKER.index("async function requireSession")]
+        self.assertIn("s.revoked_at IS NULL", lookup)
+        self.assertIn("s.expires_at > ?", lookup)
+        self.assertIn("u.role = 'owner'", lookup)
+        self.assertIn("sha256(raw)", lookup)
+
+    def test_oauth_callback_binds_state_to_browser_cookie_and_discards_github_token(self):
+        callback = WORKER[WORKER.index("async function oauthCallback"):WORKER.index("async function api")]
+        self.assertIn("safeEqual(state, stateCookie)", callback)
+        self.assertIn("DELETE FROM oauth_states", callback)
+        self.assertIn("if (!consumed)", callback)
+        self.assertIn("The GitHub access token is intentionally discarded", callback)
+        self.assertNotIn("access_token:", callback)
+
+    def test_csrf_token_is_only_released_to_a_matching_authenticated_session(self):
+        session_route = WORKER[WORKER.index('if (path === "/api/session"'):WORKER.index('if (path === "/api/logout"')]
+        self.assertIn("const session = await getSession(request, env)", session_route)
+        self.assertIn("cookieValue(request, CSRF_COOKIE)", session_route)
+        self.assertIn("safeEqual(await sha256(csrfToken), session.csrf_hash)", session_route)
+        self.assertLess(session_route.index("safeEqual(await sha256(csrfToken), session.csrf_hash)"),
+                        session_route.index("csrfToken }"))
+
+    def test_logout_revokes_the_current_session_before_clearing_cookies(self):
+        logout_start = WORKER.index('if (path === "/api/logout"')
+        logout_end = WORKER.index("const ownerId = session.user_id;", logout_start)
+        logout_route = WORKER[logout_start:logout_end]
+        self.assertIn("await requireSession(request, env, true)", logout_route)
+        self.assertIn("UPDATE sessions SET revoked_at = ?", logout_route)
+        self.assertIn("session.session_hash", logout_route)
+        self.assertIn("clearCookie(SESSION_COOKIE)", logout_route)
+        self.assertIn("clearCookie(CSRF_COOKIE)", logout_route)
+
+    def test_mutating_routes_require_exact_same_origin_and_double_submit_csrf(self):
+        guard = WORKER[WORKER.index("async function requireSession"):WORKER.index("async function oauthLogin")]
+        self.assertIn('request.headers.get("Origin")', guard)
+        self.assertIn('origin !== new URL(request.url).origin', guard)
+        self.assertIn('request.headers.get("X-CSRF-Token")', guard)
+        self.assertIn("cookieValue(request, CSRF_COOKIE)", guard)
+        self.assertIn("safeEqual(await sha256(supplied), session.csrf_hash)", guard)
+        self.assertIn('!["GET", "HEAD"].includes(method)', WORKER)
+
+    def test_auth_setup_status_identifies_the_missing_dependency(self):
+        self.assertIn('setupError === "AUTH_NOT_CONFIGURED"', APP)
+        self.assertIn("ต้องตั้งค่า GitHub OAuth", APP)
+        self.assertIn("ต้องตั้งค่า D1", APP)
+
+    def test_health_endpoint_probes_database_readiness(self):
+        self.assertIn('await env.DB.prepare("SELECT 1 AS ok").first()', WORKER)
+        self.assertIn('error: "DATABASE_UNAVAILABLE"', WORKER)
+        self.assertIn('databaseReady: true', WORKER)
+        self.assertIn("authConfigured: Boolean(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET && env.GITHUB_OWNER_ID)", WORKER)
+
+    def test_project_queries_are_owner_scoped(self):
+        self.assertIn("WHERE owner_id = ?", WORKER)
+        self.assertIn("projects.owner_id = ?", WORKER)
+        self.assertIn("project_id = ?", WORKER)
+
+    def test_project_publication_metadata_is_owner_scoped_and_exported(self):
+        project_route = WORKER[WORKER.index('if (path === "/api/projects"'):WORKER.index("const moduleMatch")]
+        self.assertIn("pen_name", project_route)
+        self.assertIn("copyright_text", project_route)
+        self.assertIn("foreword", project_route)
+        self.assertIn("author_bio", project_route)
+        self.assertIn('id="penName"', HTML)
+        self.assertIn('id="copyrightText"', HTML)
+        self.assertIn('id="foreword"', HTML)
+        self.assertIn('id="authorBio"', HTML)
+        self.assertIn("publicationFrontMatter", APP)
+        self.assertIn("publicationBackMatter", APP)
+        self.assertIn("dc:rights", APP)
+        self.assertIn("validateCoverBrief", project_route)
+        self.assertIn("cover_brief_json", project_route)
+        self.assertIn('id="illustrationCategory"', HTML)
+        self.assertIn('id="illustrationLibraryFilter"', HTML)
+        self.assertIn("record.category", APP)
+        self.assertIn("illustration-category-tag", APP)
+        self.assertIn("cover_brief_json: serialized", APP)
+        self.assertIn("cloudBrief", APP)
+        self.assertIn("createdCanonChapterLinks", APP)
+
+
+    def test_local_import_uses_stable_client_ids(self):
+        self.assertIn("INSERT OR IGNORE INTO projects", WORKER)
+        self.assertIn("INSERT OR IGNORE INTO chapters", WORKER)
+        self.assertIn("INSERT OR IGNORE INTO ${config.table}", WORKER)
+        self.assertIn("clientId", APP)
+        self.assertIn("migrationMapKey", APP)
+
+    def test_chapter_snapshot_history_is_bounded(self):
+        self.assertGreaterEqual(
+            WORKER.count("ORDER BY created_at DESC, id DESC LIMIT 100"),
+            2,
+            "Both chapter edits and restores must prune history to the latest 100 snapshots",
+        )
+        self.assertGreaterEqual(
+            WORKER.count("DELETE FROM snapshots WHERE resource_type = 'chapter' AND resource_id = ?"),
+            2,
+        )
+
+    def test_cloud_restore_rolls_back_only_records_created_by_failed_restore(self):
+        restore = APP[APP.index("function validateCloudBackupData"):APP.index("function restoreFromFile")]
+        self.assertIn("const createdProjects = new Set()", restore)
+        self.assertIn("const createdItems = []", restore)
+        self.assertIn("if (result.created)", restore)
+        self.assertIn('method: "DELETE"', restore)
+        self.assertIn("if (createdProjects.has(item.projectId)) continue", restore)
+        self.assertIn("if (createdProjects.has(project.id)) continue", restore)
+        self.assertIn("rollbackErrors.length", restore)
+
+    def test_local_recovery_storage_failure_does_not_block_cloud_autosave(self):
+        self.assertIn("function storeLocalChapterDraft(chapterId, draft, revision = 0)", APP)
+        self.assertIn("Local chapter recovery draft could not be stored", APP)
+        draft_function = APP[APP.index("function storeLocalChapterDraft"):APP.index("async function cloudApi")]
+        self.assertIn("return false;", draft_function)
+        self.assertIn("localStorageReady = false", APP)
+        self.assertIn("scheduleCloudSave();", APP)
+
+    def test_telegram_backup_requires_owner_session_and_csrf(self):
+        route = WORKER[WORKER.index('if (path === "/api/telegram-backup"'):WORKER.index('if (path === "/api/session"')]
+        self.assertIn("await requireSession(request, env, true)", route)
+        self.assertIn('"X-CSRF-Token": cloud.csrfToken', APP)
+
+    def test_automatic_backup_retries_soon_after_failure(self):
+        self.assertIn("const AUTO_BACKUP_RETRY_MS = 15 * 60 * 1000", APP)
+        self.assertIn("const succeeded = await sendTelegramBackup(true)", APP)
+        self.assertIn("Date.now() + AUTO_BACKUP_RETRY_MS", APP)
+        self.assertIn("Backup อัตโนมัติไม่สำเร็จ ระบบจะลองใหม่ใน 15 นาที", APP)
+
+    def test_chapter_history_and_revision_are_atomic(self):
+        self.assertGreaterEqual(WORKER.count("env.DB.batch(["), 2)
+        self.assertIn("expectedRevision", WORKER)
+        self.assertIn("'word_count', word_count, 'character_ids_json', character_ids_json, 'revision', revision", WORKER)
+        self.assertIn("'workflow_status', workflow_status, 'target_word_count', target_word_count, 'author_notes', author_notes", WORKER)
+        self.assertIn("INVALID_WORKFLOW_STATUS", WORKER)
+        self.assertIn("INVALID_TARGET_WORD_COUNT", WORKER)
+        self.assertIn("validateWordCount(input.wordCount, countWords(body))", WORKER)
+        self.assertIn('id="chapterTargetWords"', HTML)
+        self.assertIn('id="chapterAuthorNotes"', HTML)
+        self.assertIn('id="chapterWordProgressText"', HTML)
+        self.assertIn("workflow_status", APP)
+        self.assertIn("target_word_count", APP)
+        self.assertIn("countWords(body)", WORKER)
+        self.assertIn("word_count", WORKER)
+        self.assertIn("resource_type = 'chapter'", WORKER)
+        self.assertIn("DELETE FROM snapshots WHERE resource_type = 'chapter'", WORKER)
+        self.assertIn("/move", WORKER)
+        self.assertIn("sort_order", WORKER)
+
+    def test_thai_word_count_uses_consistent_unicode_segmentation(self):
+        self.assertIn('new Intl.Segmenter("th", { granularity: "word" })', WORKER)
+        self.assertIn('new Intl.Segmenter("th", { granularity: "word" })', APP)
+        self.assertIn("filter(part => part.isWordLike).length", WORKER)
+        self.assertIn("filter(part => part.isWordLike).length", APP)
+
+    def test_frontend_has_cloud_project_and_editor_integration(self):
+        for fragment in (
+            "/api/projects", "/api/chapters/", "scheduleCloudSave",
+            "importLocalNovelData", "showChapterHistory",
+            "loadProjectModules", "createModuleItem",
+            "moveActiveChapter", "deleteActiveChapter",
+            "toggleCloudProjectArchive", "deleteCloudProject",
+            "renderRelationshipGraph", "renderPlotBoard", "renderTimelineView",
+            "saveCharacter", "countWords"
+        ):
+            self.assertIn(fragment, APP)
+
+    def test_illustration_prompt_uses_selected_character_appearance(self):
+        self.assertIn('id="illustrationCharacters"', HTML)
+        self.assertIn('characterIds: Array.from($("illustrationCharacters")?.selectedOptions || []).map(option => option.value)', APP)
+        self.assertIn("Selected characters from this project only:", APP)
+        self.assertIn("Character consistency: preserve each selected character", APP)
+        self.assertIn("Selected characters from this project only:", APP)
+        self.assertIn("preserve the canonical appearance", APP)
+        for field in ("profile.eyes", "profile.hair", "profile.clothing", "profile.accessories"):
+            self.assertIn(field, APP)
+
+    def test_illustration_library_is_project_scoped(self):
+        for fragment in ("ILLUSTRATION_LIBRARY_STORE", "illustrationLibraryRecords(projectId)", "savePendingIllustrationToLibrary", "renderIllustrationLibrary"):
+            self.assertIn(fragment, APP)
+        self.assertIn("indexedDB.open(CHARACTER_VAULT_DB, 2)", APP)
+        self.assertIn("id=\"illustrationLibraryGallery\"", HTML)
+        self.assertIn("id=\"saveIllustrationToLibrary\"", HTML)
+        self.assertIn(".illustration-library-card", CSS)
+
+    def test_illustration_library_backup_v4_is_project_scoped(self):
+        for fragment in ("collectIllustrationLibraryBackup", "validateIllustrationLibraryBackup", "restoreIllustrationLibraryRecords", "illustrationLibrary", "version: 4", "backup.version >= 4"):
+            self.assertIn(fragment, APP)
+        self.assertIn("[1, 2, 3, 4].includes(backup.version)", APP)
+
+    def test_editor_backup_key_is_preserved(self):
+        self.assertIn('key === "manuscriptBody" ? "sf_manuscript"', APP)
+        self.assertIn("storageKeyFor", APP)
+        self.assertIn("sf_manuscript", APP)
+
+    def test_user_content_is_escaped_before_html_rendering(self):
+        self.assertIn("function escapeHtml(value)", APP)
+        for fragment in (
+            "escapeHtml(item.title)",
+            "escapeHtml(item.summary ||",
+            "escapeHtml(item.description ||",
+            "escapeHtml(item.name.slice",
+            "escapeHtml(item.id)",
+        ):
+            self.assertIn(fragment, APP)
+
+    def test_manuscript_html_is_sanitized_with_a_small_allowlist(self):
+        self.assertIn("function sanitizeManuscriptHtml(value)", APP)
+        self.assertIn('new Set(["P","DIV","BR","STRONG","B","EM","I","U","H1","H2","H3","BLOCKQUOTE","UL","OL","LI","SPAN","FIGURE","FIGCAPTION","IMG"])', APP)
+        self.assertIn('if (attr.name !== "style") node.removeAttribute(attr.name);', APP)
+        self.assertIn('["text-align","font-family","font-size","line-height","width","max-width","height","display","margin"].includes(key)', APP)
+        self.assertIn(".test(val)) safe.push", APP)
+
+    def test_character_vault_profile_fields_round_trip(self):
+        for field in (
+            "nickname", "gender", "birthday", "profession", "age", "pronouns",
+            "species", "height", "face", "skin", "eyes", "hair", "build",
+            "clothing", "accessories", "expressions", "appearance", "personality",
+            "motivation", "backstory", "strengths", "weaknesses", "likes", "dislikes",
+            "skills", "family", "customFields", "secret", "description"
+        ):
+            self.assertIn(field + ":", APP)
+        for element_id in (
+            "characterNickname", "characterGender", "characterBirthday",
+            "characterProfession", "characterLikes", "characterDislikes",
+            "characterSkills", "characterFamily", "characterFace", "characterSkin",
+            "characterEyes", "characterHair", "characterBuild", "characterClothing",
+            "characterAccessories", "characterExpressions", "characterCustomFields"
+        ):
+            self.assertIn(element_id, HTML)
+            self.assertIn(element_id, APP)
+
+    def test_relationship_map_has_visible_keyboard_focus(self):
+        self.assertIn(".relationship-node:focus-visible rect", CSS)
+        self.assertIn(".relationship-edge:focus-visible path", CSS)
+
+    def test_relationship_edges_follow_nodes_during_drag(self):
+        self.assertIn('path?.setAttribute("d"', APP)
+        self.assertIn('label?.setAttribute("x"', APP)
+        self.assertIn('label?.setAttribute("y"', APP)
+
+    def test_relationship_map_supports_english_and_thai_relationship_types(self):
+        for term in ("enemy", "family", "romance", "ally", "business", "mentor"):
+            self.assertIn(term, APP)
+
+    def test_relationship_map_keeps_interactive_nodes_accessible(self):
+        self.assertIn('id="relationshipGraph" class="relationship-graph" role="region"', HTML)
+        self.assertIn('role="group" aria-label="แผนผังสายใยความสัมพันธ์ของตัวละคร"', APP)
+        self.assertIn('role="button" aria-label="ตัวละคร ', APP)
+        self.assertIn('edge.setAttribute("role","button")', APP)
+
+    def test_worker_rejects_relationships_linking_characters_outside_project(self):
+        module_route = WORKER[WORKER.index("const moduleMatch"):WORKER.index("const chaptersMatch")]
+        self.assertIn("const validateRelationshipEndpoints = async (sourceId, targetId)", module_route)
+        self.assertIn('"SELECT id FROM characters WHERE project_id = ? AND id IN (?, ?)"', module_route)
+        self.assertIn("await validateRelationshipEndpoints(values.source_character_id, values.target_character_id)", module_route)
+        self.assertIn("await validateRelationshipEndpoints(source, target)", module_route)
+        self.assertIn("INVALID_RELATIONSHIP_CHARACTER", module_route)
+
+    def test_scene_tracker_uses_project_scoped_notes_and_chapter_references(self):
+        module_route = WORKER[WORKER.index("const moduleMatch"):WORKER.index("const chaptersMatch")]
+        self.assertIn('chapter_ids_json: ["json_array", 16000]', module_route)
+        self.assertIn('scene_type: ["string", 40]', module_route)
+        self.assertIn('scene_status: ["string", 40]', module_route)
+        self.assertIn('["plot-threads", "notes", "world-lore", "timeline"].includes(collection)', module_route)
+        self.assertIn("UPDATE story_notes SET chapter_ids_json", WORKER)
+        self.assertIn('id="sceneTrackerList"', HTML)
+        self.assertIn('id="addScene"', HTML)
+        self.assertIn('note_type: "scene"', APP)
+        self.assertIn("selectedModuleChapterIds", APP)
+        self.assertIn("createdSceneChapterLinks", APP)
+        self.assertIn('notes: ["title", "content", "note_type", "pinned", "character_ids_json", "chapter_ids_json", "scene_type", "scene_status"]', APP)
+        self.assertIn("INVALID_SCENE_STATUS", WORKER)
+        self.assertIn("sceneReferencesUpdated", WORKER)
+        self.assertIn("worldReferencesUpdated", WORKER)
+        self.assertIn("timelineReferencesUpdated", WORKER)
+        self.assertIn('id="worldChapters"', HTML)
+        self.assertIn('id="timelineChapters"', HTML)
+        chapter_route = WORKER[WORKER.index("const chapterMatch"):WORKER.index('return json({ error: "NOT_FOUND" }, 404);')]
+        chapter_patch = chapter_route[chapter_route.index('if (method === "PATCH")'):chapter_route.index('if (method === "DELETE")')]
+        chapter_delete = chapter_route[chapter_route.index('if (method === "DELETE")'):]
+        self.assertNotIn("UPDATE world_lore SET chapter_ids_json", chapter_patch)
+        self.assertNotIn("UPDATE timeline_events SET chapter_ids_json", chapter_patch)
+        self.assertIn("UPDATE world_lore SET chapter_ids_json", chapter_delete)
+        self.assertIn("UPDATE timeline_events SET chapter_ids_json", chapter_delete)
+        self.assertIn("if (!results[5]?.meta?.changes)", chapter_delete)
+        self.assertIn("createdCanonChapterLinks", APP)
+        self.assertIn("await validateChapterReferences(values.chapter_ids_json)", module_route)
+
+    def test_plot_chapter_references_are_project_scoped_and_cleaned_on_delete(self):
+        module_route = WORKER[WORKER.index("const moduleMatch"):WORKER.index("const chaptersMatch")]
+        self.assertIn('chapter_ids_json: ["json_array", 16000]', module_route)
+        self.assertIn("const validateChapterReferences = async (raw)", module_route)
+        self.assertIn('"SELECT id FROM chapters WHERE project_id = ? AND id IN (" + placeholders + ")"', module_route)
+        self.assertIn("await validateChapterReferences(values.chapter_ids_json)", module_route)
+        chapter_delete = WORKER[WORKER.index('if (method === "DELETE")', WORKER.index("const chaptersMatch")):]
+        self.assertIn("UPDATE plot_threads SET chapter_ids_json", chapter_delete)
+        self.assertIn("plotReferencesUpdated", chapter_delete)
+        self.assertIn('id="plotChapters"', HTML)
+        self.assertIn("promptChapterReferences", APP)
+        self.assertIn("data-plot-chapter", APP)
+        self.assertIn("plot-linked-scenes", APP)
+        self.assertIn("data-plot-scene-chapter", APP)
+
+    def test_plot_world_and_timeline_character_references_are_project_scoped(self):
+        module_route = WORKER[WORKER.index("const moduleMatch"):WORKER.index("const chaptersMatch")]
+        self.assertGreaterEqual(module_route.count('character_ids_json: ["json_array", 8000]'), 4)
+        self.assertIn("const validateCharacterReferences = async (raw)", module_route)
+        self.assertIn('"SELECT id FROM characters WHERE project_id = ? AND id IN (" + placeholders + ")"', module_route)
+        self.assertIn("await validateCharacterReferences(values.character_ids_json)", module_route)
+        for control in ("plotCharacters", "worldCharacters", "timelineCharacters", "notesCharacters"):
+            self.assertIn(control, HTML)
+            self.assertIn(control, APP)
+        self.assertIn("promptCharacterReferences", APP)
+        self.assertIn("characterReferenceNames", APP)
+        self.assertIn('notes: ["title", "content", "note_type", "pinned", "character_ids_json", "chapter_ids_json", "scene_type", "scene_status"]', APP)
+
+    def test_canonical_character_references_survive_backup_and_restore(self):
+        restore = APP[APP.index("async function restoreCloudBackup"):APP.index("function restoreFromFile")]
+        validation = APP[APP.index("function validateCloudBackupData"):APP.index("async function restoreCloudBackup")]
+        self.assertIn('character_ids_json: ["json_array", 8000]', WORKER)
+        self.assertIn('"character_ids_json"', restore)
+        self.assertIn('"plot-threads": ["title", "summary", "status", "sort_order", "character_ids_json"]', restore)
+        self.assertIn('"world-lore": ["category", "title", "content", "sort_order", "character_ids_json", "chapter_ids_json"]', restore)
+        self.assertIn('timeline: ["title", "description", "story_time", "sort_order", "character_ids_json", "chapter_ids_json"]', restore)
+        self.assertIn('notes: ["title", "content", "note_type", "pinned", "character_ids_json", "chapter_ids_json", "scene_type", "scene_status"]', restore)
+        self.assertIn('for (const collection of ["plot-threads", "world-lore", "timeline", "notes"])', validation)
+        self.assertIn('characterIds.has(id)', validation)
+
+    def test_ai_context_includes_canonical_character_links(self):
+        context = APP[APP.index("function buildStoryAssistantContext"):APP.index("async function copyStoryText")]
+        self.assertGreaterEqual(context.count('JSON.parse(item.character_ids_json || "[]")'), 4)
+        self.assertIn("ตัวละครที่เกี่ยวข้อง:", context)
+
+    def test_chapter_planning_metadata_is_saved_and_versioned(self):
+        chapter_html = HTML[HTML.index('id="chapterTitle"'):HTML.index('id="manuscriptEditor"')]
+        self.assertIn('id="chapterStatus"', chapter_html)
+        self.assertIn('id="chapterSynopsis"', chapter_html)
+        self.assertIn("chapter-outline-summary", APP)
+        self.assertIn("sceneCount", APP)
+        chapter_routes = WORKER[WORKER.index("const chaptersMatch"):WORKER.index("const chapterMoveMatch")]
+        chapter_detail = WORKER[WORKER.index("const chapterMatch"):WORKER.index('return json({ error: "NOT_FOUND" }, 404);')]
+        self.assertIn("synopsis", chapter_routes)
+        self.assertIn("writing_status", chapter_routes)
+        self.assertIn("INVALID_WRITING_STATUS", chapter_routes + chapter_detail)
+        self.assertIn("'synopsis', synopsis, 'writing_status', writing_status", chapter_detail)
+        self.assertIn("writing_status: chapter.writing_status || \"draft\"", APP)
+        self.assertIn("chapter.synopsis != null", APP)
+        self.assertIn("activeChapterDraft()", APP)
+        self.assertIn("compositionend", APP)
+        self.assertIn("event.isComposing", APP)
+        self.assertIn('event.key.toLowerCase() === "s"', APP)
+        self.assertIn('event.shiftKey && event.key.toLowerCase() === "f"', APP)
+        self.assertIn("overflow-x: auto", CSS)
+
+    def test_chapter_canon_character_links_are_saved_and_project_scoped(self):
+        self.assertIn('id="chapterCharacters"', HTML)
+        context = APP[APP.index("function buildStoryAssistantContext"):APP.index("async function copyStoryText")]
+        self.assertIn('" | Canon: " + linked.join(", ")', context)
+        self.assertIn("ตัวละคร Canon ของบทนี้:", context)
+        self.assertIn("function renderChapterCharacterReferences()", APP)
+        self.assertIn('character_ids_json: JSON.stringify(Array.from($("chapterCharacters")?.selectedOptions || []).map(option => option.value).filter(Boolean))', APP)
+        self.assertIn("validateChapterCharacterReferences", WORKER)
+        self.assertIn("INVALID_CHAPTER_CHARACTER_REFERENCE", WORKER)
+        self.assertIn("character_ids_json", WORKER[WORKER.index("const chaptersMatch"):WORKER.index("const chapterMoveMatch")])
+        self.assertIn("c.word_count, c.character_ids_json", WORKER[WORKER.index("const chapterMatch"):WORKER.index("return json({ error: \"NOT_FOUND\" }, 404);")])
+        self.assertIn("chapter.character_ids_json", APP[APP.index("function validateCloudBackupData"):APP.index("async function restoreCloudBackup")])
+
+    def test_continuity_checker_is_project_scoped_and_non_destructive(self):
+        self.assertIn('id="continuityPanel"', HTML)
+        self.assertIn('id="runContinuityCheck"', HTML)
+        self.assertIn("function analyzeStoryContinuity(", APP)
+        self.assertIn("function runStoryContinuityCheck()", APP)
+        self.assertIn('cloudApi("/api/chapters/" + encodeURIComponent(item.id))', APP)
+        self.assertIn("ชื่อบทซ้ำ", APP)
+        self.assertIn("ตรวจการปรากฏของตัวละคร", APP)
+        self.assertIn("เหตุการณ์ Timeline ยังไม่เชื่อมกับบท", APP)
+        self.assertIn("profile.aliases", APP)
+        self.assertIn('id="characterAliases"', HTML)
+        self.assertIn("ลำดับ Timeline อาจไม่ตรงวันที่", APP)
+        self.assertIn("ไม่แก้ไขต้นฉบับให้อัตโนมัติ", HTML)
+        self.assertIn("selectCloudChapter(button.dataset.continuityChapter)", APP)
+
+    def test_manuscript_focus_mode_keeps_editor_and_exit_available(self):
+        self.assertIn('id="toggleWritingFocus"', HTML)
+        self.assertIn("function setWritingFocusMode(enabled)", APP)
+        self.assertIn('document.body.classList.toggle("writing-focus-mode", active)', APP)
+        self.assertIn('event.key === "Escape"', APP)
+        self.assertIn("body.writing-focus-mode #manuscript .manuscript-format-toolbar", CSS)
+        self.assertIn("body.writing-focus-mode #manuscript .manuscript-editor-surface", CSS)
+
+    def test_character_delete_cleans_project_canonical_references(self):
+        module_route = WORKER[WORKER.index("const moduleMatch"):WORKER.index("const chaptersMatch")]
+        self.assertIn('if (collection === "characters") {', module_route)
+        self.assertIn('json_each(" + table + ".character_ids_json)', module_route)
+        self.assertIn("json_group_array(value)", module_route)
+        self.assertIn("const results = await env.DB.batch(statements)", module_route)
+        self.assertIn("referencesUpdated: true", module_route)
+        self.assertIn('"story_notes"', module_route)
+        self.assertIn('"chapters"].map(table =>', module_route)
+        self.assertIn('results[5]?.results?.length', module_route)
+
+    def test_relationship_edit_can_reassign_character_endpoints(self):
+        self.assertIn("characters[sourceIndex].id", APP)
+        self.assertIn("characters[targetIndex].id", APP)
+        self.assertIn("targetIndex === sourceIndex", APP)
+
+    def test_ai_assistant_does_not_advertise_copilot(self):
+        self.assertNotIn("Copilot", APP)
+        self.assertNotIn("Copilot", HTML)
+        self.assertIn("OpenAI (ChatGPT)", HTML)
+        self.assertIn("ยังไม่เชื่อมต่อ API", HTML)
+        self.assertIn("คัดลอกบริบทไปใช้กับ ChatGPT", HTML)
+        self.assertIn("ผู้ให้บริการหลักที่วางแผนไว้: OpenAI (ChatGPT)", APP)
+        self.assertIn("ยังไม่เปิดใช้ API", APP)
+        self.assertNotIn("Copilot", APP + HTML)
+
+    def test_story_context_copy_is_scoped_to_the_active_project(self):
+        self.assertIn('id="copyStoryContext"', HTML)
+        self.assertIn("active.id === cloud.activeProjectId", APP)
+        self.assertIn("cloud.modules || {}", APP)
+        self.assertIn("ข้อกำหนด: ใช้ข้อมูลของนิยายนี้เท่านั้น", APP)
+        self.assertIn("buildStoryAssistantContext()", APP)
+        self.assertIn("writingSettingsKey(active.id)", APP)
+        self.assertIn("writingSettings.genres", APP)
+        self.assertIn("writingSettings.selectedGenres", APP)
+        self.assertIn("selectedGenres.forEach(genre", APP)
+        self.assertIn("writingWordGoalKey(active.id)", APP)
+        self.assertIn("context.length > 40000", APP)
+        self.assertIn("projectGuardrail", APP)
+
+    def test_character_profile_size_is_checked_before_cloud_save(self):
+        self.assertIn("JSON.stringify(profile).length > 19000", APP)
+        self.assertIn("profile_json: profile", APP)
+
+    def test_novel_genres_are_explicitly_multi_select_and_project_scoped(self):
+        self.assertIn('class="genre-level"><label for="genreLevel0"', HTML)
+        self.assertIn("data-genre-enabled", HTML)
+        self.assertIn("selectedGenres", APP)
+        self.assertIn('writingSettingsKey()', APP)
+        self.assertIn("input.disabled = !toggle?.checked", APP)
+        self.assertIn("grid-template-columns:minmax(0,1fr) 22px minmax(90px,.85fr) 76px", CSS)
+        self.assertGreaterEqual(CSS.count("grid-template-columns:minmax(0,1fr) 22px minmax(90px,.85fr) 76px"), 2)
+        self.assertIn("@media(max-width:1100px) { .genre-level-grid { grid-template-columns:minmax(0,1fr); gap:6px; } }", CSS)
+        self.assertIn("width:76px", CSS)
+        self.assertIn("white-space:nowrap", CSS)
+        self.assertIn("white-space:nowrap", CSS)
+
+    def test_dashboard_word_goal_uses_active_novel_settings(self):
+        self.assertIn("writingSettingsKey(active?.id)", APP)
+        self.assertIn("configuredNovelGoal", APP)
+        self.assertIn("projectWritingSettings.chapterCount", APP)
+        self.assertIn("projectWritingSettings.wordsPerChapter", APP)
+
+    def test_active_project_id_is_visible_in_workspace_and_dashboard(self):
+        self.assertIn('" · ID: " + active.id', APP)
+        self.assertIn('" · Project ID: " + active.id', APP)
+
+    def test_book_cover_studio_is_project_scoped_and_does_not_fake_image_generation(self):
+        for fragment in ('data-tab="cover"', 'id="cover"', 'id="coverTitle"', 'id="coverPenName"',
+                         'id="coverCharacters"', 'id="coverBlurb"', 'id="coverDirection"',
+                         'id="coverPrompt"', 'id="copyCoverPrompt"'):
+            self.assertIn(fragment, HTML)
+        self.assertIn('function activeCoverProject()', APP)
+        self.assertIn('function coverBriefKey(projectId) { return "sf_cover_brief_" + projectId; }', APP)
+        self.assertIn('project.id === cloud.activeProjectId', APP)
+        self.assertIn('function buildCoverPromptText()', APP)
+        self.assertIn('setupCoverStudio();', APP)
+        self.assertIn('ยังไม่มีระบบสร้างภาพปกเชื่อมต่ออยู่', HTML)
+        self.assertIn('.cover-studio-grid', CSS)
+
+    def test_illustration_studio_inserts_project_content_images_safely(self):
+        for fragment in ('data-tab="illustrations"', 'id="illustrations"', 'id="illustrationFile"',
+                         'id="illustrationCaption"', 'id="insertIllustration"', 'id="illustrationPrompt"'):
+            self.assertIn(fragment, HTML)
+        self.assertIn('function compressIllustration(file)', APP)
+        self.assertIn('function buildIllustrationPromptText()', APP)
+        self.assertIn('function insertIllustrationAtCursor()', APP)
+        self.assertIn('data:image\\/(?:png|jpeg|webp);base64', APP)
+        self.assertIn('node.tagName === "IMG"', APP)
+        self.assertIn('setupIllustrationStudio();', APP)
+        self.assertIn('ยังไม่มีผู้ให้บริการสร้างภาพเชื่อมต่อ', HTML)
+        self.assertIn('.illustration-studio-grid', CSS)
+
+    def test_manuscript_illustrations_are_embedded_in_exports(self):
+        self.assertIn("function wordImageRun(node)", APP)
+        self.assertIn("word/_rels/document.xml.rels", APP)
+        self.assertIn("word/media/", APP)
+        self.assertIn("function exportManuscriptEpub(chapters = null, projectTitle = null)", APP)
+        self.assertIn("OEBPS/images/", APP)
+        self.assertIn("epubImages.map", APP)
+        self.assertIn("function exportManuscriptPdf()", APP)
+        self.assertIn("sanitizeManuscriptHtml(editor.innerHTML)", APP)
+
+    def test_character_reference_vault_is_project_and_character_scoped(self):
+        for fragment in ('id="characterVaultPanel"', 'id="characterReferenceFile"',
+                         'id="characterReferenceGallery"', 'id="characterVaultStatus"'):
+            self.assertIn(fragment, HTML)
+        self.assertIn('const CHARACTER_VAULT_DB = "storyforge_character_vault_v1"', APP)
+        self.assertIn('index("projectCharacter")', APP)
+        self.assertIn('function addCharacterReference(file)', APP)
+        self.assertIn('current.length >= 8', APP)
+        self.assertIn('record.canonical', APP)
+        self.assertIn('setupCharacterVault();', APP)
+        self.assertIn('ไม่ซิงก์ข้ามอุปกรณ์', HTML)
+        self.assertIn('.character-reference-gallery', CSS)
+
+    def test_character_vault_cleans_deleted_characters_and_guards_project_switch(self):
+        self.assertIn("deleteCharacterVaultForCharacter", APP)
+        self.assertIn('if (cloud.activeProjectId && cloud.activeProjectId !== project.id) resetCharacterForm()', APP)
+        self.assertIn("cloud.editingCharacterId !== characterId", APP)
+        self.assertIn("hydrateRelationshipPortraits(svg, characters, cloud.activeProjectId)", APP)
+        self.assertIn('image.setAttribute("href", canonical.dataUrl)', APP)
+
+    def test_character_reference_vault_is_in_backup_v4(self):
+        self.assertIn("async function collectCharacterVaultBackup(cloudProjects)", APP)
+        self.assertIn("async function restoreCharacterVaultRecords(records)", APP)
+        self.assertIn("function validateCharacterVaultBackup(records, cloudProjects)", APP)
+        self.assertIn("version: 4", APP)
+        self.assertIn("characterVault", APP)
+        self.assertIn("restoreCharacterVaultRecords(characterVault)", APP)
+        self.assertIn("backup.version >= 3", APP)
+        self.assertIn("รวมในไฟล์ Backup รุ่น 4", HTML)
+
+    def test_character_reference_images_can_be_inserted_into_manuscript(self):
+        self.assertIn("data-reference-insert", APP)
+        self.assertIn("record.projectId !== cloud.activeProjectId", APP)
+        self.assertIn("insertIllustrationAtCursor();", APP)
+
+    def test_secondary_ui_text_remains_readable_on_tablet(self):
+        for fragment in (
+            ".brand small{display:block;color:#9aa6b6;font-size:12px;",
+            ".dashboard-recent-row .recent-detail{font-size:12px;",
+            ".save-indicator{font-size:12px;",
+            ".chapter-list-item small { display: block; color: var(--muted); margin-top: 3px; font-size: 12px; }",
+            ".manuscript-tool-card > small { display: block; margin-top: 8px; color: var(--muted); font-size: 12px; }",
+            "font-size: 12px;\n  color: rgba(212,183,121,.82);",
+            ".cover-preview-style{font-size:12px;",
+            ".character-reference-meta small{color:var(--muted);font-size:12px;",
+            "color:var(--gold);font-size:12px}",
+            ".continuity-item>span{font-size:12px;",
+            ".studio-rail-card small{display:block;font-size:12px;",
+            ".studio-rail-link small{font-size:12px;",
+            "#manuscript .studio-rail-link small { font-size: 12px; }",
+        ):
+            self.assertIn(fragment, CSS)
+        self.assertNotIn("#manuscript .studio-rail-link small { font-size: 10px; }", CSS)
+
+    def test_html_ids_are_unique(self):
+        parser = IdCollector()
+        parser.feed(HTML)
+        duplicates = [value for value, count in Counter(parser.ids).items() if count > 1]
+        self.assertEqual(duplicates, [], "Duplicate HTML IDs: " + ", ".join(duplicates))
+
+    def test_worker_routes_auth_before_static_fallback(self):
+        self.assertIn('run_worker_first = ["/api/*", "/auth/*"]', WRANGLER)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

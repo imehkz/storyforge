@@ -1,15 +1,64 @@
 # STORYFORGE — AI NOVEL STUDIO
 
-เว็บแอปช่วยวางแผนและเขียนนิยายด้วย AI
+STORYFORGE เป็นพื้นที่ทำงานสำหรับวางแผน เขียน และจัดการนิยายหลายเรื่อง โดยออกแบบตามแนว Dark Fantasy Literature / Ancient Royal Library และใช้ภาษาไทยเป็นหลัก
 
-## Deploy บน Render
-1. อัปโหลดไฟล์และโฟลเดอร์ทั้งหมดในโปรเจกต์นี้ไปยัง GitHub repository
-2. เข้า Render แล้วเลือก New > Web Service เชื่อม GitHub repository
-3. Runtime: Node, Build Command: เว้นว่าง, Start Command: `npm start`
-4. เพิ่ม Environment Variable `OPENAI_API_KEY` แล้วใส่ API key ใน Render เท่านั้น
-5. Deploy
+## สถานะโปรเจกต์
 
-## หมายเหตุ
-- ต้องใช้ OpenAI API Key และมีค่าใช้จ่าย API แยกจาก ChatGPT
-- ข้อมูลโครงการและต้นฉบับในเวอร์ชันนี้บันทึกในเบราว์เซอร์ของอุปกรณ์ผ่าน localStorage
-- อย่าใส่ API Key ใน GitHub หรือในไฟล์หน้าเว็บ
+- โค้ดพัฒนาหลักอยู่บนสาขา `feature/storyforge-studio-80`
+- Pull Request #1 ยังเป็น Draft และยังไม่รวมเข้า `main`
+- Frontend รองรับ Novel Projects, Manuscript Studio, Chapter autosave/revisions, local recovery, story modules, continuity checks, illustration library และ export flows ตามขอบเขตที่ระบุในเอกสาร
+- Cloudflare Worker/D1 ที่มีอยู่เป็นระบบเดิม ไม่ใช่ staging สำหรับโค้ดสาขานี้
+- GitHub Actions ตรวจ syntax, export/recovery/continuity/editor contracts, D1 schema และ Worker security contracts
+- การผ่าน CI ไม่ใช่หลักฐานว่าผ่านการทดสอบบน Browser, Android tablet, live Worker/D1 หรือการกู้คืน Backup จริง
+
+## Staging สำหรับตรวจหน้าจอ
+
+- URL: https://storyforge-staging.jastsadakorn-n.workers.dev/
+- Staging Worker ใช้ฐานข้อมูล storyforge-staging แยกจาก Production และให้บริการไฟล์หน้าเว็บของสาขาพัฒนา
+- ขณะนี้ยังไม่มี Staging GitHub OAuth/owner allowlist จึงยังไม่พร้อมสำหรับการเข้าสู่ระบบหรือทดสอบ Cloud API แบบ authenticated
+- อย่าใส่ข้อมูลนิยายจริงหรือข้อมูลส่วนตัวลงใน Staging จนกว่าจะตั้งค่า Authentication และผ่านการทดสอบความปลอดภัย
+- หลักฐานการเตรียม Staging: docs/STAGING_VERIFICATION_2026-11-23.md
+
+## ข้อจำกัดที่ต้องทราบ
+
+- ห้าม Deploy สาขาพัฒนาไปยัง Worker จริง หรือรวมเข้า `main` โดยไม่มีการอนุมัติชัดเจน
+- ห้ามใช้ D1 จริงสำหรับทดสอบ Migration; ต้องสร้าง staging Worker และ staging D1 แยกก่อน
+- Migration ของสาขาพัฒนาต้องนำไปรันกับ staging เท่านั้น หลังตรวจสอบ Backup และแผน Rollback
+- AI text/image generation ยังปิดอยู่ การเชื่อม OpenAI API ต้องได้รับอนุมัติเรื่องค่าใช้จ่ายและความเป็นส่วนตัวก่อน และต้องเก็บ API key เป็น Worker secret เท่านั้น
+- Character Reference Vault และ Illustration Library เป็นข้อมูลเฉพาะอุปกรณ์ในปัจจุบัน ควรทำ Backup ก่อนเปลี่ยนอุปกรณ์หรือ Browser
+
+## เอกสารสำหรับพัฒนาและตรวจรับ
+
+- `docs/IMPLEMENTATION_PLAN.md` — สถานะและแผนพัฒนา
+- `docs/ROADMAP_NEXT_20.md` — ลำดับงานและผลการดำเนินงาน
+- `docs/PRIVATE_BETA_QA_GATE.md` — เกณฑ์ตรวจรับก่อน Private Beta
+- `docs/STAGING_VERIFICATION_2026-11-23.md` — หลักฐาน Staging D1/Worker, migrations และ project-isolation smoke test
+- `docs/STAGING_OAUTH_SETUP.md` — วิธีตั้งค่า GitHub OAuth แยกสำหรับ Staging โดยไม่แตะ Production
+- `docs/CLOUDFLARE_DEPLOYMENT_CHECKLIST.md` — การเตรียม Cloudflare
+- `docs/CLOUDFLARE_WORKER_API.md` — API และ Authentication contract
+- `docs/SECURITY_AND_STORAGE_DECISIONS.md` — ข้อกำหนดความปลอดภัยและการจัดเก็บข้อมูล
+
+## ตรวจสอบโค้ด
+
+ต้องใช้ Node.js 22+ และ Python 3.12+ ตาม GitHub Actions workflow
+
+คำสั่งตรวจสอบหลัก:
+
+```bash
+node --input-type=module --check < cloudflare/worker.js
+node --check public/app.js
+node tests/check_exports.mjs
+node tests/check_recovery.mjs
+node tests/check_continuity.mjs
+node tests/check_studio_editor.mjs
+node tests/check_cloud_save_race.mjs
+python3 tests/check_d1_schema.py
+python3 tests/check_worker_contract.py
+```
+
+ดูผล CI ล่าสุดและสถานะ Pull Request ได้ที่:
+https://github.com/imehkz/storyforge/pull/1
+
+## การ Deploy
+
+ยังไม่มีคำสั่ง Deploy สำหรับใช้งานจริงใน README นี้โดยตั้งใจ เพราะต้องสร้างและตรวจ staging environment, ทดสอบ end-to-end, ตรวจสอบ Backup/Restore และได้รับอนุมัติก่อนทุกครั้ง ดูขั้นตอนใน `docs/CLOUDFLARE_DEPLOYMENT_CHECKLIST.md` และ `docs/PRIVATE_BETA_QA_GATE.md` ก่อนดำเนินการ

@@ -1,0 +1,277 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+
+const source = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
+const stylesheet = await readFile(new URL("../public/style.css", import.meta.url), "utf8");
+
+function extractFunction(name) {
+  const expression = new RegExp("function " + name + "\\([\\s\\S]*?\\n\\}");
+  const match = source.match(expression);
+  assert.ok(match, "Missing function " + name);
+  return match[0];
+}
+
+function readStoredZip(buffer) {
+  const endOffset = buffer.length - 22;
+  assert.equal(buffer.readUInt32LE(endOffset), 0x06054b50, "ZIP end record");
+  const count = buffer.readUInt16LE(endOffset + 10);
+  let cursor = buffer.readUInt32LE(endOffset + 16);
+  const files = new Map();
+  for (let i = 0; i < count; i++) {
+    assert.equal(buffer.readUInt32LE(cursor), 0x02014b50, "central directory header");
+    const method = buffer.readUInt16LE(cursor + 10);
+    const size = buffer.readUInt32LE(cursor + 24);
+    const nameLength = buffer.readUInt16LE(cursor + 28);
+    const extraLength = buffer.readUInt16LE(cursor + 30);
+    const commentLength = buffer.readUInt16LE(cursor + 32);
+    const localOffset = buffer.readUInt32LE(cursor + 42);
+    const name = buffer.toString("utf8", cursor + 46, cursor + 46 + nameLength);
+    assert.equal(method, 0, "files are stored without compression");
+    assert.equal(buffer.readUInt32LE(localOffset), 0x04034b50, "local file header");
+    const localNameLength = buffer.readUInt16LE(localOffset + 26);
+    const localExtraLength = buffer.readUInt16LE(localOffset + 28);
+    const dataOffset = localOffset + 30 + localNameLength + localExtraLength;
+    const data = buffer.subarray(dataOffset, dataOffset + size);
+    assert.equal(crc32(data), buffer.readUInt32LE(cursor + 16), "CRC32 for " + name);
+    files.set(name, data.toString("utf8"));
+    cursor += 46 + nameLength + extraLength + commentLength;
+  }
+  return files;
+}
+
+function crc32(bytes) {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+const names = [
+  "xmlEscape", "crc32", "createStoredZip", "exportBaseName",
+  "wordParagraph", "countWords", "getManuscriptText", "manuscriptHtmlToWord", "exportManuscriptDocx", "exportManuscriptEpub", "exportWholeNovelEpub"
+];
+const code = names.map(extractFunction).join("\n");
+const values = {
+  title: { value: "ห้องสมุดแห่งความทรงจำ" },
+  penName: { value: "ปากกาสีทอง" }, copyrightText: { value: "Copyright © 2026 ปากกาสีทอง" },
+  foreword: { value: "คำนำภาษาไทย" }, authorBio: { value: "ประวัติผู้เขียนภาษาไทย" },
+  context: { value: "เรื่องย่อภาษาไทย" },
+  chapterTitle: { value: "บทที่ 1 — ประตูแรก" },
+  manuscriptBody: { value: "บรรทัดแรก\nบททดสอบ & <tag>" },
+  manuscriptEditor: { innerText: "บรรทัดแรก\nบททดสอบ & <tag>" }
+};
+const $ = id => values[id];
+const downloads = [];
+const downloadBlob = (filename, blob) => downloads.push({ filename, blob });
+const mockCrypto = { randomUUID: () => "11111111-1111-4111-8111-111111111111" };
+const countWords = new Function(extractFunction("countWords") + "\nreturn countWords;")();
+assert.equal(countWords(""), 0);
+assert.equal(countWords("ห้องสมุดแห่งความทรงจำ"), 6, "Thai word segmentation");
+class ExportDOMParser {
+  parseFromString(html) {
+    return { body: { innerHTML: String(html), querySelectorAll: () => [], childNodes: [] }, querySelectorAll: () => [] };
+  }
+}
+const exportsApi = new Function("$", "downloadBlob", "crypto", code +
+  "\nreturn { exportManuscriptDocx, exportManuscriptEpub };")($, downloadBlob, mockCrypto);
+const epubApi = new Function("$", "downloadBlob", "crypto", "DOMParser", "sanitizeManuscriptHtml", code +
+  "\nreturn { exportWholeNovelEpub };")($, downloadBlob, mockCrypto, ExportDOMParser, value => String(value || ""));
+
+exportsApi.exportManuscriptDocx();
+const docx = downloads.pop();
+assert.ok(docx.filename.endsWith(".docx"));
+const docxFiles = readStoredZip(Buffer.from(await docx.blob.arrayBuffer()));
+assert.ok(docxFiles.has("[Content_Types].xml"));
+assert.ok(docxFiles.has("word/document.xml"));
+assert.ok(docxFiles.has("word/styles.xml"));
+assert.ok(docxFiles.get("word/document.xml").includes("ห้องสมุดแห่งความทรงจำ"));
+assert.ok(docxFiles.get("word/document.xml").includes("&amp; &lt;tag&gt;"));
+exportsApi.exportManuscriptDocx([
+  { title: "บทที่หนึ่ง", body: "เนื้อหาภาษาไทยบทหนึ่ง" },
+  { title: "บทที่สอง", body: "เนื้อหาภาษาไทยบทสอง" }
+], "นิยายทดสอบ");
+const wholeDocx = readStoredZip(Buffer.from(await downloads.pop().blob.arrayBuffer()));
+const wholeDocxXml = wholeDocx.get("word/document.xml");
+assert.ok(wholeDocxXml.includes("บทที่หนึ่ง") && wholeDocxXml.includes("บทที่สอง"));
+assert.ok(wholeDocxXml.includes("สารบัญ"), "DOCX contains a contents section");
+assert.ok((wholeDocxXml.match(/<w:pageBreakBefore\/>/g) || []).length >= 2, "DOCX starts each chapter on a new page");
+assert.ok(wholeDocxXml.includes("เนื้อหาภาษาไทยบทสอง"), "DOCX preserves later chapter text");
+assert.ok(wholeDocxXml.includes("ปากกาสีทอง") && wholeDocxXml.includes("คำนำภาษาไทย") && wholeDocxXml.includes("ประวัติผู้เขียนภาษาไทย"), "DOCX includes publishing front and back matter");
+
+epubApi.exportWholeNovelEpub([
+  { title: "บทที่หนึ่ง", body: "<p>เนื้อหาภาษาไทยบทหนึ่ง</p>" },
+  { title: "บทที่สอง", body: "<p>เนื้อหาภาษาไทยบทสอง</p>" }
+], "นิยายทดสอบ");
+const wholeEpub = readStoredZip(Buffer.from(await downloads.pop().blob.arrayBuffer()));
+assert.ok(wholeEpub.has("OEBPS/chapter-1.xhtml") && wholeEpub.has("OEBPS/chapter-2.xhtml"));
+assert.ok(wholeEpub.get("OEBPS/nav.xhtml").includes("บทที่สอง"), "EPUB navigation lists every chapter");
+assert.ok(wholeEpub.get("OEBPS/chapter-2.xhtml").includes("เนื้อหาภาษาไทยบทสอง"), "EPUB preserves Thai chapter text");
+assert.ok(wholeEpub.get("OEBPS/content.opf").includes("<dc:language>th</dc:language>"), "EPUB declares Thai language");
+assert.ok(wholeEpub.get("OEBPS/content.opf").includes("<dc:creator>ปากกาสีทอง</dc:creator>"), "EPUB uses the configured pen name");
+assert.ok(wholeEpub.get("OEBPS/content.opf").includes("Copyright © 2026 ปากกาสีทอง"), "EPUB preserves copyright metadata");
+assert.ok(wholeEpub.has("OEBPS/frontmatter.xhtml") && wholeEpub.has("OEBPS/backmatter.xhtml"), "EPUB includes front and back matter pages");
+assert.ok(wholeEpub.get("OEBPS/frontmatter.xhtml").includes("คำนำภาษาไทย"), "EPUB includes foreword content");
+assert.ok(wholeEpub.get("OEBPS/backmatter.xhtml").includes("ประวัติผู้เขียนภาษาไทย"), "EPUB includes author biography page");
+assert.ok(wholeEpub.get("OEBPS/nav.xhtml").includes("หน้าปกในและคำนำ"), "EPUB navigation includes front matter");
+
+
+exportsApi.exportManuscriptEpub();
+const epub = downloads.pop();
+assert.ok(epub.filename.endsWith(".epub"));
+const epubBuffer = Buffer.from(await epub.blob.arrayBuffer());
+const firstNameLength = epubBuffer.readUInt16LE(26);
+const firstName = epubBuffer.toString("utf8", 30, 30 + firstNameLength);
+assert.equal(firstName, "mimetype", "EPUB mimetype must be first");
+const epubFiles = readStoredZip(epubBuffer);
+assert.equal(epubFiles.get("mimetype"), "application/epub+zip");
+assert.ok(epubFiles.has("META-INF/container.xml"));
+assert.ok(epubFiles.has("OEBPS/content.opf"));
+assert.ok(epubFiles.get("OEBPS/chapter.xhtml").includes("บททดสอบ &amp; &lt;tag&gt;"));
+
+assert.ok(source.includes("function exportManuscriptPdf"));
+assert.ok(source.includes("async function exportEntireNovelTxt()"), "whole-novel TXT export is implemented");
+assert.ok(source.includes("async function exportEntireNovelDocx()"), "whole-novel DOCX export is implemented");
+assert.ok(source.includes("async function exportEntireNovelEpub()"), "whole-novel EPUB export is implemented");
+assert.ok(source.includes("function exportWholeNovelEpub(chapters, projectTitle)"), "EPUB package supports multiple chapters");
+assert.ok(source.includes("OEBPS/nav.xhtml"), "whole-novel EPUB includes a navigation document");
+assert.ok(source.includes("function exportManuscriptDocx(chapters = null, projectTitle = null)"), "DOCX export supports a multi-chapter document");
+assert.ok(source.includes("tocParagraphs"), "whole-novel DOCX includes a contents list");
+assert.ok(source.includes("<w:pageBreakBefore/>"), "whole-novel DOCX starts each chapter on a new page");
+assert.ok(source.includes("async function exportEntireNovelPdf()"), "whole-novel print-to-PDF flow is implemented");
+
+const printHelpers = ["printPlainTextParagraphs", "buildWholeNovelPrintHtml"].map(extractFunction).join("\n");
+const printHtmlBuilder = new Function("escapeHtml", "sanitizeManuscriptHtml", printHelpers +
+  "; return buildWholeNovelPrintHtml;")(
+  value => String(value).replace(/[&<>"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char]),
+  value => String(value || "")
+);
+const wholeBookPrintHtml = printHtmlBuilder({
+  title: "นิยาย <ทดสอบ>",
+  pen_name: "นามปากกา",
+  copyright_text: "ลิขสิทธิ์ & สงวนสิทธิ์",
+  foreword: "คำนำบรรทัดแรก\nคำนำบรรทัดสอง",
+  author_bio: "ประวัติผู้เขียน"
+}, [
+  { title: "บทแรก", body: "<p>เนื้อหาบทแรก</p>" },
+  { title: "บทที่สอง", body: "<p>เนื้อหาบทที่สอง</p>" }
+]);
+assert.ok(wholeBookPrintHtml.includes("นิยาย &lt;ทดสอบ&gt;"), "PDF title page escapes project title");
+assert.ok(wholeBookPrintHtml.includes("นามปากกา") && wholeBookPrintHtml.includes("ลิขสิทธิ์ &amp; สงวนสิทธิ์"), "PDF title page includes pen name and copyright");
+assert.ok(wholeBookPrintHtml.includes("คำนำบรรทัดแรก") && wholeBookPrintHtml.includes("คำนำบรรทัดสอง"), "PDF includes foreword paragraphs");
+assert.ok(wholeBookPrintHtml.includes("บทแรก") && wholeBookPrintHtml.includes("บทที่สอง") && wholeBookPrintHtml.includes("เนื้อหาบทที่สอง"), "PDF includes all chapters and chapter bodies");
+assert.ok(wholeBookPrintHtml.includes("เกี่ยวกับผู้เขียน") && wholeBookPrintHtml.includes("ประวัติผู้เขียน"), "PDF includes author biography");
+assert.ok(wholeBookPrintHtml.indexOf("print-book-frontmatter") < wholeBookPrintHtml.indexOf("print-book-toc") &&
+  wholeBookPrintHtml.indexOf("print-book-toc") < wholeBookPrintHtml.indexOf("print-book-chapter") &&
+  wholeBookPrintHtml.indexOf("print-book-backmatter") > wholeBookPrintHtml.indexOf("print-book-chapter"),
+  "PDF sections are ordered as front matter, contents, chapters, and back matter");
+assert.ok(stylesheet.includes(".print-book-frontmatter") && stylesheet.includes(".print-book-backmatter"),
+  "PDF publication pages have print layout rules");
+const txtDownloads = [];
+const txtCloud = {
+  authenticated: true, ready: true, activeProjectId: "project-1", activeChapterId: "chapter-1",
+  saveTimer: null, projects: [{ id: "project-1", title: "ตำนานแห่งแสงจันทร์", genre: "แฟนตาซี", pen_name: "ปากกาสีทอง", copyright_text: "Copyright © 2026 ปากกาสีทอง", foreword: "คำนำภาษาไทย", author_bio: "ประวัติผู้เขียนภาษาไทย" }]
+};
+const txtElements = { exportBookTxt: { disabled: false, textContent: "TXT" }, chapterSaveHint: { textContent: "" } };
+const txtCloudApi = async path => {
+  if (path.endsWith("/chapters")) return { chapters: [
+    { id: "chapter-2", sort_order: 2, created_at: "2026-01-02" },
+    { id: "chapter-1", sort_order: 1, created_at: "2026-01-01" }
+  ] };
+  if (path.endsWith("/chapter-1")) return { chapter: { id: "chapter-1", project_id: "project-1", title: "คืนแรก", body: "บทภาษาไทยที่หนึ่ง", sort_order: 1 } };
+  if (path.endsWith("/chapter-2")) return { chapter: { id: "chapter-2", project_id: "project-1", title: "แสงรุ่งอรุณ", body: "บทภาษาไทยที่สอง", sort_order: 2 } };
+  throw new Error("Unexpected TXT export request: " + path);
+};
+const exportTxt = new Function("cloud", "$", "cloudApi", "saveCloudChapter", "download", "exportBaseName", "chapterHtmlToPlainText", "alert",
+  extractFunction("exportEntireNovelTxt").replace(/^function /, "async function ") + "\nreturn exportEntireNovelTxt;")(
+  txtCloud, id => txtElements[id], txtCloudApi, async () => true,
+  (name, text) => txtDownloads.push({ name, text }), () => "storyforge-test",
+  value => value, message => { throw new Error(message); }
+);
+await exportTxt();
+assert.equal(txtDownloads.length, 1);
+assert.ok(txtDownloads[0].name.endsWith("-ทั้งเล่ม.txt"));
+assert.ok(txtDownloads[0].text.includes("ตำนานแห่งแสงจันทร์"));
+assert.ok(txtDownloads[0].text.includes("นามปากกา: ปากกาสีทอง") && txtDownloads[0].text.includes("คำนำภาษาไทย") && txtDownloads[0].text.includes("ประวัติผู้เขียนภาษาไทย"), "TXT includes publishing metadata");
+assert.ok(txtDownloads[0].text.indexOf("คืนแรก") < txtDownloads[0].text.indexOf("แสงรุ่งอรุณ"), "TXT chapters are exported in manuscript order");
+assert.ok(txtDownloads[0].text.includes("บทภาษาไทยที่หนึ่ง") && txtDownloads[0].text.includes("บทภาษาไทยที่สอง"), "TXT preserves complete Thai chapter text");
+assert.match(txtElements.chapterSaveHint.textContent, /2 บท/);
+
+const wrongProjectApi = async path => path.endsWith("/chapters")
+  ? { chapters: [{ id: "chapter-1", sort_order: 1 }] }
+  : { chapter: { id: "chapter-1", project_id: "another-project", title: "หลุดโครงการ", body: "ห้ามส่งออก" } };
+const protectedTxt = new Function("cloud", "$", "cloudApi", "saveCloudChapter", "download", "exportBaseName", "chapterHtmlToPlainText", "alert",
+  extractFunction("exportEntireNovelTxt").replace(/^function /, "async function ") + "\nreturn exportEntireNovelTxt;")(
+  txtCloud, id => txtElements[id], wrongProjectApi, async () => true,
+  (name, text) => txtDownloads.push({ name, text }), () => "storyforge-test",
+  value => value, () => {}
+);
+await protectedTxt();
+assert.equal(txtDownloads.length, 1, "TXT export refuses chapters from another project");
+
+assert.ok(source.includes("totalSize > 12 * 1024 * 1024"), "whole-novel PDF export has a memory safety cap");
+assert.ok(source.includes("print-book-toc"), "whole-novel PDF includes a table of contents");
+assert.ok(stylesheet.includes("break-before: page"), "whole-novel PDF starts chapters on new pages");
+assert.ok(source.includes("chapter.project_id !== projectId"), "whole-novel export rejects cross-project chapter data");
+assert.ok(source.includes("new Blob([content]).size > 39 * 1024 * 1024"), "Backup size stays below restore limit");
+assert.ok(source.includes("window.print()"));
+assert.ok(stylesheet.includes("@page { size: A4"));
+assert.ok(stylesheet.includes("#printManuscriptText"));
+
+console.log("Export smoke tests passed: DOCX and EPUB ZIP packages are valid; A4 print-to-PDF flow is wired.");
+
+assert.ok(source.includes("async function collectCloudBackup()"), "Cloud backup collector is implemented");
+assert.ok(source.includes("cloudApi(\"/api/projects/\" + encodeURIComponent(project.id) + \"/chapters\")"), "Backup includes project chapters");
+assert.ok(source.includes('["characters", "relationships", "plot-threads", "world-lore", "timeline", "notes"]'), "Backup includes project studio modules");
+assert.ok(source.includes("snapshotHistory: false"), "Backup explicitly discloses that snapshot history is not included");
+assert.ok(source.includes("async function restoreCloudBackup(backupProjects)"), "Cloud backup restore is implemented");
+assert.ok(source.includes("clientId: chapter.id"), "Cloud restore preserves stable chapter IDs");
+assert.ok(source.includes("character_ids_json: chapter.character_ids_json || \"[]\""), "Cloud restore preserves chapter Canon links");
+assert.ok(source.includes("chapter.character_ids_json"), "Cloud backup preflight validates chapter Canon links");
+assert.ok(source.includes("version: 4"), "New backup format is versioned");
+assert.ok(source.includes("async function collectIllustrationLibraryBackup(cloudProjects, localData)"), "Illustration library is included in backup");
+assert.ok(source.includes("function validateIllustrationLibraryBackup(records, cloudProjects, localData)"), "Illustration library restore is validated");
+assert.ok(source.includes("async function restoreIllustrationLibraryRecords(records)"), "Illustration library can be restored");
+assert.ok(source.includes("async function collectCharacterVaultBackup(cloudProjects)"), "Character references are included in backup");
+assert.ok(source.includes("async function restoreCharacterVaultRecords(records)"), "Character references can be restored");
+assert.ok(source.includes("function validateCharacterVaultBackup(records, cloudProjects)"), "Character reference restore is validated");
+assert.ok(source.includes('field === "pinned" ? Boolean(item[field]) : item[field]'), "Cloud restore normalizes SQLite booleans");
+assert.ok(source.includes('if (project.status === "archived" && projectResult.project?.status !== "archived")'), "Cloud restore preserves archived project state without unnecessary updates");
+
+assert.ok(source.includes("ถึงขีดจำกัดที่ API ส่งกลับ"), "Backup refuses collections at API result caps instead of silently omitting records");
+assert.ok(source.includes("validateCloudBackupData(cloudProjects)"), "Cloud restore is preflight-validated before confirmation and writes");
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const validateCloudBackupData = new Function("UUID_RE", "countWords", extractFunction("validateCloudBackupData") +
+  "\nreturn validateCloudBackupData;")(UUID_RE, countWords);
+const projectId = "11111111-1111-4111-8111-111111111111";
+const characterId = "22222222-2222-4222-8222-222222222222";
+const chapterId = "33333333-3333-4333-8333-333333333333";
+const validCloudBackup = [{
+  project: { id: projectId, title: "ทดสอบ", genre: "แฟนตาซี", synopsis: "", status: "active" },
+  chapters: [{ id: chapterId, title: "บทที่ 1", body: "ทดสอบ", sort_order: 0, word_count: 1, character_ids_json: JSON.stringify([characterId]) }],
+  modules: {
+    characters: [{ id: characterId, name: "ตัวละคร", role: "", profile_json: "{}", sort_order: 0 }],
+    relationships: [], "plot-threads": [], "world-lore": [], timeline: [], notes: []
+  }
+}];
+assert.equal(validateCloudBackupData(validCloudBackup), true, "valid cloud backup passes preflight");
+const expectInvalidBackup = (mutate, message) => {
+  const copy = JSON.parse(JSON.stringify(validCloudBackup));
+  mutate(copy);
+  assert.throws(() => validateCloudBackupData(copy), message);
+};
+expectInvalidBackup(copy => copy.push(JSON.parse(JSON.stringify(copy[0]))), /รหัสโครงการซ้ำ/);
+expectInvalidBackup(copy => { copy[0].chapters[0].body = 123; }, /ข้อมูลบทนิยาย/);
+expectInvalidBackup(copy => { delete copy[0].modules.notes; }, /โครงสร้างโครงการ/);
+expectInvalidBackup(copy => { copy[0].chapters[0].word_count = 99; }, /ข้อมูลบทนิยาย/);
+expectInvalidBackup(copy => { copy[0].chapters[0].character_ids_json = JSON.stringify(["55555555-5555-4555-8555-555555555555"]); }, /บทนิยายอ้างถึงตัวละคร/);
+expectInvalidBackup(copy => {
+  copy[0].modules.relationships.push({
+    id: "44444444-4444-4444-8444-444444444444",
+    source_character_id: characterId,
+    target_character_id: "55555555-5555-4555-8555-555555555555"
+  });
+}, /ไม่มีอยู่ในโครงการเดียวกัน/);
+console.log("Cloud backup preflight tests passed: valid archive accepted; duplicate IDs, invalid chapter data, and dangling relationships rejected.");

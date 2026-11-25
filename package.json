@@ -4,7 +4,12 @@
   "private": true,
   "description": "STORYFORGE - AI Novel Studio",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "npm run test:unit && npm run test:schema && npm run test:security",
+    "test:unit": "node --input-type=module --check < cloudflare/worker.js && node --check public/app.js && node tests/check_exports.mjs && node tests/check_recovery.mjs && node tests/check_continuity.mjs && node tests/check_studio_editor.mjs && node tests/check_cloud_save_race.mjs",
+    "test:schema": "python tests/check_d1_schema.py",
+    "test:security": "python tests/check_worker_contract.py && python tests/check_http_security.py",
+    "test:staging": "node tests/check_staging_worker.mjs"
   },
   "engines": {
     "node": ">=22"

@@ -1,0 +1,92 @@
+# STORYFORGE Staging Verification — 23 November 2026
+
+## Scope and safety
+
+This record documents an isolated staging foundation created for the feature/storyforge-studio-80 branch. No production Worker deployment, production D1 migration, production data change, production backup, or main-branch merge was performed.
+
+## Resources
+
+- Staging D1 database: storyforge-staging
+- Staging Worker: storyforge-staging
+- Staging URL: https://storyforge-staging.jastsadakorn-n.workers.dev/
+- workers.dev subdomain enabled for staging only; preview URLs disabled
+- Worker binding: DB → storyforge-staging
+- Worker deployment: one version at 100% traffic for the staging Worker only
+- Worker entry point: cloudflare/worker.js from branch feature/storyforge-studio-80
+- Worker compatibility date: 2026-11-22
+- The three frontend files (index.html, app.js, style.css) are embedded in the staging Worker and served by a small static fallback. No separate Workers Assets binding is used. GitHub OAuth credentials, owner allowlist, and production secrets were not copied.
+
+## D1 migration results
+
+All branch migrations were applied in order to the new empty staging D1 database:
+
+1. 0001_initial_schema.sql
+2. 0002_novel_studio_modules.sql
+3. 0003_chapter_word_count.sql
+4. 0004_canonical_character_references.sql
+5. 0005_story_note_character_references.sql
+6. 0006_chapter_character_references.sql
+7. 0007_plot_thread_chapter_references.sql
+8. 0008_scene_tracker.sql
+9. 0009_canon_chapter_references.sql
+10. 0010_chapter_planning_metadata.sql
+11. 0011_project_publication_metadata.sql
+12. 0012_cover_brief_persistence.sql
+
+The staging d1_migrations ledger contains all 12 migration filenames. Schema inspection confirmed the expected project publication metadata, cover brief, chapter planning metadata, character/chapter reference JSON fields, Scene Tracker fields, and the expected module tables.
+
+## Data isolation smoke test
+
+Temporary QA records were created in staging only: one QA owner, two separate novel projects, a character with the same display name in each project, one chapter in each project, and a plot thread and Scene Tracker note linked to Project A's own character and chapter.
+
+A direct attempt to create a relationship in Project A using Project B's character was rejected by D1 with a foreign-key constraint error. PRAGMA foreign_key_check returned no violations. All QA records were then deleted by deleting the QA owner; a follow-up count confirmed zero remaining QA projects.
+
+## Verified outcomes
+
+- [x] Isolated staging D1 created; production D1 untouched.
+- [x] Migrations 0001–0012 applied in order to staging.
+- [x] Migration ledger verified.
+- [x] Expected tables and key columns inspected.
+- [x] Foreign-key integrity check returned no violations.
+- [x] Cross-project relationship insert rejected at the database layer.
+- [x] Temporary QA records cleaned up.
+- [x] Staging Worker uploaded and its D1 binding verified.
+- [x] Staging Worker deployment reports 100% traffic to its own version.
+- [x] Staging workers.dev subdomain enabled; production subdomain and routing untouched.
+- [x] Health endpoint reports `authConfigured` as a boolean only (never returns Client ID, Client Secret, or owner ID); staging deployment includes this readiness signal.
+- [x] Live staging smoke test on commit `ac00b4f91f84c101365d1ece9cf3527d177d44` verifies OAuth readiness, `/api/session`, and `/auth/login`: with OAuth intentionally unconfigured, both auth routes fail closed with `503 AUTH_NOT_CONFIGURED`; the test also accepts the expected GitHub redirect once staging OAuth is configured.
+- [x] GitHub Actions live HTTP smoke test passed on commit 8c7dab2769c2731d5950bdb16c3932fbe02b82ab: /api/health returned 200 with D1 ready; unauthenticated /api/projects returned 401 UNAUTHENTICATED; /, /app.js, and /style.css returned 200 with expected content types.
+
+## Still not verified
+
+- [ ] Configure a separate staging GitHub OAuth application/callback and owner allowlist. Do not change the production OAuth app callback.
+- [ ] Configure staging-only secrets without copying or exposing production secrets.
+- [x] Serve the branch frontend files (index.html, app.js, style.css) from the staging Worker. The files are embedded for this isolated QA deployment; production Worker code and assets are untouched.
+- [ ] Execute live HTTP/API tests against the staging Worker, including owner auth, CSRF, project isolation, chapter autosave, snapshots, restore, and module CRUD.
+- [ ] Browser end-to-end tests and Android tablet portrait/landscape QA.
+- [ ] Full application backup and restore drill, including device-local character/illustration assets.
+- [ ] Independent encrypted off-site D1 backup and restore drill.
+- [ ] Real DOCX/EPUB/PDF rendering inspection.
+
+## Important limitation
+
+The staging Worker is deployed with the branch Worker API source, the staging D1 binding, and embedded copies of the branch frontend files. It is not yet a complete authenticated staging environment because it has no separate OAuth configuration or owner allowlist. Cloudflare API inspection confirmed the Worker version and binding. Direct HTTP requests from the Cloudflare execution tool and web reader were blocked by their network policies, but the GitHub Actions runner successfully completed live HTTP smoke tests for D1 health, unauthenticated access rejection, and all three frontend assets. Authenticated API and browser/device flows remain unverified.
+
+## Production safety
+
+The existing production D1 database and active production Worker were not modified. Do not apply migrations 0004–0012 to production or deploy this branch to the production Worker without explicit owner approval and a reviewed rollout/rollback plan.
+
+## Deployment and live smoke-test addendum — 26 November 2026
+
+This addendum records the follow-up deployment from branch commit `b8e978cda7d19d7744bc6d063ecf1d12911274f1`. It supersedes earlier statements above that the staging Worker had no OAuth configuration or that the current deployment did not use a static-assets binding.
+
+- Root `wrangler.toml` now explicitly targets `storyforge-staging`, binds D1 database `storyforge-staging`, and configures the `ASSETS` binding from `./public`.
+- Cloudflare Workers Build `65c6f21c-2e4b-448c-b391-a84379eb13bb` completed successfully.
+- Deployed Worker version: `e06f6008-9cbd-426a-9f53-ac9f449b18e9`, with 100% traffic assigned to that version.
+- Worker settings were re-read after deployment. The `DB` binding still points to the staging D1 database ID; `ASSETS` is present; OAuth Client ID, Client Secret, and owner-ID bindings are present. Secret values were not read or disclosed.
+- GitHub Actions unit, schema, and security validation passed. The live staging smoke test also passed against the deployed Worker, including health/D1 readiness, auth readiness and login/session behavior, unauthenticated project API rejection, and homepage/JavaScript/CSS delivery.
+- Evidence: GitHub validation job IDs `139380816004` and `139380876581`; live smoke test output: “Staging Worker smoke tests passed: D1 health, auth readiness, fail-closed session/login behavior, and frontend assets.”
+
+**Still not verified:** interactive owner OAuth completion, non-owner denial, logout revocation, browser autosave/revision/restore, multi-project end-to-end isolation, Android tablet QA, actual DOCX/EPUB/PDF rendering, and independent encrypted backup/restore. The existence of OAuth bindings and a successful redirect smoke test is not equivalent to completing authenticated user acceptance tests.
+
+No Production Worker, Production D1, Production OAuth application, or Production data was modified in this deployment.

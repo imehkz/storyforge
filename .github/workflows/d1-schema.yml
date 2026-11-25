@@ -1,0 +1,30 @@
+name: StoryForge validation
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Run unit, schema, and security validation
+        run: npm test
+      - name: Smoke test isolated staging Worker
+        if: github.ref == 'refs/heads/feature/storyforge-studio-80' || github.head_ref == 'feature/storyforge-studio-80'
+        run: npm run test:staging

@@ -1,15 +1,532 @@
 <!doctype html>
-<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>STORYFORGE — AI NOVEL STUDIO</title><link rel="stylesheet" href="style.css"></head>
-<body><div class="app">
-<header><div class="brand"><span class="mark">✦</span><div><b>STORYFORGE</b><small>AI NOVEL STUDIO</small></div></div><span class="save" id="saveState">บันทึกในอุปกรณ์อัตโนมัติ</span></header>
-<main><aside><button class="nav active" data-tab="studio">✍️ สตูดิโอเขียนนิยาย</button><button class="nav" data-tab="memory">🧠 ความจำโครงการ</button><button class="nav" data-tab="projects">📚 โครงการของฉัน</button><div class="side-note">เขียนเรื่องราวของคุณ<br>ให้กลายเป็นโลกที่มีชีวิต</div></aside>
-<section class="content">
-<div id="studio" class="panel"><div class="hero"><p class="eyebrow">YOUR CREATIVE SPACE</p><h1>ทุกเรื่องราวเริ่มต้นที่นี่</h1><p>วางพล็อต สร้างตัวละคร และเขียนนิยายไปพร้อม AI</p></div>
-<div class="grid"><div class="card"><label>ชื่อโครงการ</label><input id="title" placeholder="เช่น เงาจันทร์ในฤดูฝน"><label>แนวนิยาย</label><select id="genre"><option>แฟนตาซี</option><option>โรแมนซ์</option><option>สืบสวน / ระทึกขวัญ</option><option>วาย / BL</option><option>ไซไฟ</option><option>ดราม่า</option><option>Historical</option><option>อื่น ๆ</option></select><label>บริบทและข้อมูลสำคัญของเรื่อง</label><textarea id="context" rows="5" placeholder="ตัวละคร โลกของเรื่อง พล็อต และสิ่งที่ต้องจำ..."></textarea><button id="saveProject" class="secondary">บันทึกโครงการ</button></div>
-<div class="card"><div class="modebar"><button class="mode active" data-mode="writer">นักเขียน</button><button class="mode" data-mode="brainstorm">ระดมไอเดีย</button><button class="mode" data-mode="editor">บรรณาธิการ</button><button class="mode" data-mode="publisher">สำนักพิมพ์</button></div><label>คำสั่งสำหรับ AI</label><textarea id="prompt" rows="7" placeholder="เช่น เขียนบทที่ 1 เปิดเรื่องด้วยฉากที่ชวนติดตาม..."></textarea><button id="run" class="primary">✦ เริ่มทำงานกับ AI</button><p class="hint">AI จะใช้บริบทโครงการด้านซ้ายประกอบการตอบ</p></div></div>
-<div class="card result"><div class="result-head"><b>ผลงานจาก AI</b><div><button id="copy" class="tiny">คัดลอก</button><button id="download" class="tiny">ดาวน์โหลด .txt</button></div></div><pre id="output">คำตอบจาก AI จะแสดงที่นี่…</pre></div>
-<div class="card"><label>ต้นฉบับ / เนื้อหาบท</label><input id="chapterTitle" placeholder="ชื่อบท เช่น บทที่ 1 — จุดเริ่มต้น"><textarea id="manuscript" rows="10" placeholder="เริ่มเขียนต้นฉบับของคุณที่นี่..."></textarea><button id="export" class="secondary">ส่งออกต้นฉบับเป็น .txt</button></div></div>
-<div id="memory" class="panel hidden"><div class="hero"><h1>ความจำโครงการ</h1><p>เก็บรายละเอียดที่ AI ควรยึดถือระหว่างเขียนเรื่องนี้</p></div><div class="card"><label>Project Memory</label><textarea id="projectMemory" rows="10" placeholder="กฎของโลก ตัวละคร ความสัมพันธ์ ไทม์ไลน์ และข้อห้าม..."></textarea><label>Global Memory (ใช้ร่วมกันทุกโครงการบนอุปกรณ์นี้)</label><textarea id="globalMemory" rows="6" placeholder="สไตล์การเขียนที่ชอบ โทนภาษา และความต้องการประจำ..."></textarea><button class="primary" id="saveMemory">บันทึกความจำ</button></div></div>
-<div id="projects" class="panel hidden"><div class="hero"><h1>โครงการของฉัน</h1><p>รายการโครงการที่บันทึกไว้ในเบราว์เซอร์นี้</p></div><div class="card" id="projectList">ยังไม่มีโครงการที่บันทึกไว้</div></div>
-</section></main><footer>STORYFORGE • เขียนจินตนาการให้เป็นจริง</footer></div><script src="app.js"></script></body></html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101827">
+  <meta name="description" content="STORYFORGE — พื้นที่สร้างสรรค์และเขียนนิยาย">
+  <title>STORYFORGE — AI Novel Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Noto+Serif+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <a class="brand" href="#" data-home>
+      <span class="brand-mark">✦</span>
+      <span><strong>STORYFORGE</strong><small>AI NOVEL STUDIO</small></span>
+    </a>
+    <div class="sidebar-rule"></div>
+    <div class="project-switcher">
+      <span class="micro-label">นิยายล่าสุด</span>
+      <strong id="sidebarProjectName">ยังไม่ได้เลือกนิยาย</strong>
+      <span class="project-meta" id="sidebarProjectMeta">เริ่มต้นสร้างเรื่องราวของคุณ</span>
+    </div>
+    <div class="nav-heading">พื้นที่ทำงานเขียน</div>
+    <nav class="primary-nav" aria-label="เมนูหลัก">
+      <button class="nav active" data-tab="dashboard"><span class="nav-index">01</span><span>หน้าภาพรวม</span></button>
+      <button class="nav" data-tab="projects"><span class="nav-index">02</span><span>คลังนิยาย</span></button>
+      <button class="nav" data-tab="characters"><span class="nav-index">03</span><span>ห้องจัดการตัวละคร</span></button>
+      <button class="nav" data-tab="plot"><span class="nav-index">04</span><span>ห้องวางพล็อต</span></button>
+      <button class="nav" data-tab="world"><span class="nav-index">05</span><span>สร้างโลกนิยาย</span></button>
+      <button class="nav" data-tab="timeline"><span class="nav-index">06</span><span>ลำดับเหตุการณ์</span></button>
+      <button class="nav" data-tab="notes"><span class="nav-index">07</span><span>บันทึกเนื้อเรื่อง</span></button>
+      <button class="nav" data-tab="manuscript"><span class="nav-index">08</span><span>Novel Studio</span></button>
+      <button class="nav" data-tab="assistant"><span class="nav-index">09</span><span>ผู้ช่วยเขียนนิยาย AI</span></button>
+      <button class="nav" data-tab="cover"><span class="nav-index">10</span><span>ห้องออกแบบปก</span></button>
+      <button class="nav" data-tab="illustrations"><span class="nav-index">11</span><span>ห้องภาพประกอบ</span></button>
+      <button class="nav" data-tab="backup"><span class="nav-index">12</span><span>สำรองและกู้คืนข้อมูล</span></button>
+    </nav>
+    <div class="sidebar-note">
+      <span class="gold-text">✧ นิยายหนึ่งเรื่อง ทุกส่วนเชื่อมถึงกัน</span>
+      <p>ตัวละคร พล็อต และโลกของเรื่อง จะเติบโตไปพร้อมกับต้นฉบับ</p>
+    </div>
+    <div class="sidebar-footer">พื้นที่ทำงานส่วนตัว</div>
+  </aside>
+
+  <main class="main-area">
+    <header class="topbar">
+      <div class="breadcrumbs"><span>พื้นที่ทำงาน</span><i>/</i><strong id="breadcrumbTitle">หน้าภาพรวม</strong></div>
+      <div class="topbar-right">
+        <span class="save-indicator" id="saveState"><span class="status-dot"></span>รุ่นทดสอบ · ข้อมูลอยู่ในอุปกรณ์นี้</span>
+        <span class="save-indicator" id="authState" role="status" aria-live="polite">กำลังตรวจสอบบัญชี…</span>
+        <button id="loginButton" class="outline-button compact" type="button" hidden>เข้าสู่ระบบด้วย GitHub</button>
+        <button id="logoutButton" class="outline-button compact" type="button" hidden>ออกจากระบบ</button>
+      </div>
+    </header>
+
+    <div class="content-wrap">
+      <section id="dashboard" class="panel">
+        <div class="page-intro">
+          <div><span class="eyebrow">โต๊ะทำงานนักเขียน</span><h1>ทุกเรื่องราว รอให้คุณเขียนต่อ</h1><p>กลับสู่โลกของคุณ ทุกความคิดยังอยู่ในที่เดิม</p></div>
+          <button class="outline-button" data-open-tab="manuscript">เปิดห้องเขียนต้นฉบับ <span>→</span></button>
+        </div>
+
+        <article class="featured-project card-frame" id="dashboardProject">
+          <div class="featured-copy">
+            <span class="micro-label">นิยายที่กำลังเขียน / บทล่าสุด</span>
+            <h2 id="dashboardProjectTitle">ยังไม่มีนิยายในห้องสมุด</h2>
+            <p class="chapter-line" id="dashboardChapterLine">เริ่มต้นสร้างโลกและตัวละครของคุณได้เลย</p>
+            <p class="last-edited" id="dashboardLastEdited">พื้นที่เขียนนิยายส่วนตัว · บันทึกในอุปกรณ์นี้</p>
+            <button class="gold-button" data-open-tab="projects">ไปยังคลังนิยาย <span>→</span></button>
+          </div>
+          <div class="featured-emblem" aria-hidden="true">
+            <svg viewBox="0 0 180 180" role="img">
+              <circle cx="90" cy="90" r="76"></circle><circle cx="90" cy="90" r="66"></circle>
+              <path d="M90 27c-16 16-14 40 3 52 8 6 18 7 27 3-6 16-23 26-41 22-23-5-36-30-26-52 7-15 21-24 37-25z"></path>
+              <path d="M55 105c14-8 27-8 35 0 8-8 21-8 35 0v30c-14-8-27-8-35 0-8-8-21-8-35 0zM90 105v30"></path>
+              <path d="M90 10v12M90 158v12M10 90h12M158 90h12M34 34l9 9M137 137l9 9M146 34l-9 9M43 137l-9 9"></path>
+              <path d="M55 58l3 7 7 3-7 3-3 7-3-7-7-3 7-3zM128 66l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"></path>
+            </svg>
+          </div>
+          <div class="featured-progress">
+            <strong id="dashboardWordCount">0</strong><span id="dashboardWordGoal">คำในต้นฉบับ</span>
+            <div class="progress-track"><span id="dashboardProgress"></span></div>
+          </div>
+        </article>
+
+        <div class="summary-grid">
+          <button class="summary-card" data-open-tab="characters"><span class="summary-number" id="characterCount">—</span><span><small>ตัวละคร</small><strong>คลังตัวละครในเรื่อง</strong></span><b>→</b></button>
+          <button class="summary-card" data-open-tab="plot"><span class="summary-number" id="plotCount">—</span><span><small>เส้นเรื่อง</small><strong>เส้นเรื่องที่วางไว้</strong></span><b>→</b></button>
+          <button class="summary-card" data-open-tab="world"><span class="summary-number" id="worldCount">—</span><span><small>ข้อมูลโลกนิยาย</small><strong>สถานที่และกฎของโลก</strong></span><b>→</b></button>
+        </div>
+
+        <div class="dashboard-lower">
+          <section class="card-frame recent-card">
+            <div class="section-heading"><div><h3>หน้าต่อไปของเรื่องราว</h3><p>ต้นฉบับล่าสุด</p></div><button class="text-link" data-open-tab="manuscript">ไปยังต้นฉบับ →</button></div>
+            <div id="dashboardRecentChapters" class="dashboard-recent-list" aria-live="polite">
+              <div class="recent-row"><span class="chapter-number">01</span><span class="recent-title" id="recentChapterTitle">ยังไม่มีบทที่บันทึก</span><span class="recent-detail" id="recentWordCount">0 คำ</span></div>
+            </div>
+            <p class="muted-note" id="dashboardRecentHint">บทล่าสุดของนิยายที่เลือกจะแสดงที่นี่</p>
+          </section>
+          <section class="card-frame assistant-card">
+            <span class="micro-label">✦ ผู้ช่วยเขียนนิยาย AI</span>
+            <h3>คู่คิดที่รู้จักโลกของคุณ</h3>
+            <p>ช่วยต่อยอดฉาก โดยอ้างอิงตัวละคร พล็อต และกฎของโลกในนิยายเรื่องนี้</p>
+            <button class="outline-button full-width" data-open-tab="assistant">ดูสถานะผู้ช่วย AI <span>→</span></button>
+            <small>คุณเป็นผู้เลือกสิ่งที่จะเพิ่มลงในเรื่องเสมอ</small>
+          </section>
+        </div>
+        <div class="local-disclosure">ต้นแบบพื้นที่ทำงานส่วนตัว · ข้อมูลในรุ่นนี้เก็บไว้ในเบราว์เซอร์เครื่องนี้ ยังไม่ซิงก์ขึ้นเซิร์ฟเวอร์</div>
+      </section>
+
+      <section id="projects" class="panel hidden">
+        <div class="page-intro"><div><span class="eyebrow">ห้องสมุดของนักเขียน</span><h1>คลังนิยาย</h1><p>สร้างและจัดเก็บแนวคิดของเรื่องราวแต่ละเรื่อง</p></div></div>
+        <div class="two-column">
+          <div class="card-frame form-card">
+            <h2>ข้อมูลนิยาย</h2>
+            <label for="title">ชื่อโครงการ</label><input id="title" placeholder="เช่น ห้องสมุดแห่งความทรงจำ">
+            <label for="genre">แนวนิยาย</label><select id="genre"><option>แฟนตาซี</option><option>โรแมนซ์</option><option>สืบสวน / ระทึกขวัญ</option><option>วาย / BL</option><option>ไซไฟ</option><option>ดราม่า</option><option>Historical</option><option value="__custom__">อื่น ๆ (ระบุเอง)</option></select>
+            <div id="customGenreField" hidden><label for="customGenre">พิมพ์แนวนิยายที่ต้องการ</label><input id="customGenre" type="text" maxlength="80" placeholder="เช่น พีเรียดแฟนตาซี, Cozy Mystery, โรแมนติกคอมเมดี้"></div>
+            <label for="context">เรื่องย่อและข้อมูลสำคัญ</label><textarea id="context" rows="6" placeholder="โลกของเรื่อง ตัวละครหลัก แนวคิด และสิ่งที่ต้องจำ..."></textarea>
+            <details class="writing-settings card-frame publication-settings">
+              <summary><strong>ข้อมูลสำหรับจัดพิมพ์</strong><span>นามปากกา · ลิขสิทธิ์ · คำนำ · ประวัติผู้เขียน</span></summary>
+              <div class="writing-settings-grid">
+                <div><label for="penName">นามปากกา</label><input id="penName" maxlength="120" placeholder="ชื่อที่ใช้บนหน้าปก"></div>
+                <div><label for="copyrightText">ข้อความลิขสิทธิ์</label><input id="copyrightText" maxlength="300" placeholder="เช่น Copyright © 2026 นามปากกา"></div>
+                <div class="publication-wide"><label for="foreword">คำนำ</label><textarea id="foreword" rows="4" maxlength="10000" placeholder="ข้อความคำนำหรือคำชี้แจงก่อนเริ่มเรื่อง"></textarea></div>
+                <div class="publication-wide"><label for="authorBio">ประวัติผู้เขียน</label><textarea id="authorBio" rows="3" maxlength="3000" placeholder="แนะนำตัวผู้เขียนสำหรับท้ายเล่ม"></textarea></div>
+              </div>
+              <p class="form-hint">บันทึกแยกตามนิยาย และใช้ประกอบไฟล์ส่งออกเมื่อจัดทำต้นฉบับฉบับเต็ม</p>
+            </details>
+            <details class="writing-settings card-frame" open>
+              <summary><strong>ตั้งค่าการเขียนนิยาย</strong><span>จำนวนตอน · จำนวนคำ · แนวและระดับความเข้มข้น</span></summary>
+              <div class="writing-settings-grid">
+                <div><label for="plannedChapterCount">จำนวนตอนทั้งหมด</label><input id="plannedChapterCount" type="number" min="1" max="500" value="20"></div>
+                <div><label for="plannedWordsPerChapter">จำนวนคำต่อตอน</label><input id="plannedWordsPerChapter" type="number" min="100" max="20000" step="100" value="2000"></div>
+                <div><label for="writingPov">มุมมองการเล่า</label><select id="writingPov"><option value="third">บุคคลที่สาม</option><option value="first">บุคคลที่หนึ่ง</option><option value="flexible">ปรับตามฉาก</option></select></div>
+                <div><label for="writingStyle">สไตล์ภาษา</label><select id="writingStyle"><option value="literary">วรรณกรรม ละเอียดละเมียด</option><option value="cinematic">ภาพชัดแบบภาพยนตร์</option><option value="accessible">อ่านลื่น เข้าถึงง่าย</option><option value="custom">กำหนดในคำสั่งเพิ่มเติม</option></select></div>
+              </div>
+              <h3>เลือกระดับความเข้มข้นของแต่ละแนว (1–10)</h3>
+              <p class="form-hint">ติ๊กเลือกแนวที่ต้องการใช้ได้หลายแนว แล้วปรับระดับความเข้มข้นของแต่ละแนวแยกกัน</p>
+              <div class="genre-level-grid">
+                <div class="genre-level"><label for="genreLevel0">วาย (BL)</label><input type="checkbox" data-genre-enabled="วาย (BL)" aria-label="เลือกแนว วาย (BL)"><input id="genreLevel0" data-genre-level="วาย (BL)" type="range" min="1" max="10" value="5"><output for="genreLevel0">5/10</output></div><div class="genre-level"><label for="genreLevel1">โรแมนติก</label><input type="checkbox" data-genre-enabled="โรแมนติก" aria-label="เลือกแนว โรแมนติก"><input id="genreLevel1" data-genre-level="โรแมนติก" type="range" min="1" max="10" value="5"><output for="genreLevel1">5/10</output></div><div class="genre-level"><label for="genreLevel2">สยองขวัญ</label><input type="checkbox" data-genre-enabled="สยองขวัญ" aria-label="เลือกแนว สยองขวัญ"><input id="genreLevel2" data-genre-level="สยองขวัญ" type="range" min="1" max="10" value="5"><output for="genreLevel2">5/10</output></div><div class="genre-level"><label for="genreLevel3">ดราม่า</label><input type="checkbox" data-genre-enabled="ดราม่า" aria-label="เลือกแนว ดราม่า"><input id="genreLevel3" data-genre-level="ดราม่า" type="range" min="1" max="10" value="5"><output for="genreLevel3">5/10</output></div><div class="genre-level"><label for="genreLevel4">แฟนตาซี</label><input type="checkbox" data-genre-enabled="แฟนตาซี" aria-label="เลือกแนว แฟนตาซี"><input id="genreLevel4" data-genre-level="แฟนตาซี" type="range" min="1" max="10" value="5"><output for="genreLevel4">5/10</output></div><div class="genre-level"><label for="genreLevel5">ต่างโลก (Isekai)</label><input type="checkbox" data-genre-enabled="ต่างโลก (Isekai)" aria-label="เลือกแนว ต่างโลก (Isekai)"><input id="genreLevel5" data-genre-level="ต่างโลก (Isekai)" type="range" min="1" max="10" value="5"><output for="genreLevel5">5/10</output></div><div class="genre-level"><label for="genreLevel6">สืบสวน</label><input type="checkbox" data-genre-enabled="สืบสวน" aria-label="เลือกแนว สืบสวน"><input id="genreLevel6" data-genre-level="สืบสวน" type="range" min="1" max="10" value="5"><output for="genreLevel6">5/10</output></div><div class="genre-level"><label for="genreLevel7">ระทึกขวัญ</label><input type="checkbox" data-genre-enabled="ระทึกขวัญ" aria-label="เลือกแนว ระทึกขวัญ"><input id="genreLevel7" data-genre-level="ระทึกขวัญ" type="range" min="1" max="10" value="5"><output for="genreLevel7">5/10</output></div><div class="genre-level"><label for="genreLevel8">แอ็กชัน</label><input type="checkbox" data-genre-enabled="แอ็กชัน" aria-label="เลือกแนว แอ็กชัน"><input id="genreLevel8" data-genre-level="แอ็กชัน" type="range" min="1" max="10" value="5"><output for="genreLevel8">5/10</output></div><div class="genre-level"><label for="genreLevel9">คอมเมดี้</label><input type="checkbox" data-genre-enabled="คอมเมดี้" aria-label="เลือกแนว คอมเมดี้"><input id="genreLevel9" data-genre-level="คอมเมดี้" type="range" min="1" max="10" value="5"><output for="genreLevel9">5/10</output></div><div class="genre-level"><label for="genreLevel10">อีโรติก</label><input type="checkbox" data-genre-enabled="อีโรติก" aria-label="เลือกแนว อีโรติก"><input id="genreLevel10" data-genre-level="อีโรติก" type="range" min="1" max="10" value="5"><output for="genreLevel10">5/10</output></div>
+              </div>
+              <div class="writing-settings-grid">
+                <div><label for="adultContentMode">ขอบเขตฉากผู้ใหญ่</label><select id="adultContentMode"><option value="off">ไม่เน้นฉากผู้ใหญ่</option><option value="romantic">โรแมนติกเร่าร้อน เน้นอารมณ์และความสัมพันธ์</option><option value="fade">บรรยายความใกล้ชิดแล้วตัดฉาก</option></select></div>
+                <div><label for="writingExtraNotes">ข้อกำหนดเพิ่มเติม</label><input id="writingExtraNotes" maxlength="1000" placeholder="โทนเรื่อง จังหวะ และสิ่งที่ต้องการเน้น"></div>
+              </div>
+              <p class="form-hint">การตั้งค่านี้บันทึกแยกตามนิยายในอุปกรณ์นี้ก่อน การส่งให้ AI ใช้งานจริงจะเปิดใช้เมื่อเชื่อมต่อผู้ให้บริการ AI และผ่านการทดสอบ</p>
+            </details>
+            <div class="project-form-actions">
+              <button id="saveProject" class="gold-button">บันทึกข้อมูลนิยาย <span>→</span></button>
+              <button id="newProject" class="outline-button" type="button">+ สร้างโครงการใหม่</button>
+            </div>
+            <p class="form-hint" id="projectSaveHint">บันทึกลงในอุปกรณ์นี้เท่านั้น · ยังไม่เชื่อมต่อ Cloud</p>
+            <div id="cloudMigrationPanel" class="cloud-migration-panel" hidden>
+              <strong>พบข้อมูลนิยายในอุปกรณ์นี้</strong>
+              <p>นำเข้าข้อมูลไปยังบัญชี Private Beta ได้ โดยข้อมูลเดิมในเครื่องจะไม่ถูกลบ</p>
+              <button id="importLocalData" class="outline-button" type="button">นำเข้าข้อมูลจากอุปกรณ์นี้</button>
+              <small id="migrationStatus" aria-live="polite"></small>
+            </div>
+          </div>
+          <div class="card-frame collection-card"><div class="section-heading"><div><h2>นิยายของฉัน</h2><p id="projectListCaption">รายการที่บันทึกไว้ในเบราว์เซอร์นี้</p></div></div><div id="projectList" class="project-list">ยังไม่มีโครงการที่บันทึกไว้</div></div>
+        </div>
+      </section>
+
+      <section id="characters" class="panel hidden">
+        <div class="page-intro"><div><span class="eyebrow">CHARACTER STUDIO</span><h1>ห้องจัดการตัวละคร</h1><p>สร้างตัวละครและเก็บรายละเอียดให้เป็น Canon ของนิยายแต่ละเรื่อง</p></div></div>
+        <div class="two-column">
+          <div class="card-frame form-card"><h2>เพิ่มตัวละคร</h2>
+            <label for="characterName">ชื่อตัวละคร</label><input id="characterName" maxlength="160" placeholder="ชื่อที่ใช้ในเรื่อง">
+            <label for="characterRole">บทบาทในเรื่อง</label><input id="characterRole" maxlength="80" placeholder="ตัวเอก / ตัวร้าย / ตัวประกอบ">
+            <div class="character-field-grid">
+              <div><label for="characterNickname">ชื่อเล่น / นามแฝง</label><input id="characterNickname" maxlength="160" placeholder="ชื่อที่คนสนิทใช้เรียก"></div>
+              <div><label for="characterAliases">ชื่อเรียกอื่นในเรื่อง</label><textarea id="characterAliases" rows="2" placeholder="คั่นด้วยจุลภาคหรือขึ้นบรรทัดใหม่ เช่น ท่านดยุก, เจ้าชายเงา"></textarea></div>
+              <div><label for="characterGender">เพศ / อัตลักษณ์</label><input id="characterGender" maxlength="80" placeholder="ระบุตามที่ต้องการ"></div>
+              <div><label for="characterBirthday">วันเกิด</label><input id="characterBirthday" maxlength="80" placeholder="เช่น 12 เดือน 3 ปี 317"></div>
+              <div><label for="characterProfession">อาชีพ / ตำแหน่ง</label><input id="characterProfession" maxlength="160" placeholder="เช่น องค์รัชทายาท / นักปรุงยา"></div>
+            </div>
+            <div class="character-field-grid">
+              <div><label for="characterAge">อายุ</label><input id="characterAge" maxlength="40" placeholder="เช่น 24 ปี"></div>
+              <div><label for="characterPronouns">สรรพนาม</label><input id="characterPronouns" maxlength="60" placeholder="เช่น เขา / เธอ"></div>
+              <div><label for="characterSpecies">เผ่าพันธุ์ / สายเลือด</label><input id="characterSpecies" maxlength="100" placeholder="มนุษย์ / เอลฟ์ / ..."></div>
+              <div><label for="characterHeight">ส่วนสูง / รูปร่าง</label><input id="characterHeight" maxlength="100" placeholder="เช่น 178 ซม. · สูงโปร่ง"></div>
+            </div>
+            <h3 class="subsection-title">Character DNA · ลักษณะประจำตัว</h3>
+            <div class="character-field-grid">
+              <div><label for="characterFace">รูปหน้า / โครงหน้า</label><textarea id="characterFace" rows="2" placeholder="รูปหน้า คิ้ว จมูก ริมฝีปาก กราม..."></textarea></div>
+              <div><label for="characterSkin">สีผิว / จุดสังเกต</label><textarea id="characterSkin" rows="2" placeholder="สีผิว กระ ไฝ ฝ้า รอยแผล..."></textarea></div>
+              <div><label for="characterEyes">ดวงตา</label><textarea id="characterEyes" rows="2" placeholder="สีตา รูปทรง แววตา..."></textarea></div>
+              <div><label for="characterHair">เส้นผม</label><textarea id="characterHair" rows="2" placeholder="สีผม ทรงผม ความยาว..."></textarea></div>
+              <div><label for="characterBuild">รูปร่าง / สัดส่วน</label><textarea id="characterBuild" rows="2" placeholder="รูปร่าง ไหล่ หน้าอก เอว..."></textarea></div>
+              <div><label for="characterClothing">เครื่องแต่งกาย</label><textarea id="characterClothing" rows="2" placeholder="ชุดประจำตัว วัสดุ สี และรูปแบบ..."></textarea></div>
+              <div><label for="characterAccessories">เครื่องประดับ / ของติดตัว</label><textarea id="characterAccessories" rows="2" placeholder="แหวน สร้อย อาวุธ หรือของสำคัญ..."></textarea></div>
+              <div><label for="characterExpressions">สีหน้า / ภาษากาย</label><textarea id="characterExpressions" rows="2" placeholder="สีหน้าปกติ ท่าทาง และลักษณะการเคลื่อนไหว..."></textarea></div>
+            </div>
+            <label for="characterAppearance">รูปลักษณ์ภายนอกโดยรวม</label><textarea id="characterAppearance" rows="3" placeholder="สรุปลักษณะโดยรวมเพื่อใช้เป็น Canon..."></textarea>
+            <label for="characterPersonality">บุคลิกและนิสัย</label><textarea id="characterPersonality" rows="3" placeholder="นิสัย จุดแข็ง จุดอ่อน และวิธีแสดงออก..."></textarea>
+            <label for="characterMotivation">แรงจูงใจและเป้าหมาย</label><textarea id="characterMotivation" rows="2"></textarea>
+            <label for="characterBackstory">ภูมิหลัง</label><textarea id="characterBackstory" rows="3"></textarea>
+            <div class="character-field-grid">
+              <div><label for="characterStrengths">จุดแข็ง</label><textarea id="characterStrengths" rows="2"></textarea></div>
+              <div><label for="characterWeaknesses">จุดอ่อน</label><textarea id="characterWeaknesses" rows="2"></textarea></div>
+            </div>
+            <div class="character-field-grid">
+              <div><label for="characterLikes">สิ่งที่ชอบ</label><textarea id="characterLikes" rows="2" placeholder="สิ่งของ อาหาร กิจกรรม หรือผู้คน..."></textarea></div>
+              <div><label for="characterDislikes">สิ่งที่ไม่ชอบ</label><textarea id="characterDislikes" rows="2" placeholder="สิ่งที่หลีกเลี่ยงหรือหวาดกลัว..."></textarea></div>
+              <div><label for="characterSkills">ทักษะ / ความสามารถ</label><textarea id="characterSkills" rows="2" placeholder="ทักษะทั่วไป เวทมนตร์ หรือพลังพิเศษ..."></textarea></div>
+              <div><label for="characterFamily">ครอบครัว / สังกัด</label><textarea id="characterFamily" rows="2" placeholder="เครือญาติ ตระกูล สำนัก หรือฝ่าย..."></textarea></div>
+            </div>
+            <label for="characterCustomFields">ข้อมูลเฉพาะของโลกนิยาย / ฟิลด์กำหนดเอง</label>
+            <textarea id="characterCustomFields" rows="3" placeholder="เช่น เวทมนตร์: เพลิงมังกร&#10;ยศ: ดยุก&#10;ตระกูล: วาเลนไทน์&#10;สำนัก/ฝ่าย: หอคอยทิศเหนือ"></textarea>
+            <label for="characterSecret">ความลับ / ปมสำคัญ</label><textarea id="characterSecret" rows="2"></textarea>
+            <label for="characterProfile">บันทึกเพิ่มเติม</label><textarea id="characterProfile" rows="3" placeholder="ข้อมูลอื่น ๆ ที่ต้องรักษาเป็น Canon..."></textarea>
+            <div class="row-actions"><button id="addCharacter" class="gold-button" type="button">บันทึกตัวละคร</button><button id="cancelCharacterEdit" class="outline-button" type="button" hidden>ยกเลิกแก้ไข</button></div>
+            <div class="character-vault-panel" id="characterVaultPanel">
+              <div class="section-heading"><div><h3 class="subsection-title">Character Reference Vault · คลังภาพอ้างอิง</h3><p>เก็บภาพต้นแบบหลายเวอร์ชันและกำหนดภาพ Canon สำหรับตัวละครนี้</p></div></div>
+              <label for="characterReferenceFile">เพิ่มภาพอ้างอิง (PNG / JPG / WEBP)</label>
+              <input id="characterReferenceFile" type="file" accept="image/png,image/jpeg,image/webp" disabled>
+              <div class="character-field-grid"><div><label for="characterReferenceLabel">ชื่อภาพ / เวอร์ชัน</label><input id="characterReferenceLabel" maxlength="100" placeholder="เช่น ชุดพิธีการ · เวอร์ชัน 2"></div><div><label for="characterReferenceNote">หมายเหตุ</label><input id="characterReferenceNote" maxlength="300" placeholder="รายละเอียดที่ต้องคงไว้"></div></div>
+              <p class="form-hint" id="characterVaultStatus" role="status" aria-live="polite">บันทึกข้อมูลตัวละครก่อน จึงจะเพิ่มภาพอ้างอิงได้</p>
+              <div id="characterReferenceGallery" class="character-reference-gallery"><p class="muted-note">ยังไม่มีภาพอ้างอิง</p></div>
+              <div class="ai-notice">คลังภาพจัดเก็บในอุปกรณ์นี้ แยกตามนิยายและตัวละคร ไม่ซิงก์ข้ามอุปกรณ์อัตโนมัติ แต่รวมในไฟล์ Backup รุ่น 4 และคลังภาพประกอบ เพื่อย้ายหรือกู้คืนได้</div>
+            </div>
+          </div>
+          <div class="card-frame collection-card"><h2>คลังตัวละคร</h2><div id="characterList" class="module-list">เข้าสู่ระบบและเลือกโครงการเพื่อโหลดตัวละคร</div></div>
+        </div>
+        <div class="card-frame form-card module-secondary"><h2>ความสัมพันธ์ระหว่างตัวละคร</h2>
+          <div class="two-column"><div><label for="relationshipSource">ตัวละครต้นทาง</label><select id="relationshipSource"></select></div><div><label for="relationshipTarget">ตัวละครปลายทาง</label><select id="relationshipTarget"></select></div></div>
+          <label for="relationshipType">ประเภทความสัมพันธ์</label><input id="relationshipType" placeholder="ครอบครัว / คู่แข่ง / พันธมิตร">
+          <label for="relationshipDescription">รายละเอียด</label><input id="relationshipDescription" placeholder="ความสัมพันธ์และเงื่อนไขสำคัญ">
+          <button id="addRelationship" class="outline-button" type="button">เพิ่มความสัมพันธ์</button><div id="relationshipList" class="module-list"></div>
+          <h3 class="subsection-title">แผนผังความสัมพันธ์</h3>
+          <div id="relationshipGraph" class="relationship-graph" role="region" aria-label="แผนผังความสัมพันธ์ของตัวละคร">เพิ่มตัวละครและกำหนดความสัมพันธ์เพื่อสร้างแผนผัง</div>
+        </div>
+      </section>
+      <section id="plot" class="panel hidden">
+        <div class="page-intro"><div><span class="eyebrow">PLOT ROOM</span><h1>ห้องวางพล็อต</h1><p>จัดโครงเรื่อง เส้นเรื่องย่อย ฉาก และจุดเปลี่ยนสำคัญ</p></div></div>
+        <div class="two-column">
+          <div class="card-frame form-card"><h2>เพิ่มเส้นเรื่อง</h2><label for="plotTitle">ชื่อเส้นเรื่อง</label><input id="plotTitle" maxlength="200" placeholder="เช่น ความลับของราชบัลลังก์">
+            <label for="plotSummary">เรื่องย่อ / จุดเปลี่ยน</label><textarea id="plotSummary" rows="6"></textarea>
+            <label for="plotCharacters">ตัวละครที่เกี่ยวข้อง</label><select id="plotCharacters" multiple size="4" aria-describedby="plotCharactersHint"></select><p id="plotCharactersHint" class="form-hint">เลือกได้หลายคนจากตัวละครในนิยายนี้</p>
+            <label for="plotChapters">บทที่เกี่ยวข้อง</label><select id="plotChapters" multiple size="5" aria-describedby="plotChaptersHint"></select><p id="plotChaptersHint" class="form-hint">เลือกบทที่เส้นเรื่องนี้เกิดขึ้นหรือมีความคืบหน้าได้หลายบท · เปลี่ยนรายการได้ภายหลัง</p>
+            <label for="plotStatus">สถานะ</label><select id="plotStatus"><option value="planned">วางแผน</option><option value="in_progress">กำลังดำเนิน</option><option value="completed">เสร็จแล้ว</option><option value="paused">พักไว้</option></select>
+            <button id="addPlot" class="gold-button" type="button">บันทึกเส้นเรื่อง</button>
+          </div>
+          <div class="card-frame collection-card"><h2>เส้นเรื่องทั้งหมด</h2><div id="plotList" class="module-list" hidden>เข้าสู่ระบบและเลือกโครงการเพื่อโหลดพล็อต</div><div id="plotBoard" class="plot-board" aria-label="บอร์ดสถานะเส้นเรื่อง"></div></div>
+        </div>
+      </section>
+      <section id="world" class="panel hidden">
+        <div class="page-intro"><div><span class="eyebrow">WORLD BUILDING</span><h1>สร้างโลกนิยาย</h1><p>รวบรวมสถานที่ ประวัติศาสตร์ กฎ และรายละเอียดของโลก</p></div></div>
+        <div class="two-column">
+          <div class="card-frame form-card"><h2>เพิ่มข้อมูลโลก</h2><label for="worldCategory">หมวดหมู่</label><select id="worldCategory"><option value="place">สถานที่</option><option value="history">ประวัติศาสตร์</option><option value="rule">กฎของโลก</option><option value="culture">วัฒนธรรม</option><option value="faction">กลุ่ม / องค์กร</option><option value="other">อื่น ๆ</option></select>
+            <label for="worldTitle">ชื่อข้อมูล</label><input id="worldTitle" maxlength="200" placeholder="ชื่อสถานที่หรือหัวข้อ">
+            <label for="worldContent">รายละเอียด</label><textarea id="worldContent" rows="7"></textarea>
+            <label for="worldCharacters">ตัวละครที่เกี่ยวข้อง</label><select id="worldCharacters" multiple size="4" aria-describedby="worldCharactersHint"></select><p id="worldCharactersHint" class="form-hint">เลือกได้หลายคนจากตัวละครในนิยายนี้</p>
+            <label for="worldChapters">บทที่กล่าวถึงข้อมูลนี้</label><select id="worldChapters" multiple size="4" aria-describedby="worldChaptersHint"></select><p id="worldChaptersHint" class="form-hint">เชื่อมสถานที่ กฎ หรือประวัติกับบทที่เกี่ยวข้อง</p>
+            <button id="addWorld" class="gold-button" type="button">บันทึกข้อมูลโลก</button>
+          </div>
+          <div class="card-frame collection-card"><h2>สารานุกรมโลกนิยาย</h2><div id="worldList" class="module-list">เข้าสู่ระบบและเลือกโครงการเพื่อโหลดข้อมูลโลก</div></div>
+        </div>
+      </section>
+      <section id="timeline" class="panel hidden">
+        <div class="page-intro"><div><span class="eyebrow">STORY TIMELINE</span><h1>ลำดับเหตุการณ์</h1><p>จัดเรียงเหตุการณ์และตรวจสอบความต่อเนื่องของเรื่อง</p></div></div>
+        <div class="two-column">
+          <div class="card-frame form-card"><h2>เพิ่มเหตุการณ์</h2><label for="timelineTime">เวลาในเรื่อง</label><input id="timelineTime" maxlength="120" placeholder="เช่น ปีที่ 302 · วันที่ 14 เดือนจันทรา">
+            <label for="timelineTitle">ชื่อเหตุการณ์</label><input id="timelineTitle" maxlength="200">
+            <label for="timelineDescription">รายละเอียด</label><textarea id="timelineDescription" rows="6"></textarea>
+            <label for="timelineCharacters">ตัวละครที่เกี่ยวข้อง</label><select id="timelineCharacters" multiple size="4" aria-describedby="timelineCharactersHint"></select><p id="timelineCharactersHint" class="form-hint">เลือกได้หลายคนจากตัวละครในนิยายนี้</p>
+            <label for="timelineChapters">บทที่เกิดเหตุการณ์</label><select id="timelineChapters" multiple size="4" aria-describedby="timelineChaptersHint"></select><p id="timelineChaptersHint" class="form-hint">เชื่อมเหตุการณ์กับบทที่เล่าถึงเหตุการณ์นี้</p>
+            <button id="addTimeline" class="gold-button" type="button">บันทึกเหตุการณ์</button>
+          </div>
+          <div class="card-frame collection-card"><h2>เส้นเวลา</h2><div id="timelineList" class="module-list" hidden>เข้าสู่ระบบและเลือกโครงการเพื่อโหลดไทม์ไลน์</div><div id="timelineView" class="timeline-view" aria-label="เส้นเวลาเหตุการณ์"></div></div>
+        </div>
+      </section>
+      <section id="notes" class="panel hidden">
+        <div class="page-intro"><div><span class="eyebrow">STORY NOTES</span><h1>บันทึกเนื้อเรื่อง</h1><p>เก็บ Canon และความคิดสำคัญแยกตามโครงการ</p></div></div>
+        <div class="two-column">
+          <div class="card-frame form-card"><h2>ความจำของนักเขียน</h2>
+            <label for="projectMemory">ความจำโครงการ (Project Memory)</label><textarea id="projectMemory" rows="8" placeholder="กฎของโลก ตัวละคร ความสัมพันธ์ ไทม์ไลน์ และข้อห้าม..."></textarea>
+            <label for="globalMemory">ความจำส่วนตัว (Global Memory)</label><textarea id="globalMemory" rows="5" placeholder="สไตล์การเขียนที่ชอบ โทนภาษา และความต้องการประจำ..."></textarea>
+            <button class="gold-button" id="saveMemory">บันทึกความจำ</button>
+            <p class="form-hint">Project Memory จัดเก็บกับโครงการบน Cloud เมื่อเข้าสู่ระบบ ส่วน Global Memory เก็บในอุปกรณ์นี้</p>
+          </div>
+          <div class="card-frame form-card"><h2>บันทึกเพิ่มเติม</h2>
+            <label for="storyNoteTitle">หัวข้อ</label><input id="storyNoteTitle" maxlength="200" placeholder="ไอเดีย / ข้อควรจำ">
+            <label for="storyNoteContent">รายละเอียด</label><textarea id="storyNoteContent" rows="5"></textarea>
+            <label for="notesCharacters">ตัวละครที่เกี่ยวข้อง</label><select id="notesCharacters" multiple size="4" aria-describedby="notesCharactersHint"></select><p id="notesCharactersHint" class="form-hint">เลือกได้หลายคนจากตัวละครในนิยายนี้</p>
+            <button id="addStoryNote" class="outline-button" type="button">เพิ่มบันทึก</button>
+            <div id="storyNoteList" class="module-list"></div>
+          </div>
+        </div>
+        <section class="card-frame scene-tracker-card">
+          <div class="section-heading"><div><span class="eyebrow">SCENE TRACKER</span><h2>ทะเบียนฉาก</h2><p>วางแผนฉากสำคัญและติดตามสถานะการเขียน โดยเชื่อมกับบทและตัวละครของนิยายเรื่องนี้</p></div></div>
+          <div class="scene-tracker-form">
+            <div><label for="sceneTitle">ชื่อฉาก</label><input id="sceneTitle" maxlength="200" placeholder="เช่น การพบกันใต้หอคอย"></div>
+            <div><label for="sceneType">ประเภทฉาก</label><select id="sceneType"><option value="setup">ปูเรื่อง</option><option value="conflict">ความขัดแย้ง</option><option value="turning_point">จุดเปลี่ยน</option><option value="climax">ไคลแมกซ์</option><option value="resolution">คลี่คลาย</option><option value="other">อื่น ๆ</option></select></div>
+            <div><label for="sceneStatus">สถานะ</label><select id="sceneStatus"><option value="planned">วางแผน</option><option value="drafting">กำลังเขียน</option><option value="written">เขียนแล้ว</option><option value="revised">ปรับแก้แล้ว</option></select></div>
+            <div class="scene-tracker-wide"><label for="sceneDescription">รายละเอียด / จุดประสงค์ของฉาก</label><textarea id="sceneDescription" rows="3" maxlength="30000" placeholder="ฉากนี้เกิดอะไรขึ้น ต้องการให้ผู้อ่านรู้อะไร หรือเปลี่ยนแปลงอะไร..."></textarea></div>
+            <div><label for="sceneChapters">บทที่เกิดฉากนี้</label><select id="sceneChapters" multiple size="4" aria-describedby="sceneChaptersHint"></select><p id="sceneChaptersHint" class="form-hint">เลือกได้หลายบทในนิยายเรื่องนี้</p></div>
+            <div><label for="sceneCharacters">ตัวละครในฉาก</label><select id="sceneCharacters" multiple size="4" aria-describedby="sceneCharactersHint"></select><p id="sceneCharactersHint" class="form-hint">เลือกได้หลายตัวละคร</p></div>
+            <div class="scene-tracker-wide"><button id="addScene" class="gold-button" type="button">บันทึกฉาก</button><span class="form-hint">ฉากจะถูกเก็บในโครงการเดียวกับนิยายที่เลือก</span></div>
+          </div>
+          <div id="sceneTrackerList" class="scene-tracker-list" aria-live="polite"><p class="muted-note">เข้าสู่ระบบและเลือกนิยายเพื่อเริ่มติดตามฉาก</p></div>
+        </section>
+      </section>
+      <section id="manuscript" class="panel hidden">
+        <div class="page-intro manuscript-page-intro"><div><span class="eyebrow">MANUSCRIPT STUDIO · พื้นที่เขียนส่วนตัว</span><h1>Novel Studio</h1><p>บทที่กำลังเขียน · <span id="studioChapterMeta">เลือกบทเพื่อเริ่มเขียน</span></p></div><div class="studio-header-actions"><span class="save-indicator" id="manuscriptStatusMini">ฉบับร่างส่วนตัว</span><button id="studioFocusButton" class="outline-button" type="button">⛶ โหมดสมาธิ</button></div></div>
+        <div class="manuscript-layout">
+          <aside class="chapter-sidebar card-frame">
+            <div class="chapter-sidebar-head"><div><span class="eyebrow">CHAPTERS</span><h2>ต้นฉบับ</h2></div><span id="chapterTotal">0 บท</span></div>
+            <button id="newChapter" class="gold-button chapter-add-button" type="button">+ เพิ่มบทใหม่</button>
+            <div id="chapterList" class="chapter-list"><p class="muted-note">เข้าสู่ระบบและเลือกโครงการเพื่อดูรายการบท</p></div>
+            <div class="chapter-sidebar-actions">
+              <span>จัดการบทที่เลือก</span>
+              <div>
+                <button id="moveChapterUp" class="outline-button compact" type="button" title="เลื่อนบทขึ้น">↑ เลื่อนขึ้น</button>
+                <button id="moveChapterDown" class="outline-button compact" type="button" title="เลื่อนบทลง">↓ เลื่อนลง</button>
+              </div>
+              <button id="deleteChapter" class="outline-button compact" type="button">ลบบทที่เลือก</button>
+            </div>
+          </aside>
+          <div class="manuscript-main">
+            <div class="chapter-toolbar manuscript-topbar">
+              <label id="chapterSelectLabel" for="chapterSelect">บทที่กำลังเขียน</label>
+              <select id="chapterSelect" aria-label="เลือกบทนิยาย"><option value="">ยังไม่มีบท</option></select>
+              <button id="chapterHistoryButton" class="outline-button compact" type="button">ประวัติเวอร์ชัน</button>
+              <button id="reloadChapter" class="outline-button compact" type="button" hidden>โหลดฉบับล่าสุด</button>
+              <button id="recoverLocalDraft" class="outline-button compact" type="button" hidden>กู้คืนฉบับในเครื่อง</button>
+            </div>
+            <div id="chapterCanonPanel" class="chapter-canon-panel card-frame" hidden>
+              <div><b>Canon ของบทนี้</b><small>เลือกตัวละครที่ปรากฏหรือมีบทบาทในบทนี้ · ข้อมูลจะบันทึกไปกับบทนิยาย</small></div>
+              <label for="chapterCharacters">ตัวละครที่เกี่ยวข้อง</label>
+              <select id="chapterCharacters" multiple size="3" aria-label="เลือกตัวละครที่เกี่ยวข้องกับบทนี้"></select>
+            </div>
+            <section id="continuityPanel" class="continuity-panel card-frame" hidden aria-labelledby="continuityHeading">
+              <div class="continuity-panel-head">
+                <div><span class="eyebrow">CANON REVIEW</span><h2 id="continuityHeading">ตรวจความต่อเนื่องของนิยาย</h2><p>ตรวจชื่อบท ตัวละครที่ระบุใน Canon และวันที่ใน Timeline จากข้อมูลที่บันทึกไว้</p></div>
+                <button id="runContinuityCheck" class="outline-button" type="button">ตรวจความต่อเนื่อง</button>
+              </div>
+              <p id="continuityHint" class="form-hint" aria-live="polite">ระบบจะตรวจได้สูงสุด 40 บทต่อครั้ง และจะแจ้งรายการที่ควรตรวจทาน ไม่แก้ไขต้นฉบับให้อัตโนมัติ</p>
+              <div id="continuityResults" class="continuity-results" aria-live="polite"></div>
+            </section>
+            <div class="card-frame manuscript-card studio-paper-card">
+              <label class="studio-title-label" for="chapterTitle">ชื่อบท</label><input id="chapterTitle" class="studio-chapter-title-input" placeholder="เช่น บทที่ 1 — จุดเริ่มต้น">
+              <div class="chapter-meta-grid">
+                <div><label for="chapterStatus">สถานะการเขียน</label><select id="chapterStatus">
+                  <option value="not_started">ยังไม่เริ่ม</option><option value="outlining">วางโครงเรื่อง</option><option value="writing">กำลังเขียน</option><option value="first_draft">ร่างแรกเสร็จ</option><option value="editing">กำลังตรวจแก้</option><option value="pending_approval">รออนุมัติ</option><option value="approved">อนุมัติแล้ว</option>
+                </select></div>
+                <div><label for="chapterTargetWords">จำนวนคำเป้าหมายของบท</label><input id="chapterTargetWords" type="number" min="0" max="100000" step="100" value="4500" inputmode="numeric"></div>
+                <div class="chapter-synopsis-field"><label for="chapterSynopsis">บทย่อของบท</label><textarea id="chapterSynopsis" rows="3" maxlength="3000" placeholder="สรุปเหตุการณ์สำคัญ ตัวละคร พัฒนาการทางอารมณ์ และจุดเชื่อมไปบทถัดไป"></textarea></div>
+                <div class="chapter-notes-field"><label for="chapterAuthorNotes">หมายเหตุจากผู้เขียน</label><textarea id="chapterAuthorNotes" rows="2" maxlength="10000" placeholder="สิ่งที่ Forge ต้องรักษา ระวัง หรือยังห้ามเปลี่ยนในบทนี้"></textarea></div>
+              </div>
+              <div class="chapter-word-progress card-frame" aria-live="polite">
+                <div><b>ความคืบหน้าบทนี้</b><span id="chapterWordProgressText">0 / 4,500 คำ</span></div>
+                <div class="progress-track"><span id="chapterWordProgressBar"></span></div>
+                <small id="projectWordProgressText">ยอดรวมทั้งโครงการ 0 / 190,000 คำ</small>
+              </div>
+              <label class="studio-body-label" for="manuscriptEditor">ต้นฉบับ</label>
+              <div class="manuscript-format-toolbar studio-format-toolbar" role="toolbar" aria-label="เครื่องมือจัดรูปแบบต้นฉบับ">
+                <button type="button" id="toggleWritingFocus" class="writing-focus-toggle" aria-pressed="false" title="ซ่อนเมนูรอบข้างเพื่อเขียนอย่างต่อเนื่อง">⛶ โหมดเขียนเต็มจอ</button>
+                <select id="editorFont" aria-label="แบบอักษร"><option value='"Noto Serif Thai",serif'>Noto Serif Thai</option><option value='"Noto Sans Thai",sans-serif'>Noto Sans Thai</option><option value='"TH Sarabun New",serif'>TH Sarabun New</option><option value="Georgia,serif">Georgia</option></select>
+                <select id="editorSize" aria-label="ขนาดตัวอักษร"><option value="14px">14</option><option value="16px" selected>16</option><option value="18px">18</option><option value="20px">20</option><option value="22px">22</option><option value="24px">24</option></select>
+                <button type="button" data-editor-command="bold" title="ตัวหนา"><b>B</b></button>
+                <button type="button" data-editor-command="italic" title="ตัวเอียง"><i>I</i></button>
+                <button type="button" data-editor-command="underline" title="ขีดเส้นใต้"><u>U</u></button>
+                <span class="toolbar-divider" aria-hidden="true"></span>
+                <button type="button" data-editor-command="justifyLeft" title="ชิดซ้าย">☰←</button>
+                <button type="button" data-editor-command="justifyCenter" title="กึ่งกลาง">☰</button>
+                <button type="button" data-editor-command="justifyRight" title="ชิดขว">→☰</button>
+                <button type="button" data-editor-command="insertUnorderedList" title="รายการหัวข้อ">• รายการ</button>
+                <button type="button" data-editor-command="insertOrderedList" title="รายการลำดับเลข">1. รายการ</button>
+                <button type="button" data-editor-command="indent" title="เพิ่มระยะเยื้อง">เพิ่มเยื้อง</button>
+                <button type="button" data-editor-command="outdent" title="ลดระยะเยื้อง">ลดย่อหน้า</button>
+                <span class="toolbar-divider" aria-hidden="true"></span>
+                <button type="button" data-editor-command="formatBlock" data-editor-value="<h2>" title="หัวข้อใหญ่">หัวข้อ</button>
+                <button type="button" data-editor-command="formatBlock" data-editor-value="<h3>" title="หัวข้อย่อย">หัวข้อย่อย</button>
+                <button type="button" data-editor-command="formatBlock" data-editor-value="<blockquote>" title="ข้อความอ้างอิง">อ้างอิง</button>
+                <button type="button" data-editor-command="formatBlock" data-editor-value="<p>" title="ย่อหน้าปกติ">ย่อหน้า</button>
+                <button type="button" data-editor-command="undo" title="ย้อนกลับ">↶</button>
+                <button type="button" data-editor-command="redo" title="ทำซ้ำ">↷</button>
+                <button type="button" data-editor-command="removeFormat" title="ล้างรูปแบบ">ล้างรูปแบบ</button>
+                <select id="editorLineHeight" aria-label="ระยะบรรทัด"><option value="1.5">บรรทัด 1.5</option><option value="1.75" selected>บรรทัด 1.75</option><option value="2">บรรทัด 2</option></select>
+                <select id="editorPageMargin" aria-label="ระยะขอบหน้า"><option value="24px">ขอบแคบ</option><option value="36px" selected>ขอบปกติ</option><option value="52px">ขอบกว้าง</option></select>
+                <button type="button" id="autoFormatManuscript" title="จัดย่อหน้าและช่องไฟให้เป็นระเบียบ">จัดหน้าอัตโนมัติ</button>
+                <button type="button" id="aiFormatManuscript" class="ai-format-button" title="ขอความช่วยเหลือจาก AI ในการจัดหน้า">✦ AI ช่วยจัดหน้า</button>
+              </div>
+              <div id="manuscriptEditor" class="manuscript-editor-surface" contenteditable="true" role="textbox" aria-multiline="true" aria-label="พื้นที่เขียนต้นฉบับ" data-placeholder="เริ่มเขียนต้นฉบับของคุณที่นี่..."></div>
+              <textarea id="manuscriptBody" rows="22" hidden aria-hidden="true"></textarea>
+              <div class="editor-footer">
+                <span id="manuscriptCount">0 คำ</span>
+                <div class="export-actions">
+                  <button id="export" class="outline-button compact">TXT</button>
+                  <button id="exportBookTxt" class="gold-button compact" type="button" title="รวบรวมทุกบทของนิยายที่เลือกจาก Cloud">TXT ทั้งเล่ม</button>
+                  <button id="exportDocx" class="outline-button compact">DOCX</button>
+                  <button id="exportBookDocx" class="outline-button compact" type="button" title="รวบรวมทุกบทของนิยายที่เลือกเป็นเอกสาร Word">DOCX ทั้งเล่ม</button>
+                  <button id="exportEpub" class="outline-button compact">EPUB</button>
+                  <button id="exportBookEpub" class="outline-button compact" type="button" title="รวบรวมทุกบทและภาพประกอบเป็น EPUB">EPUB ทั้งเล่ม</button>
+                  <button id="exportPdf" class="gold-button compact" title="เปิดหน้าต่างพิมพ์ แล้วเลือกบันทึกเป็น PDF">PDF</button>
+                  <button id="exportBookPdf" class="gold-button compact" type="button" title="รวบรวมทุกบทของนิยายที่เลือก แล้วเปิดหน้าต่างพิมพ์">PDF ทั้งเล่ม</button>
+                </div>
+              </div>
+              <div id="printManuscriptText" class="print-manuscript-text" hidden></div>
+              <p class="form-hint" id="chapterSaveHint">บันทึกฉบับกู้คืนในอุปกรณ์นี้ · เมื่อเชื่อมต่อ Private Beta จะบันทึกขึ้น Cloud</p>
+            </div>
+            <div class="manuscript-tools-grid">
+              <section class="card-frame manuscript-tool-card">
+                <h2>ค้นหาและแทนที่</h2><p>ค้นหาคำหรือวลีในบทที่กำลังเขียน</p>
+                <label for="findText">ค้นหา</label><input id="findText" placeholder="คำหรือวลีที่ต้องการค้นหา">
+                <label for="replaceText">แทนที่ด้วย</label><input id="replaceText" placeholder="ข้อความใหม่">
+                <button id="replaceAll" class="outline-button compact" type="button">แทนที่ทั้งหมด</button>
+                <small id="replaceStatus" aria-live="polite">การแทนที่มีผลกับบทที่เลือกเท่านั้น</small>
+              </section>
+              <section class="card-frame manuscript-tool-card">
+                <h2>ประวัติฉบับร่าง</h2><p>บันทึกอัตโนมัติและกู้คืนเวอร์ชันก่อนหน้า</p>
+                <div id="chapterHistory" class="chapter-history" hidden aria-live="polite"></div>
+                <button id="chapterHistoryInline" class="outline-button compact" type="button">ดูประวัติเวอร์ชัน</button>
+              </section>
+              <section class="card-frame manuscript-tool-card">
+                <h2>เป้าหมายการเขียน</h2><p>กำหนดจำนวนคำที่ต้องการในบทนี้</p>
+                <label for="wordGoal">เป้าหมาย (คำ)</label><input id="wordGoal" type="number" min="1" max="100000" value="1000">
+                <strong id="wordGoalStatus">0 / 1,000 คำ</strong>
+                <div class="progress-track"><span id="wordGoalProgress"></span></div>
+              </section>
+            </div>
+          </div>
+          <aside class="studio-insight-rail" aria-label="เครื่องมือประกอบการเขียน">
+            <section class="card-frame studio-rail-card studio-ai-card">
+              <span class="micro-label">✦ STORYFORGE COMPANION</span>
+              <h2>คู่คิดข้างหน้ากระดาษ</h2>
+              <p>เปิดดูบริบทของนิยายและเตรียมคำถามให้ผู้ช่วย โดยคุณเป็นผู้เลือกว่าจะนำอะไรไปใช้</p>
+              <button class="outline-button full-width" data-open-tab="assistant" type="button">เปิดผู้ช่วยเขียน →</button>
+              <small>ยังไม่มีการส่งต้นฉบับไปยัง AI อัตโนมัติ</small>
+            </section>
+            <section class="card-frame studio-rail-card">
+              <div class="section-heading"><h2>โลกของเรื่องนี้</h2><span class="gold-text">✧</span></div>
+              <button class="studio-rail-link" data-open-tab="characters" type="button"><span>♙</span><span><b>Character Vault</b><small>ตัวละครและความสัมพันธ์</small></span><i>→</i></button>
+              <button class="studio-rail-link" data-open-tab="world" type="button"><span>⌖</span><span><b>Worldbuilding Atlas</b><small>สถานที่ กฎ และประวัติศาสตร์</small></span><i>→</i></button>
+              <button class="studio-rail-link" data-open-tab="timeline" type="button"><span>◷</span><span><b>Timeline</b><small>ลำดับเหตุการณ์ในเรื่อง</small></span><i>→</i></button>
+              <button class="studio-rail-link" data-open-tab="plot" type="button"><span>⌘</span><span><b>Plot Threads</b><small>เส้นเรื่องและจุดเปลี่ยน</small></span><i>→</i></button>
+              <button class="studio-rail-link" data-open-tab="notes" type="button"><span>▤</span><span><b>Scene Cards</b><small>ติดตามฉากสำคัญ</small></span><i>→</i></button>
+            </section>
+            <section class="card-frame studio-rail-card studio-focus-card">
+              <span class="micro-label">WRITER'S DESK</span>
+              <h2>เครื่องมือข้างหน้ากระดาษ</h2>
+              <p>ทบทวนฉบับก่อนหน้าและตรวจความต่อเนื่อง โดยไม่ออกจากพื้นที่เขียน</p>
+              <button id="studioHistoryShortcut" class="outline-button full-width" type="button">ดูประวัติเวอร์ชัน →</button>
+              <button id="studioContinuityShortcut" class="outline-button full-width" type="button">ตรวจความต่อเนื่อง →</button>
+            </section>
+          </aside>
+        </div>
+      </section>
+      <section id="cover" class="panel hidden">
+        <div class="page-intro"><div><span class="eyebrow">BOOK COVER STUDIO</span><h1>ห้องออกแบบปกนิยาย</h1><p>กำหนดหน้าปกให้ตรงกับโลกและตัวละครของนิยายแต่ละเรื่อง</p></div></div>
+        <div class="cover-studio-grid">
+          <div class="card-frame form-card">
+            <h2>รายละเอียดหน้าปก</h2>
+            <label for="coverTitle">ชื่อที่แสดงบนปก</label><input id="coverTitle" maxlength="180" placeholder="ชื่อเรื่องบนหน้าปก">
+            <label for="coverPenName">นามปากกา</label><input id="coverPenName" maxlength="120" placeholder="นามปากกาของผู้เขียน">
+            <label for="coverStyle">แนวภาพประกอบ</label>
+            <select id="coverStyle">
+              <option value="Classic Storybook">Classic Storybook</option><option value="Historical Illustration">Historical Illustration</option><option value="Dark Fantasy">Dark Fantasy</option><option value="Anime">Anime</option><option value="Modern">Modern</option><option value="Romance">Romance</option><option value="Pencil Sketch">Pencil Sketch</option><option value="Watercolor">Watercolor</option><option value="Custom">กำหนดเอง</option>
+            </select>
+            <label for="coverCharacters">ตัวละครบนปก (เลือกได้หลายคน)</label><select id="coverCharacters" multiple size="5" aria-describedby="coverCharacterHint"></select>
+            <p id="coverCharacterHint" class="form-hint">รายชื่อตัวละครจะดึงจากนิยายที่กำลังเลือกเท่านั้น</p>
+            <label for="coverBlurb">คำโปรยหลังปก</label><textarea id="coverBlurb" rows="4" maxlength="3000" placeholder="คำโปรยที่อยากให้ผู้อ่านเห็น"></textarea>
+            <label for="coverDirection">แนวทางภาพ / องค์ประกอบที่ต้องการ</label><textarea id="coverDirection" rows="5" maxlength="4000" placeholder="เช่น ปราสาทกลางหมอก แสงจันทร์สีเงิน องค์ประกอบสมมาตร โทนกรมท่าและทองโบราณ"></textarea>
+            <div class="row-actions"><button id="saveCoverBrief" class="gold-button" type="button">บันทึกแนวทางปก</button><button id="resetCoverBrief" class="outline-button" type="button">โหลดข้อมูลที่บันทึก</button></div>
+            <p id="coverSaveStatus" class="form-hint" role="status" aria-live="polite">ข้อมูลหน้าปกจะแยกเก็บตาม Project ID ในอุปกรณ์นี้</p>
+          </div>
+          <div class="card-frame cover-preview-card">
+            <span class="micro-label">COVER PROMPT PREVIEW</span>
+            <div class="cover-preview" aria-label="ตัวอย่างแนวทางหน้าปก">
+              <span class="cover-preview-mark">✦</span><strong id="coverPreviewTitle">ชื่อเรื่องของคุณ</strong><span class="cover-preview-rule"></span><small id="coverPreviewAuthor">นามปากกา</small>
+              <span class="cover-preview-style" id="coverPreviewStyle">CLASSIC STORYBOOK</span>
+            </div>
+            <h2>Prompt สำหรับส่งต่อไปยังเครื่องมือสร้างภาพ</h2>
+            <textarea id="coverPrompt" rows="13" aria-label="Prompt หน้าปกที่แก้ไขได้" placeholder="สร้าง Prompt จากรายละเอียดด้านซ้าย หรือพิมพ์แก้ไขเองได้"></textarea>
+            <div class="row-actions"><button id="buildCoverPrompt" class="outline-button" type="button">สร้าง Prompt จากข้อมูล</button><button id="copyCoverPrompt" class="gold-button" type="button">คัดลอก Prompt</button></div>
+            <div class="ai-notice">ขณะนี้ยังไม่มีระบบสร้างภาพปกเชื่อมต่ออยู่ ปุ่มนี้จึงเตรียมและคัดลอก Prompt เท่านั้น ยังไม่มีการสร้างภาพหรือเรียกบริการแบบคิดเงิน</div>
+          </div>
+        </div>
+      </section>
+      <section id="illustrations" class="panel hidden">
+        <div class="page-intro"><div><span class="eyebrow">ILLUSTRATION STUDIO</span><h1>ห้องภาพประกอบนิยาย</h1><p>เพิ่มภาพประกอบลงในต้นฉบับ ณ ตำแหน่งที่ต้องการ พร้อมคำบรรยายและแนวทางภาพ</p></div></div>
+        <div class="illustration-studio-grid">
+          <div class="card-frame form-card">
+            <h2>สร้างแนวทางภาพประกอบ</h2>
+            <label for="illustrationStyle">สไตล์ภาพ</label>
+            <select id="illustrationStyle"><option>Pencil Sketch</option><option>Ink Illustration</option><option>Ink Engraving</option><option>Watercolor</option><option>Classic Storybook</option><option>Historical Illustration</option><option>Custom</option></select>
+            <label for="illustrationCharacters">ตัวละครในฉากนี้</label><select id="illustrationCharacters" multiple size="5" aria-describedby="illustrationCharactersHint"></select><p id="illustrationCharactersHint" class="form-hint">เลือกตัวละครจากนิยายนี้เพื่อใส่รายละเอียดรูปลักษณ์ลงใน Prompt</p>
+            <label for="illustrationMoment">ฉาก / ช่วงเวลาที่ต้องการวาด</label>
+            <textarea id="illustrationMoment" rows="4" maxlength="3000" placeholder="บรรยายฉาก ตัวละคร การกระทำ และอารมณ์ที่ต้องการ"></textarea>
+            <label for="illustrationDirection">รายละเอียดเพิ่มเติม</label>
+            <textarea id="illustrationDirection" rows="3" maxlength="2000" placeholder="แสง องค์ประกอบ มุมกล้อง โทนสี และสิ่งที่ต้องหลีกเลี่ยง"></textarea>
+            <div class="row-actions"><button id="buildIllustrationPrompt" class="outline-button" type="button">สร้าง Prompt จากนิยายนี้</button><button id="copyIllustrationPrompt" class="gold-button" type="button">คัดลอก Prompt</button></div>
+            <label for="illustrationPrompt">Prompt (แก้ไขได้)</label><textarea id="illustrationPrompt" rows="9" placeholder="Prompt สำหรับนำไปใช้กับเครื่องมือสร้างภาพ"></textarea>
+            <div class="ai-notice">ยังไม่มีผู้ให้บริการสร้างภาพเชื่อมต่อ จึงยังไม่สร้างภาพอัตโนมัติหรือส่งข้อมูลออกนอกระบบ</div>
+          </div>
+          <div class="card-frame form-card">
+            <h2>เพิ่มภาพลงในต้นฉบับ</h2>
+            <label for="illustrationFile">เลือกรูปภาพจากอุปกรณ์</label><input id="illustrationFile" type="file" accept="image/png,image/jpeg,image/webp">
+            <p class="form-hint">ระบบจะย่อภาพก่อนฝังในต้นฉบับ จำกัดประมาณ 95 KB ต่อภาพ เพื่อให้บันทึกและซิงก์ได้</p>
+            <label for="illustrationCaption">คำบรรยายใต้ภาพ / ข้อความอธิบายภาพ</label><input id="illustrationCaption" maxlength="300" placeholder="เช่น ปราสาทอาร์เดนในคืนจันทรคราส">
+            <label for="illustrationCategory">หมวดหมู่ภาพ</label><select id="illustrationCategory"><option value="scene">ฉากสำคัญ</option><option value="character">ตัวละคร</option><option value="location">สถานที่</option><option value="object">สิ่งของ / วัตถุ</option><option value="cover">ปก / ภาพโปรโมต</option><option value="other">อื่น ๆ</option></select>
+            <label for="illustrationAlign">ตำแหน่งภาพ</label><select id="illustrationAlign"><option value="center">กึ่งกลาง</option><option value="left">ชิดซ้าย</option><option value="right">ชิดขวา</option></select>
+            <label for="illustrationWidth">ขนาดภาพ</label><select id="illustrationWidth"><option value="100%">เต็มความกว้าง</option><option value="80%">กว้าง 80%</option><option value="60%">กว้าง 60%</option><option value="40%">กว้าง 40%</option></select>
+            <div class="row-actions"><button id="saveIllustrationToLibrary" class="outline-button" type="button" disabled>เก็บเข้าคลังภาพ</button><button id="insertIllustration" class="gold-button" type="button" disabled>แทรกภาพ ณ ตำแหน่งเคอร์เซอร์</button></div>
+            <p id="illustrationStatus" class="form-hint" role="status" aria-live="polite">เปิดห้องเขียนต้นฉบับและวางเคอร์เซอร์ในตำแหน่งที่ต้องการก่อนแทรกภาพ</p>
+            <div id="illustrationSelectedPreview" class="illustration-selected-preview" hidden></div>
+            <div class="ai-notice">คลังภาพประกอบแยกตามนิยายและเก็บในอุปกรณ์นี้ ภาพที่แทรกในบทจะถูกบันทึกไปกับต้นฉบับบน Cloud</div>
+          </div>
+        </div>
+        <section class="card-frame form-card illustration-library-section"><div class="section-heading"><div><h2>คลังภาพประกอบของนิยายนี้</h2><p>เลือกภาพที่บันทึกไว้กลับมาแทรกในต้นฉบับได้</p></div><label class="library-filter-label" for="illustrationLibraryFilter">กรองหมวด <select id="illustrationLibraryFilter"><option value="all">ทั้งหมด</option><option value="scene">ฉากสำคัญ</option><option value="character">ตัวละคร</option><option value="location">สถานที่</option><option value="object">สิ่งของ / วัตถุ</option><option value="cover">ปก / ภาพโปรโมต</option><option value="other">อื่น ๆ</option></select></label></div><div id="illustrationLibraryGallery" class="character-reference-gallery" aria-live="polite"><p class="muted-note">คลังภาพยังว่าง</p></div></section>
+      </section>
+      <section id="assistant" class="panel hidden">
+        <div class="page-intro"><div><span class="eyebrow">AI STORY ASSISTANT</span><h1>ผู้ช่วยเขียนนิยาย AI</h1><p>ผู้ช่วยที่ควรเข้าใจบริบทของนิยายที่คุณกำลังเขียน</p></div></div>
+        <div class="card-frame assistant-workspace"><div class="modebar"><button class="mode active" data-mode="writer">นักเขียน</button><button class="mode" data-mode="brainstorm">ระดมไอเดีย</button><button class="mode" data-mode="editor">บรรณาธิการ</button><button class="mode" data-mode="publisher">สำนักพิมพ์</button></div><label for="prompt">คำสั่งสำหรับ AI</label><textarea id="prompt" rows="6" placeholder="เช่น ช่วยวางฉากเปิดเรื่องโดยยึดตามข้อมูลตัวละครและโลกนิยาย..."></textarea><div class="row-actions"><button id="run" class="gold-button" disabled>✦ OpenAI (ChatGPT) — เตรียมเชื่อมต่อ</button><button id="copyStoryContext" class="outline-button" type="button">คัดลอกบริบทไปใช้กับ ChatGPT</button></div><div class="ai-notice">ผู้ให้บริการหลักที่วางแผนไว้: OpenAI (ChatGPT) · ยังไม่เชื่อมต่อ API</div><p class="form-hint">ตอนนี้คัดลอกบริบทนิยายไปวางใน ChatGPT ได้โดยตรง ข้อมูลจะไม่ถูกส่งออกจาก StoryForge อัตโนมัติ การเชื่อม API ในเว็บไซต์จะเปิดได้เมื่อเจ้าของอนุมัติค่าใช้จ่ายและตั้งค่าคีย์อย่างปลอดภัยบนเซิร์ฟเวอร์เท่านั้น</p><div class="result-head"><h3>ผลงานจาก AI</h3><div><button id="copy" class="outline-button compact">คัดลอก</button><button id="download" class="outline-button compact">ดาวน์โหลด .txt</button></div></div><pre id="output">คำตอบจาก AI จะแสดงที่นี่เมื่อเชื่อมต่อระบบเรียบร้อย</pre></div>
+      </section>
+      <section id="backup" class="panel hidden">
+        <div class="page-intro"><div><span class="eyebrow">BACKUP & RECOVERY</span><h1>สำรองและกู้คืนข้อมูล</h1><p>จัดเก็บไฟล์สำรองของข้อมูลที่อยู่ในเบราว์เซอร์นี้</p></div></div>
+        <div id="backupContent" class="card-frame"></div>
+      </section>
+    </div>
+    <footer class="workspace-footer"><span>STORYFORGE · พื้นที่สร้างสรรค์ของนักเขียน</span><span>รุ่นทดสอบ UI/UX · ข้อมูลในอุปกรณ์นี้</span></footer>
+  </main>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+
+const app = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
+const start = app.indexOf("function analyzeStoryContinuity(");
+const end = app.indexOf("function renderContinuityResults(", start);
+assert.ok(start >= 0 && end > start, "continuity analyzer must exist");
+const helpers = [
+  "function plotChapterIdsForCheck(plot) { try { const ids = JSON.parse(plot.chapter_ids_json || \"[]\"); return Array.isArray(ids) ? ids : []; } catch { return []; } }",
+  "function chapterCharacterIdsForCheck(chapter) { try { const ids = JSON.parse(chapter.character_ids_json || \"[]\"); return Array.isArray(ids) ? ids : []; } catch { return []; } }"
+].join("\n");
+const analyze = new Function(helpers + "\n" + app.slice(start, end) + "\nreturn analyzeStoryContinuity;")();
+
+const characters = [
+  { id: "c1", name: "Mira", profile_json: JSON.stringify({ nickname: "Mi", aliases: "เจ้าหญิงเงา, Mira of Dawn" }) },
+  { id: "c2", name: "Tao", profile_json: "{}" }
+];
+const findings = analyze({
+  scenes: [
+    { title: "ฉากที่ยังไม่วางลงบท", note_type: "scene", scene_status: "planned", chapter_ids_json: "[]" },
+    { title: "ฉากที่อ้างบทหาย", note_type: "scene", scene_status: "drafting", chapter_ids_json: '["missing-scene-chapter"]' },
+    { title: "ฉากเขียนแล้วแต่บทว่าง", note_type: "scene", scene_status: "written", chapter_ids_json: '["ch5"]' }
+  ],
+  characters,
+  chapters: [
+    { id: "ch1", title: "บทแรก", body: "เจ้าหญิงเงาเดินเข้าปราสาท", character_ids_json: '["c1"]' },
+    { id: "ch2", title: "บทแรก", body: "Tao พบกับ Mira ที่ประตู", character_ids_json: "[]" },
+    { id: "ch3", title: "บทสาม", body: "ฝนตกหนัก", character_ids_json: '["c1"]' },
+    { id: "ch5", title: "บทว่าง", body: "", character_ids_json: "[]" },
+    { id: "ch4", title: "บทสี่", body: "เจ้าหญิงเงาปรากฏตัว", character_ids_json: "[]" }
+  ],
+  timeline: [
+    { title: "เหตุการณ์หลัง", story_time: "2026-12-02", sort_order: 1, character_ids_json: '["c2"]' },
+    { title: "เหตุการณ์ก่อน", story_time: "2026-11-01", sort_order: 2 }
+  ],
+  plotThreads: [
+    { title: "เส้นเรื่องของ Tao", status: "in_progress", character_ids_json: '["c2"]', chapter_ids_json: "[]" },
+    { title: "พล็อตเชื่อมบทที่หายไป", status: "in_progress", character_ids_json: "[]", chapter_ids_json: '["missing-chapter"]' },
+    { title: "พล็อต Mira", status: "in_progress", character_ids_json: '["c1"]', chapter_ids_json: '["ch1"]' }
+  ]
+});
+
+assert.ok(findings.some(item => item.title === "ชื่อบทซ้ำ" && item.chapterId === "ch2"));
+assert.ok(findings.some(item => item.title === "ตรวจ Canon ตัวละคร" && item.chapterId === "ch2"));
+assert.ok(findings.some(item => item.title === "ตรวจการปรากฏของตัวละคร" && item.chapterId === "ch3"));
+assert.ok(findings.some(item => item.title === "ตรวจ Canon ตัวละคร" && item.chapterId === "ch4" && item.detail.includes("เจ้าหญิงเงา")));
+assert.ok(findings.some(item => item.title === "เหตุการณ์ Timeline ยังไม่เชื่อมกับบท"));
+assert.ok(findings.some(item => item.title === "ลำดับ Timeline อาจไม่ตรงวันที่"));
+assert.ok(findings.some(item => item.title === "เส้นเรื่องยังไม่เชื่อมกับบท"));
+assert.ok(findings.some(item => item.title === "เส้นเรื่องอ้างอิงบทที่ไม่พบ"));
+assert.ok(findings.some(item => item.title === "ฉากยังไม่เชื่อมกับบท"));
+assert.ok(findings.some(item => item.title === "ฉากอ้างอิงบทที่ไม่พบ"));
+assert.ok(findings.some(item => item.title === "ฉากเขียนแล้วแต่บทว่าง"));
+assert.ok(!findings.some(item => item.title === "ตรวจ Canon ของเส้นเรื่อง" && item.detail.includes("พล็อต “พล็อต Mira”")), "linked plot and chapter canon should match");
+assert.ok(!findings.some(item => item.title === "ตรวจการปรากฏของตัวละคร" && item.chapterId === "ch1"));
+assert.ok(!findings.some(item => item.title === "ตรวจ Canon ตัวละคร" && item.chapterId === "ch1"), "aliases should count as a character mention");
+console.log("Continuity checker tests passed");
