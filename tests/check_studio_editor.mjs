@@ -122,3 +122,7 @@ assert.match(css, /\.genre-level output\s*\{[^}]*width:\s*92px;[^}]*min-width:\s
   "genre score output must have enough fixed width for the numeric label");
 assert.match(css, /@media\s*\(max-width:\s*1280px\)[\s\S]*?\.genre-level-grid\s*\{\s*grid-template-columns:\s*minmax\(0, 1fr\)/,
   "tablet layouts must stack genre scoring rows to prevent adjacent score overlap");
+
+
+assert.match(css, /\.form-card\s+\.row-actions\s*>\s*\.gold-button\s*\{\s*margin-top:\s*0;/,
+  "primary buttons inside form action rows must not inherit standalone submit spacing");
