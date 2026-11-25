@@ -2002,3 +2002,12 @@ button, input, select, textarea { accent-color: var(--gold); }
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+
+/* Genre labels are Thai text, not arbitrary tokens: wrap at word boundaries
+   rather than breaking every glyph in narrow score cards throughout Studio. */
+.genre-level > label {
+  overflow-wrap: normal;
+  word-break: normal;
+  min-width: 0;
+}
