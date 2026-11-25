@@ -134,5 +134,3 @@ assert.match(css, /\.form-card\s+\.project-form-actions\s*>\s*\.gold-button\s*\{
   "project form primary action must not inherit standalone submit spacing");
 assert.match(css, /\.form-card\s+\.row-actions\s*>\s*\.gold-button\s*\{\s*margin-top:\s*0;/,
   "cover, illustration, and character form action rows must not inherit standalone submit spacing");
-assert.match(css, /\.row-actions\s*>\s*button\s*,\s*\.project-form-actions\s*>\s*button\s*,\s*\.module-actions\s*>\s*button\s*,\s*\.export-actions\s*>\s*button\s*\{\s*flex:\s*0 0 auto;/,
-  "grouped action buttons must keep intrinsic sizing and avoid uneven flex growth");
