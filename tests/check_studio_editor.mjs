@@ -134,3 +134,11 @@ assert.match(css, /\.form-card\s+\.project-form-actions\s*>\s*\.gold-button\s*\{
   "project form primary action must not inherit standalone submit spacing");
 assert.match(css, /\.form-card\s+\.row-actions\s*>\s*\.gold-button\s*\{\s*margin-top:\s*0;/,
   "cover, illustration, and character form action rows must not inherit standalone submit spacing");
+
+
+assert.match(css, /#projects\s+\.genre-level-grid\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\);/,
+  "project genre controls must use one full-width column inside the constrained project form");
+assert.match(css, /#projects\s+\.genre-level\s*>\s*label\s*\{[^}]*overflow-wrap:\s*normal;[^}]*word-break:\s*normal;/s,
+  "Thai genre labels must not break character-by-character in narrow cards");
+assert.match(css, /#projects\s+\.genre-level\s*\{[^}]*grid-template-columns:\s*minmax\(112px,\s*1\.2fr\) 22px minmax\(96px,\s*\.9fr\) 58px;/s,
+  "project genre row must reserve readable label, checkbox, slider, and score tracks");
